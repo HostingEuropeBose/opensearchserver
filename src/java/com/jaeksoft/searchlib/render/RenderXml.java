@@ -31,8 +31,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.lucene.index.CorruptIndexException;
-import org.apache.lucene.queryParser.ParseException;
 
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.facet.Facet;
@@ -40,6 +38,7 @@ import com.jaeksoft.searchlib.facet.FacetField;
 import com.jaeksoft.searchlib.facet.FacetItem;
 import com.jaeksoft.searchlib.facet.FacetList;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
+import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.result.Result;
 import com.jaeksoft.searchlib.result.ResultDocument;
@@ -86,8 +85,8 @@ public class RenderXml implements Render {
 		writer.println("</response>");
 	}
 
-	private void renderDocuments() throws CorruptIndexException, IOException,
-			ParseException, SyntaxError {
+	private void renderDocuments() throws IOException, ParseException,
+			SyntaxError {
 		SearchRequest searchRequest = result.getSearchRequest();
 		int start = searchRequest.getStart();
 		int end = result.getDocumentCount() + searchRequest.getStart();
@@ -109,8 +108,8 @@ public class RenderXml implements Render {
 		writer.println("</result>");
 	}
 
-	private void renderDocument(int pos) throws CorruptIndexException,
-			IOException, ParseException, SyntaxError {
+	private void renderDocument(int pos) throws IOException, ParseException,
+			SyntaxError {
 		writer.print("\t<doc score=\"");
 		writer.print(result.getScore(pos));
 		writer.print("\" pos=\"");
@@ -132,7 +131,7 @@ public class RenderXml implements Render {
 	}
 
 	private void renderField(ResultDocument doc, Field field)
-			throws CorruptIndexException, IOException {
+			throws IOException {
 		String fieldName = field.getName();
 		List<FieldValueItem> values = doc.getValueList(field);
 		if (values == null)

@@ -33,28 +33,16 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.lucene.analysis.PerFieldAnalyzerWrapper;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.index.CorruptIndexException;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.queryParser.ParseException;
-import org.apache.lucene.search.Similarity;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.store.LockObtainFailedException;
-
 import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.analysis.Analyzer;
-import com.jaeksoft.searchlib.analysis.CompiledAnalyzer;
-import com.jaeksoft.searchlib.analysis.LanguageEnum;
+import com.jaeksoft.searchlib.analysis.PerFieldAnalyzerWrapper;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
+import com.jaeksoft.searchlib.index.term.Term;
+import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.schema.Field;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
 import com.jaeksoft.searchlib.schema.Schema;
-import com.jaeksoft.searchlib.schema.SchemaField;
 
 public class WriterLocal extends WriterAbstract {
 
@@ -64,28 +52,11 @@ public class WriterLocal extends WriterAbstract {
 
 	private ReaderLocal readerLocal;
 
-	private String similarityClass;
-
-	private int maxNumSegments;
-
 	protected WriterLocal(IndexConfig indexConfig, ReaderLocal readerLocal)
 			throws IOException {
 		super(indexConfig);
 		this.readerLocal = readerLocal;
 		this.indexWriter = null;
-		this.similarityClass = indexConfig.getSimilarityClass();
-		this.maxNumSegments = indexConfig.getMaxNumSegments();
-	}
-
-	private void unlock() {
-		try {
-			Directory dir = readerLocal.getDirectory();
-			if (!IndexWriter.isLocked(dir))
-				return;
-			IndexWriter.unlock(dir);
-		} catch (IOException e) {
-			Logging.error(e.getMessage(), e);
-		}
 	}
 
 	private void close() {
@@ -94,12 +65,8 @@ public class WriterLocal extends WriterAbstract {
 			if (indexWriter != null) {
 				try {
 					indexWriter.close();
-				} catch (CorruptIndexException e) {
-					Logging.error(e.getMessage(), e);
 				} catch (IOException e) {
 					Logging.error(e.getMessage(), e);
-				} finally {
-					unlock();
 				}
 				indexWriter = null;
 			}
@@ -108,30 +75,21 @@ public class WriterLocal extends WriterAbstract {
 		}
 	}
 
-	private void open() throws CorruptIndexException,
-			LockObtainFailedException, IOException, InstantiationException,
+	private void open() throws IOException, InstantiationException,
 			IllegalAccessException, ClassNotFoundException {
 		l.lock();
 		try {
 			if (indexWriter != null)
 				return;
-			indexWriter = openIndexWriter(readerLocal.getDirectory(), false);
-			indexWriter.setMaxMergeDocs(1000000);
-			if (similarityClass != null) {
-				Similarity similarity = (Similarity) Class.forName(
-						similarityClass).newInstance();
-				indexWriter.setSimilarity(similarity);
-			}
+			indexWriter = openIndexWriter(readerLocal.getDatadir(), false);
 		} finally {
 			l.unlock();
 		}
 	}
 
-	private static IndexWriter openIndexWriter(Directory directory,
-			boolean create) throws CorruptIndexException,
-			LockObtainFailedException, IOException {
-		return new IndexWriter(directory, null, create,
-				IndexWriter.MaxFieldLength.UNLIMITED);
+	private static IndexWriter openIndexWriter(File dataDir, boolean create)
+			throws IOException {
+		return new IndexWriter(dataDir, create);
 	}
 
 	private final static SimpleDateFormat dateDirFormat = new SimpleDateFormat(
@@ -141,12 +99,10 @@ public class WriterLocal extends WriterAbstract {
 
 		File dataDir = new File(rootDir, dateDirFormat.format(new Date()));
 
-		Directory directory = null;
 		IndexWriter indexWriter = null;
 		try {
 			dataDir.mkdirs();
-			directory = FSDirectory.open(dataDir);
-			indexWriter = openIndexWriter(directory, true);
+			indexWriter = openIndexWriter(dataDir, true);
 			return dataDir;
 		} catch (IOException e) {
 			throw e;
@@ -154,15 +110,6 @@ public class WriterLocal extends WriterAbstract {
 			if (indexWriter != null) {
 				try {
 					indexWriter.close();
-				} catch (CorruptIndexException e) {
-					Logging.error(e.getMessage(), e);
-				} catch (IOException e) {
-					Logging.error(e.getMessage(), e);
-				}
-			}
-			if (directory != null) {
-				try {
-					directory.close();
 				} catch (IOException e) {
 					Logging.error(e.getMessage(), e);
 				}
@@ -171,9 +118,9 @@ public class WriterLocal extends WriterAbstract {
 	}
 
 	@Deprecated
-	public void addDocument(Document document) throws CorruptIndexException,
-			LockObtainFailedException, IOException, InstantiationException,
-			IllegalAccessException, ClassNotFoundException {
+	public void addDocument(IndexDocument document) throws IOException,
+			InstantiationException, IllegalAccessException,
+			ClassNotFoundException {
 		l.lock();
 		try {
 			open();
@@ -185,8 +132,7 @@ public class WriterLocal extends WriterAbstract {
 	}
 
 	private boolean updateDoc(Schema schema, IndexDocument document)
-			throws CorruptIndexException, IOException,
-			NoSuchAlgorithmException, SearchLibException {
+			throws IOException, NoSuchAlgorithmException, SearchLibException {
 		if (!acceptDocument(document))
 			return false;
 
@@ -194,18 +140,18 @@ public class WriterLocal extends WriterAbstract {
 			for (BeforeUpdateInterface beforeUpdate : beforeUpdateList)
 				beforeUpdate.update(schema, document);
 
-		Document doc = getLuceneDocument(schema, document);
 		PerFieldAnalyzerWrapper pfa = schema.getIndexPerFieldAnalyzer(document
 				.getLang());
 
 		Field uniqueField = schema.getFieldList().getUniqueField();
 		if (uniqueField != null) {
 			String uniqueFieldName = uniqueField.getName();
-			String uniqueFieldValue = doc.get(uniqueFieldName);
+			FieldValueItem uniqueFieldValue = document.getFieldValue(
+					uniqueFieldName, 0);
 			indexWriter.updateDocument(new Term(uniqueFieldName,
-					uniqueFieldValue), doc, pfa);
+					uniqueFieldValue.getValue()), document, pfa);
 		} else
-			indexWriter.addDocument(doc, pfa);
+			indexWriter.addDocument(document, pfa);
 		return true;
 	}
 
@@ -220,10 +166,6 @@ public class WriterLocal extends WriterAbstract {
 			if (updated)
 				readerLocal.reload();
 			return updated;
-		} catch (CorruptIndexException e) {
-			throw new SearchLibException(e);
-		} catch (LockObtainFailedException e) {
-			throw new SearchLibException(e);
 		} catch (IOException e) {
 			throw new SearchLibException(e);
 		} catch (InstantiationException e) {
@@ -254,10 +196,6 @@ public class WriterLocal extends WriterAbstract {
 			if (count > 0)
 				readerLocal.reload();
 			return count;
-		} catch (CorruptIndexException e) {
-			throw new SearchLibException(e);
-		} catch (LockObtainFailedException e) {
-			throw new SearchLibException(e);
 		} catch (IOException e) {
 			throw new SearchLibException(e);
 		} catch (InstantiationException e) {
@@ -275,46 +213,14 @@ public class WriterLocal extends WriterAbstract {
 
 	}
 
-	private static Document getLuceneDocument(Schema schema,
-			IndexDocument document) throws IOException, SearchLibException {
-		schema.getQueryPerFieldAnalyzer(document.getLang());
-		Document doc = new Document();
-		LanguageEnum lang = document.getLang();
-		for (FieldContent fieldContent : document) {
-			String fieldName = fieldContent.getField();
-			SchemaField field = schema.getFieldList().get(fieldName);
-			if (field != null) {
-				Analyzer analyzer = schema.getAnalyzer(field, lang);
-				CompiledAnalyzer compiledAnalyzer = (analyzer == null) ? null
-						: analyzer.getIndexAnalyzer();
-				for (FieldValueItem valueItem : fieldContent.getValues()) {
-					if (valueItem == null)
-						continue;
-					String value = valueItem.getValue();
-					if (value == null)
-						continue;
-					if (compiledAnalyzer != null)
-						if (!compiledAnalyzer.isAnyToken(fieldName, value))
-							continue;
-					doc.add(field.getLuceneField(value, valueItem.getBoost()));
-				}
-			}
-		}
-		return doc;
-	}
-
 	@Override
 	public void optimize() throws SearchLibException {
 		l.lock();
 		try {
 			open();
 			optimizing = true;
-			indexWriter.optimize(maxNumSegments, true);
+			indexWriter.optimize(true);
 			close();
-		} catch (CorruptIndexException e) {
-			throw new SearchLibException(e);
-		} catch (LockObtainFailedException e) {
-			throw new SearchLibException(e);
 		} catch (IOException e) {
 			throw new SearchLibException(e);
 		} catch (InstantiationException e) {
@@ -341,10 +247,6 @@ public class WriterLocal extends WriterAbstract {
 			close();
 			readerLocal.reload();
 			return true;
-		} catch (CorruptIndexException e) {
-			throw new SearchLibException(e);
-		} catch (LockObtainFailedException e) {
-			throw new SearchLibException(e);
 		} catch (IOException e) {
 			throw new SearchLibException(e);
 		} catch (InstantiationException e) {
@@ -375,10 +277,6 @@ public class WriterLocal extends WriterAbstract {
 			if (terms.length > 0)
 				readerLocal.reload();
 			return terms.length;
-		} catch (CorruptIndexException e) {
-			throw new SearchLibException(e);
-		} catch (LockObtainFailedException e) {
-			throw new SearchLibException(e);
 		} catch (IOException e) {
 			throw new SearchLibException(e);
 		} catch (InstantiationException e) {
@@ -402,10 +300,6 @@ public class WriterLocal extends WriterAbstract {
 			close();
 			readerLocal.reload();
 			return 0;
-		} catch (CorruptIndexException e) {
-			throw new SearchLibException(e);
-		} catch (LockObtainFailedException e) {
-			throw new SearchLibException(e);
 		} catch (IOException e) {
 			throw new SearchLibException(e);
 		} catch (InstantiationException e) {

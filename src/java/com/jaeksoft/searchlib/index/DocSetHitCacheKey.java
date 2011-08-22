@@ -26,13 +26,12 @@ package com.jaeksoft.searchlib.index;
 
 import java.io.IOException;
 
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.queryParser.ParseException;
-
 import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.analysis.Analyzer;
 import com.jaeksoft.searchlib.cache.CacheKeyInterface;
 import com.jaeksoft.searchlib.filter.FilterListCacheKey;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
+import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.schema.Field;
 
@@ -44,8 +43,8 @@ public class DocSetHitCacheKey implements CacheKeyInterface<DocSetHitCacheKey> {
 	private FilterListCacheKey filterListCacheKey;
 
 	public DocSetHitCacheKey(SearchRequest searchRequest, Field defaultField,
-			Analyzer analyzer) throws ParseException, SyntaxError,
-			SearchLibException, IOException {
+			Analyzer analyzer) throws SyntaxError, SearchLibException,
+			IOException, ParseException {
 		query = searchRequest.getQuery().toString();
 		facet = searchRequest.isFacet();
 		sortListCacheKey = searchRequest.getSortList().getFieldList()

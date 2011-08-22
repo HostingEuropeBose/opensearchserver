@@ -29,9 +29,8 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-import org.apache.lucene.search.FieldCache.StringIndex;
-import org.apache.lucene.search.ScoreDoc;
-
+import com.jaeksoft.searchlib.index.ScoreDoc;
+import com.jaeksoft.searchlib.index.StringIndex;
 import com.jaeksoft.searchlib.util.External;
 
 public class ResultScoreDoc implements Externalizable {

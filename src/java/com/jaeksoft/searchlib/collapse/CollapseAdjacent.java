@@ -24,7 +24,7 @@
 
 package com.jaeksoft.searchlib.collapse;
 
-import org.apache.lucene.util.OpenBitSet;
+import java.util.BitSet;
 
 import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.result.ResultScoreDoc;
@@ -38,7 +38,7 @@ public abstract class CollapseAdjacent extends CollapseAbstract {
 	@Override
 	protected void collapse(ResultScoreDoc[] fetchedDocs, int fetchLength) {
 
-		OpenBitSet collapsedSet = new OpenBitSet(fetchLength);
+		BitSet collapsedSet = new BitSet(fetchLength);
 
 		String lastTerm = null;
 		int adjacent = 0;

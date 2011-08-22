@@ -24,14 +24,15 @@
 
 package com.jaeksoft.searchlib.analysis.filter;
 
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.ngram.NGramTokenFilter;
-
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.ClassPropertyEnum;
 import com.jaeksoft.searchlib.analysis.FilterFactory;
+import com.jaeksoft.searchlib.analysis.TokenStream;
 
 public class NGramFilter extends FilterFactory {
+
+	private final static int DEFAULT_MIN_NGRAM_SIZE = 1;
+	private final static int DEFAULT_MAX_NGRAM_SIZE = 32;
 
 	private int min;
 	private int max;
@@ -40,9 +41,9 @@ public class NGramFilter extends FilterFactory {
 	protected void initProperties() throws SearchLibException {
 		super.initProperties();
 		addProperty(ClassPropertyEnum.MIN_GRAM,
-				Integer.toString(NGramTokenFilter.DEFAULT_MIN_NGRAM_SIZE), null);
+				Integer.toString(DEFAULT_MIN_NGRAM_SIZE), null);
 		addProperty(ClassPropertyEnum.MAX_GRAM,
-				Integer.toString(NGramTokenFilter.DEFAULT_MAX_NGRAM_SIZE), null);
+				Integer.toString(DEFAULT_MAX_NGRAM_SIZE), null);
 	}
 
 	@Override
@@ -55,8 +56,9 @@ public class NGramFilter extends FilterFactory {
 	}
 
 	@Override
-	public TokenStream create(TokenStream input) {
-		return new NGramTokenFilter(input, min, max);
+	public TokenStream create(TokenStream tokenStream) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

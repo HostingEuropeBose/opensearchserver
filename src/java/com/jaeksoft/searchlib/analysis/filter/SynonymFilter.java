@@ -24,14 +24,12 @@
 
 package com.jaeksoft.searchlib.analysis.filter;
 
-import org.apache.lucene.analysis.TokenStream;
-
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.ClassPropertyEnum;
 import com.jaeksoft.searchlib.analysis.FilterFactory;
+import com.jaeksoft.searchlib.analysis.TokenStream;
 import com.jaeksoft.searchlib.analysis.synonym.SynonymMap;
 import com.jaeksoft.searchlib.analysis.synonym.SynonymQueue;
-import com.jaeksoft.searchlib.analysis.synonym.SynonymTokenFilter;
 
 public class SynonymFilter extends FilterFactory {
 
@@ -60,7 +58,7 @@ public class SynonymFilter extends FilterFactory {
 		if (synonyms == null)
 			return tokenStream;
 		for (SynonymQueue queue : synonyms.getSynonymQueues())
-			tokenStream = new SynonymTokenFilter(tokenStream, queue);
+			;// TODO tokenStream = new SynonymTokenFilter(tokenStream, queue);
 		return tokenStream;
 	}
 

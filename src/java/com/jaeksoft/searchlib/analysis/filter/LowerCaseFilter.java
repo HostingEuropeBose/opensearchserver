@@ -24,15 +24,15 @@
 
 package com.jaeksoft.searchlib.analysis.filter;
 
-import org.apache.lucene.analysis.TokenStream;
-
 import com.jaeksoft.searchlib.analysis.FilterFactory;
+import com.jaeksoft.searchlib.analysis.TokenStream;
 
 public class LowerCaseFilter extends FilterFactory {
 
 	@Override
 	public TokenStream create(TokenStream tokenStream) {
-		return new org.apache.lucene.analysis.LowerCaseFilter(tokenStream);
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

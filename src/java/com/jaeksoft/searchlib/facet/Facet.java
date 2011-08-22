@@ -28,16 +28,15 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.BitSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.lucene.index.Term;
-import org.apache.lucene.index.TermDocs;
-import org.apache.lucene.search.FieldCache.StringIndex;
-import org.apache.lucene.util.OpenBitSet;
-
 import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.index.StringIndex;
+import com.jaeksoft.searchlib.index.term.Term;
+import com.jaeksoft.searchlib.index.term.TermDocs;
 import com.jaeksoft.searchlib.result.ResultScoreDoc;
 import com.jaeksoft.searchlib.result.ResultSingle;
 import com.jaeksoft.searchlib.util.External;
@@ -154,9 +153,9 @@ public class Facet implements Externalizable, Iterable<FacetItem>,
 		String fieldName = facetField.getName();
 		ReaderLocal reader = result.getReader();
 		StringIndex stringIndex = reader.getStringIndex(fieldName);
-		OpenBitSet bitset = new OpenBitSet(reader.maxDoc());
+		BitSet bitset = new BitSet(reader.maxDoc());
 		for (ResultScoreDoc doc : result.getCollapse().getCollapsedDoc())
-			bitset.fastSet(doc.doc);
+			bitset.set(doc.doc);
 		int[] countIndex = Facet.computeMultivalued(reader, fieldName, bitset);
 		return new Facet(facetField, stringIndex.lookup, countIndex);
 	}
@@ -191,7 +190,7 @@ public class Facet implements Externalizable, Iterable<FacetItem>,
 	}
 
 	final public static int[] computeMultivalued(ReaderLocal reader,
-			String fieldName, OpenBitSet bitset) throws IOException {
+			String fieldName, BitSet bitset) throws IOException {
 		StringIndex stringIndex = reader.getStringIndex(fieldName);
 		int[] countIndex = new int[stringIndex.lookup.length];
 		int i = 0;
@@ -201,7 +200,7 @@ public class Facet implements Externalizable, Iterable<FacetItem>,
 				TermDocs termDocs = reader.getTermDocs(t);
 				while (termDocs.next())
 					if (termDocs.freq() > 0)
-						if (bitset.fastGet(termDocs.doc()))
+						if (bitset.get(termDocs.doc()))
 							countIndex[i]++;
 			}
 			i++;

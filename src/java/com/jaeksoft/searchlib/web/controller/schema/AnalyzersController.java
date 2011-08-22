@@ -47,7 +47,6 @@ import com.jaeksoft.searchlib.analysis.FilterEnum;
 import com.jaeksoft.searchlib.analysis.FilterFactory;
 import com.jaeksoft.searchlib.analysis.FilterScope;
 import com.jaeksoft.searchlib.analysis.tokenizer.TokenizerEnum;
-import com.jaeksoft.searchlib.analysis.tokenizer.TokenizerFactory;
 import com.jaeksoft.searchlib.schema.Schema;
 import com.jaeksoft.searchlib.web.controller.AlertController;
 import com.jaeksoft.searchlib.web.controller.CommonController;
@@ -118,7 +117,7 @@ public class AnalyzersController extends CommonController implements
 		Client client = getClient();
 		if (client != null) {
 			currentFilter = FilterFactory.getDefaultFilter(client);
-			currentAnalyzer = new Analyzer(client);
+			currentAnalyzer = new Analyzer();
 		}
 		testType = "query";
 		testText = null;
@@ -216,21 +215,6 @@ public class AnalyzersController extends CommonController implements
 		return currentAnalyzer;
 	}
 
-	public String getCurrentTokenizer() {
-		Analyzer analyzer = getCurrentAnalyzer();
-		if (analyzer == null)
-			return null;
-		TokenizerFactory tokenizer = analyzer.getTokenizer();
-		if (tokenizer == null)
-			return null;
-		return tokenizer.getClassName();
-	}
-
-	public void setCurrentTokenizer(String className) throws SearchLibException {
-		getCurrentAnalyzer().setTokenizer(
-				TokenizerFactory.create(getClient(), className));
-	}
-
 	public void onEdit() throws SearchLibException {
 		editAnalyzer = getSelectedAnalyzer();
 		if (editAnalyzer != null)
@@ -261,7 +245,7 @@ public class AnalyzersController extends CommonController implements
 
 	public void onCancel() throws SearchLibException {
 		editAnalyzer = null;
-		currentAnalyzer = new Analyzer(getClient());
+		currentAnalyzer = new Analyzer();
 		reloadPage();
 	}
 

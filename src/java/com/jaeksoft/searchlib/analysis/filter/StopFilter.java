@@ -24,16 +24,15 @@
 
 package com.jaeksoft.searchlib.analysis.filter;
 
-import org.apache.lucene.analysis.CharArraySet;
-import org.apache.lucene.analysis.TokenStream;
-
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.ClassPropertyEnum;
 import com.jaeksoft.searchlib.analysis.FilterFactory;
+import com.jaeksoft.searchlib.analysis.TokenStream;
+import com.jaeksoft.searchlib.analysis.stopwords.WordSet;
 
 public class StopFilter extends FilterFactory {
 
-	private CharArraySet words;
+	private WordSet words;
 
 	@Override
 	public void initProperties() throws SearchLibException {
@@ -55,7 +54,8 @@ public class StopFilter extends FilterFactory {
 
 	@Override
 	public TokenStream create(TokenStream tokenStream) {
-		return new org.apache.lucene.analysis.StopFilter(false, tokenStream,
-				words);
+		// TODO Auto-generated method stub
+		return null;
 	}
+
 }

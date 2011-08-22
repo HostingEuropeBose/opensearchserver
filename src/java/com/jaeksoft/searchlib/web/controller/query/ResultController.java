@@ -31,8 +31,6 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.lucene.index.CorruptIndexException;
-import org.apache.lucene.queryParser.ParseException;
 import org.zkoss.zk.ui.Component;
 import org.zkoss.zul.AbstractTreeModel;
 import org.zkoss.zul.Filedownload;
@@ -47,6 +45,7 @@ import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.facet.Facet;
 import com.jaeksoft.searchlib.facet.FacetList;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
+import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.render.RenderCSV;
 import com.jaeksoft.searchlib.result.Result;
 import com.jaeksoft.searchlib.result.ResultDocument;
@@ -130,32 +129,32 @@ public class ResultController extends AbstractQueryController implements
 			return getResult().getDocs()[pos].doc;
 		}
 
-		public ResultDocument getResultDocument() throws CorruptIndexException,
-				IOException, ParseException, SyntaxError {
+		public ResultDocument getResultDocument() throws IOException,
+				ParseException, SyntaxError {
 			Result result = getResult();
 			if (result == null)
 				return null;
 			return result.getDocument(pos);
 		}
 
-		public boolean isReturnValid() throws CorruptIndexException,
-				IOException, ParseException, SyntaxError {
+		public boolean isReturnValid() throws IOException, ParseException,
+				SyntaxError {
 			ResultDocument resultDocument = getResultDocument();
 			if (resultDocument == null)
 				return false;
 			return resultDocument.getReturnFields().size() > 0;
 		}
 
-		public boolean isSnippetValid() throws CorruptIndexException,
-				IOException, ParseException, SyntaxError {
+		public boolean isSnippetValid() throws IOException, ParseException,
+				SyntaxError {
 			ResultDocument resultDocument = getResultDocument();
 			if (resultDocument == null)
 				return false;
 			return resultDocument.getSnippetFields().size() > 0;
 		}
 
-		public String getReturnPercent() throws CorruptIndexException,
-				IOException, ParseException, SyntaxError {
+		public String getReturnPercent() throws IOException, ParseException,
+				SyntaxError {
 			if (!isReturnValid())
 				return "0%";
 			if (!isSnippetValid())
@@ -163,8 +162,8 @@ public class ResultController extends AbstractQueryController implements
 			return "50%";
 		}
 
-		public String getSnippetPercent() throws CorruptIndexException,
-				IOException, ParseException, SyntaxError {
+		public String getSnippetPercent() throws IOException, ParseException,
+				SyntaxError {
 			if (!isSnippetValid())
 				return "0%";
 			if (!isReturnValid())
@@ -172,8 +171,8 @@ public class ResultController extends AbstractQueryController implements
 			return "50%";
 		}
 
-		public TreeModel getReturnTree() throws CorruptIndexException,
-				IOException, ParseException, SyntaxError {
+		public TreeModel getReturnTree() throws IOException, ParseException,
+				SyntaxError {
 			ResultDocument resultDocument = getResultDocument();
 			if (resultDocument == null)
 				return null;
@@ -181,8 +180,8 @@ public class ResultController extends AbstractQueryController implements
 					resultDocument.getReturnFields());
 		}
 
-		public TreeModel getSnippetTree() throws CorruptIndexException,
-				IOException, ParseException, SyntaxError {
+		public TreeModel getSnippetTree() throws IOException, ParseException,
+				SyntaxError {
 			ResultDocument resultDocument = getResultDocument();
 			if (resultDocument == null)
 				return null;

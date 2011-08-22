@@ -24,25 +24,19 @@
 
 package com.jaeksoft.searchlib.sort;
 
-import java.io.Externalizable;
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 
-import org.apache.lucene.search.FieldCache.StringIndex;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.cache.CacheKeyInterface;
 import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.index.StringIndex;
 import com.jaeksoft.searchlib.schema.Field;
 import com.jaeksoft.searchlib.util.DomUtils;
 import com.jaeksoft.searchlib.util.XmlWriter;
 
-public class SortField extends Field implements Externalizable,
-		CacheKeyInterface<Field> {
-
-	private static final long serialVersionUID = -476489382677039069L;
+public class SortField extends Field implements CacheKeyInterface<Field> {
 
 	private boolean desc;
 
@@ -85,28 +79,6 @@ public class SortField extends Field implements Externalizable,
 		String name = (c == '+' || c == '-') ? requestSort.substring(1)
 				: requestSort;
 		return new SortField(name, desc);
-	}
-
-	protected org.apache.lucene.search.SortField getLuceneSortField() {
-		if (name.equals("score"))
-			return new org.apache.lucene.search.SortField(name,
-					org.apache.lucene.search.SortField.SCORE, desc);
-		else
-			return new org.apache.lucene.search.SortField(name,
-					org.apache.lucene.search.SortField.STRING, desc);
-	}
-
-	@Override
-	public void readExternal(ObjectInput in) throws IOException,
-			ClassNotFoundException {
-		super.readExternal(in);
-		desc = in.readBoolean();
-	}
-
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		super.writeExternal(out);
-		out.writeBoolean(desc);
 	}
 
 	public SorterAbstract getSorter() {

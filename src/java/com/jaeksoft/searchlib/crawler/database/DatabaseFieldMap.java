@@ -34,7 +34,6 @@ import java.sql.SQLException;
 import java.util.TreeSet;
 
 import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.lucene.queryParser.ParseException;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
@@ -49,6 +48,7 @@ import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.IndexDocument;
 import com.jaeksoft.searchlib.parser.Parser;
 import com.jaeksoft.searchlib.parser.ParserSelector;
+import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
 import com.jaeksoft.searchlib.util.StringUtils;
 import com.jaeksoft.searchlib.util.XmlWriter;

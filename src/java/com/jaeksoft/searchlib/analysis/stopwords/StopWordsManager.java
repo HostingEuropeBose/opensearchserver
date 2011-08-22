@@ -34,25 +34,23 @@ import java.io.UnsupportedEncodingException;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.lucene.analysis.CharArraySet;
-
 import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.config.Config;
 
 public class StopWordsManager extends AbstractDirectoryManager {
 
-	private Map<String, CharArraySet> wordsMap;
+	private Map<String, WordSet> wordsMap;
 
 	public StopWordsManager(Config config, File directory) {
 		super(config, directory);
-		wordsMap = new TreeMap<String, CharArraySet>();
+		wordsMap = new TreeMap<String, WordSet>();
 	}
 
-	public CharArraySet getWords(String listname) throws SearchLibException {
+	public WordSet getWords(String listname) throws SearchLibException {
 		rwl.r.lock();
 		try {
-			CharArraySet words = wordsMap.get(listname);
+			WordSet words = wordsMap.get(listname);
 			if (words != null)
 				return words;
 		} finally {
@@ -60,10 +58,10 @@ public class StopWordsManager extends AbstractDirectoryManager {
 		}
 		rwl.w.lock();
 		try {
-			CharArraySet words = wordsMap.get(listname);
+			WordSet words = wordsMap.get(listname);
 			if (words != null)
 				return words;
-			words = getNewCharArraySet(listname);
+			words = getNewWordSet(listname);
 			wordsMap.put(listname, words);
 			return words;
 		} finally {
@@ -71,16 +69,15 @@ public class StopWordsManager extends AbstractDirectoryManager {
 		}
 	}
 
-	private CharArraySet getNewCharArraySet(String listname)
-			throws SearchLibException {
+	private WordSet getNewWordSet(String listname) throws SearchLibException {
 		BufferedReader br = null;
 		try {
-			CharArraySet words = wordsMap.get(listname);
+			WordSet words = wordsMap.get(listname);
 			if (words != null)
 				return words;
 			br = new BufferedReader(new InputStreamReader(new FileInputStream(
 					getFile(listname)), "UTF-8"));
-			words = new CharArraySet(0, true);
+			words = new WordSet(0, true);
 			String line;
 			while ((line = br.readLine()) != null) {
 				line = line.trim();
@@ -124,7 +121,7 @@ public class StopWordsManager extends AbstractDirectoryManager {
 		try {
 			super.saveContent(name, content);
 			wordsMap.remove(name);
-			wordsMap.put(name, getNewCharArraySet(name));
+			wordsMap.put(name, getNewWordSet(name));
 		} finally {
 			rwl.w.unlock();
 		}

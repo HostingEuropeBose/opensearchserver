@@ -24,33 +24,20 @@
 
 package com.jaeksoft.searchlib.analysis.shingle;
 
-import java.io.IOException;
+import com.jaeksoft.searchlib.analysis.TokenStream;
 
-import org.apache.lucene.analysis.TokenFilter;
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
-import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
-import org.apache.lucene.analysis.tokenattributes.TermAttribute;
-import org.apache.lucene.util.AttributeSource;
-
-public class ShingleTokenFilter extends TokenFilter {
-
-	private TermAttribute termAtt;
-
-	private AttributeSource.State current = null;
-
-	private PositionIncrementAttribute posIncrAtt = null;
-
-	private OffsetAttribute offsetAtt = null;
+public class ShingleTokenFilter extends TokenStream {
 
 	private ShingleQueue[] shingles;
 
 	public ShingleTokenFilter(TokenStream tokenStream, String tokenSeparator,
 			int minShingleSize, int maxShingleSize) {
 		super(tokenStream);
-		this.termAtt = (TermAttribute) addAttribute(TermAttribute.class);
-		this.posIncrAtt = (PositionIncrementAttribute) addAttribute(PositionIncrementAttribute.class);
-		this.offsetAtt = (OffsetAttribute) addAttribute(OffsetAttribute.class);
+		// this.termAtt = (TermAttribute) addAttribute(TermAttribute.class);
+		// this.posIncrAtt = (PositionIncrementAttribute)
+		// addAttribute(PositionIncrementAttribute.class);
+		// this.offsetAtt = (OffsetAttribute)
+		// addAttribute(OffsetAttribute.class);
 		shingles = new ShingleQueue[maxShingleSize - minShingleSize + 1];
 		for (int i = 0; i < shingles.length; i++)
 			shingles[i] = new ShingleQueue(tokenSeparator, maxShingleSize - i);
@@ -65,10 +52,10 @@ public class ShingleTokenFilter extends TokenFilter {
 
 	private final boolean createToken(String term, int posInc, int startOff,
 			int endOff) {
-		restoreState(current);
-		termAtt.setTermBuffer(term);
-		posIncrAtt.setPositionIncrement(posInc);
-		offsetAtt.setOffset(startOff, endOff);
+		// restoreState(current);
+		// termAtt.setTermBuffer(term);
+		// posIncrAtt.setPositionIncrement(posInc);
+		// offsetAtt.setOffset(startOff, endOff);
 		return true;
 	}
 
@@ -86,17 +73,17 @@ public class ShingleTokenFilter extends TokenFilter {
 	}
 
 	@Override
-	public final boolean incrementToken() throws IOException {
-		current = captureState();
+	public final boolean incrementToken() {
+		// current = captureState();
 		for (;;) {
 			ShingleQueue shingle = isToken();
 			if (shingle != null)
 				return createToken(shingle);
 			if (!input.incrementToken())
 				return false;
-			addToken(new ShingleToken(termAtt.term(),
-					posIncrAtt.getPositionIncrement(), offsetAtt.startOffset(),
-					offsetAtt.endOffset()));
+			// addToken(new ShingleToken(termAtt.term(),
+			// posIncrAtt.getPositionIncrement(), offsetAtt.startOffset(),
+			// offsetAtt.endOffset()));
 		}
 	}
 

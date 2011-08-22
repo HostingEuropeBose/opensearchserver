@@ -26,16 +26,14 @@ package com.jaeksoft.searchlib.cache;
 
 import java.io.IOException;
 
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Fieldable;
-import org.apache.lucene.index.CorruptIndexException;
-import org.apache.lucene.index.TermFreqVector;
-import org.apache.lucene.queryParser.ParseException;
-
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
+import com.jaeksoft.searchlib.index.FieldContent;
 import com.jaeksoft.searchlib.index.FieldContentCacheKey;
 import com.jaeksoft.searchlib.index.IndexConfig;
+import com.jaeksoft.searchlib.index.IndexDocument;
 import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.index.term.TermFreqVector;
+import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.schema.Field;
 import com.jaeksoft.searchlib.schema.FieldList;
 import com.jaeksoft.searchlib.schema.FieldValue;
@@ -52,8 +50,8 @@ public class FieldCache extends
 	}
 
 	public FieldList<FieldValue> get(ReaderLocal reader, int docId,
-			FieldList<Field> fieldList) throws CorruptIndexException,
-			IOException, ParseException, SyntaxError {
+			FieldList<Field> fieldList) throws IOException, ParseException,
+			SyntaxError {
 		FieldList<FieldValue> documentFields = new FieldList<FieldValue>();
 		FieldList<Field> storeField = new FieldList<Field>();
 		FieldList<Field> vectorField = new FieldList<Field>();
@@ -72,15 +70,14 @@ public class FieldCache extends
 
 		// Check missing fields from store
 		if (storeField.size() > 0) {
-			Document document = reader.getDocFields(docId, storeField);
+			IndexDocument document = reader.getDocFields(docId, storeField);
 			for (Field field : storeField) {
 				FieldContentCacheKey key = new FieldContentCacheKey(
 						field.getName(), docId);
-				Fieldable[] fieldables = document
-						.getFieldables(field.getName());
-				if (fieldables != null && fieldables.length > 0) {
+				FieldContent fieldContent = document.getField(field.getName());
+				if (fieldContent != null) {
 					FieldValueItem[] valueItems = FieldValueItem
-							.buildArray(fieldables);
+							.buildArray(fieldContent.getValues());
 					documentFields.add(new FieldValue(field, valueItems));
 					put(key, valueItems);
 				} else
@@ -96,8 +93,7 @@ public class FieldCache extends
 						docId);
 				TermFreqVector tfv = reader.getTermFreqVector(docId, fieldName);
 				if (tfv != null) {
-					FieldValueItem[] valueItems = FieldValueItem.buildArray(tfv
-							.getTerms());
+					FieldValueItem[] valueItems = tfv.getTerms();
 					documentFields.add(new FieldValue(field, valueItems));
 					put(key, valueItems);
 				} else

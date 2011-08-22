@@ -80,21 +80,6 @@ public class SchemaField extends Field {
 		this.termVector = TermVector.fromValue(termVector);
 	}
 
-	final public org.apache.lucene.document.Field getLuceneField(String value,
-			Float boost) {
-		try {
-			org.apache.lucene.document.Field field = new org.apache.lucene.document.Field(
-					name, value, stored.luceneStore,
-					indexed.getLuceneIndex(indexAnalyzer),
-					termVector.luceneTermVector);
-			if (boost != null)
-				field.setBoost(boost);
-			return field;
-		} catch (java.lang.NullPointerException e) {
-			throw new NullPointerException("Erreur on field " + name);
-		}
-	}
-
 	@Override
 	public Field duplicate() {
 		return new SchemaField(this);

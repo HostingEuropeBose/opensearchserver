@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2010 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2011 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -22,17 +22,15 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-package com.jaeksoft.searchlib.analysis.tokenizer;
+package com.jaeksoft.searchlib.function.source;
 
-import java.io.Reader;
+/*
+ * TODO Full implementation
+ */
+public class IntFieldSource extends ValueSource {
 
-import org.apache.lucene.analysis.Tokenizer;
-
-public class RussianLetterTokenizer extends TokenizerFactory {
-
-	@Override
-	public Tokenizer create(Reader reader) {
-		return new org.apache.lucene.analysis.ru.RussianLetterTokenizer(reader);
+	public IntFieldSource(String field) {
+		super(field);
 	}
 
 }

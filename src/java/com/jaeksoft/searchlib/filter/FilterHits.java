@@ -25,25 +25,17 @@
 package com.jaeksoft.searchlib.filter;
 
 import java.io.IOException;
+import java.util.BitSet;
 
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.queryParser.ParseException;
-import org.apache.lucene.search.Collector;
-import org.apache.lucene.search.DocIdSet;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.Scorer;
-import org.apache.lucene.util.OpenBitSet;
-
+import com.jaeksoft.searchlib.index.Collector;
+import com.jaeksoft.searchlib.index.IndexReader;
 import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.query.ParseException;
+import com.jaeksoft.searchlib.query.Query;
 
-public class FilterHits extends org.apache.lucene.search.Filter {
+public class FilterHits extends Filter {
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 966120808560552509L;
-
-	protected OpenBitSet docSet;
+	protected BitSet docSet;
 
 	protected FilterHits() {
 		docSet = null;
@@ -51,7 +43,7 @@ public class FilterHits extends org.apache.lucene.search.Filter {
 
 	protected void and(FilterHits filterHits) {
 		if (docSet == null)
-			docSet = (OpenBitSet) filterHits.docSet.clone();
+			docSet = (BitSet) filterHits.docSet.clone();
 		else
 			docSet.and(filterHits.docSet);
 	}
@@ -68,10 +60,10 @@ public class FilterHits extends org.apache.lucene.search.Filter {
 
 	private class FilterCollector extends Collector {
 
-		private OpenBitSet bitSet;
+		private BitSet bitSet;
 
 		private FilterCollector(int size) {
-			this.bitSet = new OpenBitSet(size);
+			this.bitSet = new BitSet(size);
 		}
 
 		@Override
@@ -79,23 +71,9 @@ public class FilterHits extends org.apache.lucene.search.Filter {
 			bitSet.set(docId);
 		}
 
-		@Override
-		public boolean acceptsDocsOutOfOrder() {
-			return true;
-		}
-
-		@Override
-		public void setNextReader(IndexReader reader, int id)
-				throws IOException {
-		}
-
-		@Override
-		public void setScorer(Scorer arg0) throws IOException {
-		}
 	}
 
-	@Override
-	public DocIdSet getDocIdSet(IndexReader reader) throws IOException {
+	public BitSet getDocIdSet(IndexReader reader) throws IOException {
 		return this.docSet;
 	}
 

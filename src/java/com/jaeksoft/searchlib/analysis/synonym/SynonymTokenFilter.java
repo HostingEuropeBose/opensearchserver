@@ -24,42 +24,37 @@
 
 package com.jaeksoft.searchlib.analysis.synonym;
 
-import java.io.IOException;
+import com.jaeksoft.searchlib.analysis.TokenStream;
 
-import org.apache.lucene.analysis.TokenFilter;
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
-import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
-import org.apache.lucene.analysis.tokenattributes.TermAttribute;
-import org.apache.lucene.util.AttributeSource;
+public class SynonymTokenFilter extends TokenStream {
 
-public class SynonymTokenFilter extends TokenFilter {
+	// private TermAttribute termAtt;
 
-	private TermAttribute termAtt;
+	// private AttributeSource.State current = null;
 
-	private AttributeSource.State current = null;
+	// private PositionIncrementAttribute posIncrAtt = null;
 
-	private PositionIncrementAttribute posIncrAtt = null;
-
-	private OffsetAttribute offsetAtt = null;
+	// private OffsetAttribute offsetAtt = null;
 
 	private SynonymQueue synonymQueue;
 
 	public SynonymTokenFilter(TokenStream input, SynonymQueue synonymQueue) {
 		super(input);
-		this.termAtt = (TermAttribute) addAttribute(TermAttribute.class);
-		this.posIncrAtt = (PositionIncrementAttribute) addAttribute(PositionIncrementAttribute.class);
-		this.offsetAtt = (OffsetAttribute) addAttribute(OffsetAttribute.class);
+		// this.termAtt = (TermAttribute) addAttribute(TermAttribute.class);
+		// this.posIncrAtt = (PositionIncrementAttribute)
+		// addAttribute(PositionIncrementAttribute.class);
+		// this.offsetAtt = (OffsetAttribute)
+		// addAttribute(OffsetAttribute.class);
 
 		this.synonymQueue = synonymQueue;
 	}
 
 	private final boolean createToken(String term, int posInc, int startOff,
 			int endOff) {
-		restoreState(current);
-		termAtt.setTermBuffer(term);
-		posIncrAtt.setPositionIncrement(posInc);
-		offsetAtt.setOffset(startOff, endOff);
+		// restoreState(current);
+		// termAtt.setTermBuffer(term);
+		// posIncrAtt.setPositionIncrement(posInc);
+		// offsetAtt.setOffset(startOff, endOff);
 		return true;
 	}
 
@@ -79,15 +74,15 @@ public class SynonymTokenFilter extends TokenFilter {
 	}
 
 	@Override
-	public final boolean incrementToken() throws IOException {
-		current = captureState();
+	public final boolean incrementToken() {
+		// current = captureState();
 		for (;;) {
 			if (!input.incrementToken())
 				return createToken(synonymQueue.popToken());
-			synonymQueue.addToken(new SynonymToken(termAtt.term(), posIncrAtt
-					.getPositionIncrement(), offsetAtt.startOffset(), offsetAtt
-					.endOffset()));
-			restoreState(current);
+			// synonymQueue.addToken(new SynonymToken(termAtt.term(), posIncrAtt
+			// .getPositionIncrement(), offsetAtt.startOffset(), offsetAtt
+			// .endOffset()));
+			// restoreState(current);
 			String synonymKey = synonymQueue.findSynonym();
 			if (synonymKey != null) {
 				if (!createToken(synonymKey, synonymQueue))

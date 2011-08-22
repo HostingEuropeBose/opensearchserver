@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2010 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2011 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -22,19 +22,15 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-package com.jaeksoft.searchlib.analysis.tokenizer;
+package com.jaeksoft.searchlib.function.source;
 
-import java.io.Reader;
+/*
+ * TODO Full implemenetation
+ */
+public class ValueSource {
 
-import org.apache.lucene.analysis.Tokenizer;
-import org.apache.lucene.util.Version;
-
-public class StandardTokenizer extends TokenizerFactory {
-
-	@Override
-	public Tokenizer create(Reader reader) {
-		return new org.apache.lucene.analysis.standard.StandardTokenizer(
-				Version.LUCENE_29, reader);
+	public ValueSource(String field) {
+		// TODO Auto-generated constructor stub
 	}
 
 }

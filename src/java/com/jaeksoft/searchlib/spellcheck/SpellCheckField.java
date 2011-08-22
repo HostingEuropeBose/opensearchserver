@@ -24,11 +24,6 @@
 
 package com.jaeksoft.searchlib.spellcheck;
 
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
@@ -40,8 +35,7 @@ import com.jaeksoft.searchlib.schema.SchemaField;
 import com.jaeksoft.searchlib.util.XPathParser;
 import com.jaeksoft.searchlib.util.XmlWriter;
 
-public class SpellCheckField extends Field implements Externalizable,
-		CacheKeyInterface<Field> {
+public class SpellCheckField extends Field implements CacheKeyInterface<Field> {
 
 	private float minScore;
 
@@ -124,26 +118,10 @@ public class SpellCheckField extends Field implements Externalizable,
 	}
 
 	@Override
-	public void readExternal(ObjectInput in) throws IOException,
-			ClassNotFoundException {
-		super.readExternal(in);
-		minScore = in.readFloat();
-		suggestionNumber = in.readInt();
-
-	}
-
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		super.writeExternal(out);
-		out.writeFloat(minScore);
-		out.writeInt(suggestionNumber);
-	}
-
-	@Override
 	public void writeXmlConfig(XmlWriter xmlWriter) throws SAXException {
 		xmlWriter.startElement("spellCheckField", "name", name, "minScore",
-				Float.toString(minScore), "suggestionNumber", Integer
-						.toString(suggestionNumber));
+				Float.toString(minScore), "suggestionNumber",
+				Integer.toString(suggestionNumber));
 		xmlWriter.endElement();
 	}
 

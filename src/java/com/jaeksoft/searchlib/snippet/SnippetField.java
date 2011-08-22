@@ -24,10 +24,7 @@
 
 package com.jaeksoft.searchlib.snippet;
 
-import java.io.Externalizable;
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -35,32 +32,26 @@ import java.util.ListIterator;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.apache.lucene.index.Term;
-import org.apache.lucene.index.TermPositionVector;
-import org.apache.lucene.index.TermVectorOffsetInfo;
-import org.apache.lucene.queryParser.ParseException;
-import org.apache.lucene.search.Query;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.index.term.Term;
+import com.jaeksoft.searchlib.index.term.TermPositionVector;
+import com.jaeksoft.searchlib.index.term.TermVectorOffsetInfo;
+import com.jaeksoft.searchlib.query.ParseException;
+import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.schema.Field;
 import com.jaeksoft.searchlib.schema.FieldList;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
 import com.jaeksoft.searchlib.schema.SchemaField;
-import com.jaeksoft.searchlib.util.External;
 import com.jaeksoft.searchlib.util.XPathParser;
 import com.jaeksoft.searchlib.util.XmlWriter;
 
-public class SnippetField extends Field implements Externalizable {
-
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 4048179036729127707L;
+public class SnippetField extends Field {
 
 	private FragmenterAbstract fragmenterTemplate;
 	private String tag;
@@ -374,31 +365,6 @@ public class SnippetField extends Field implements Externalizable {
 			if (snippet.length() > 0)
 				snippets.add(new FieldValueItem(snippet.toString()));
 		return false;
-	}
-
-	@Override
-	public void readExternal(ObjectInput in) throws IOException,
-			ClassNotFoundException {
-		super.readExternal(in);
-		fragmenterTemplate = External.readObject(in);
-		tag = External.readUTF(in);
-		maxDocChar = in.readInt();
-		separator = External.readUTF(in);
-		maxSnippetSize = in.readInt();
-		maxSnippetNumber = in.readInt();
-		searchTerms = External.readStringArray(in);
-	}
-
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		super.writeExternal(out);
-		External.writeObject(fragmenterTemplate, out);
-		External.writeUTF(tag, out);
-		out.writeInt(maxDocChar);
-		External.writeUTF(separator, out);
-		out.writeInt(maxSnippetSize);
-		out.writeInt(maxSnippetNumber);
-		External.writeStringArray(searchTerms, out);
 	}
 
 	@Override

@@ -24,36 +24,25 @@
 
 package com.jaeksoft.searchlib.schema;
 
-import org.apache.lucene.document.Field.Store;
-
 public enum Stored {
 
-	YES("The content of this field is stored, and queries can thus return it.",
-			Store.YES),
+	YES("The content of this field is stored, and queries can thus return it."),
 
-	NO("The content of this field is not stored, and no query can return it.",
-			Store.NO),
+	NO("The content of this field is not stored, and no query can return it."),
 
 	COMPRESS(
-			"The content of this field is stored, and queries can thus return it. This setting is useful for large bodies of text.",
-			Store.COMPRESS);
+			"The content of this field is stored, and queries can thus return it. This setting is useful for large bodies of text.");
 
 	final private String description;
-	final public Store luceneStore;
 	final public String value;
 
-	private Stored(String description, Store luceneStore) {
+	private Stored(String description) {
 		this.description = description;
-		this.luceneStore = luceneStore;
 		this.value = name().toLowerCase();
 	}
 
 	final public String getDescription() {
 		return description;
-	}
-
-	final public Store getLuceneStore() {
-		return luceneStore;
 	}
 
 	final public String getValue() {

@@ -24,15 +24,27 @@
 
 package com.jaeksoft.searchlib.analysis.filter;
 
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.ngram.EdgeNGramTokenFilter;
-import org.apache.lucene.analysis.ngram.EdgeNGramTokenFilter.Side;
-
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.ClassPropertyEnum;
 import com.jaeksoft.searchlib.analysis.FilterFactory;
+import com.jaeksoft.searchlib.analysis.TokenStream;
 
 public class EdgeNGramFilter extends FilterFactory {
+
+	public enum Side {
+		FRONT, BACK;
+
+		public static Side getSide(String value) {
+			for (Side s : values())
+				if (s.name().equalsIgnoreCase(value))
+					return s;
+			return null;
+		}
+	}
+
+	public final static int DEFAULT_MIN_GRAM_SIZE = 1;
+	public final static int DEFAULT_MAX_GRAM_SIZE = 64;
+	public final static Side DEFAULT_SIDE = Side.FRONT;
 
 	private int min;
 
@@ -40,21 +52,18 @@ public class EdgeNGramFilter extends FilterFactory {
 
 	private Side side;
 
-	private final static Object[] SIDE_VALUE_LIST = {
-			EdgeNGramTokenFilter.Side.FRONT.getLabel(),
-			EdgeNGramTokenFilter.Side.BACK.getLabel() };
+	private final static Object[] SIDE_VALUE_LIST = { Side.FRONT.name(),
+			Side.BACK.name() };
 
 	@Override
 	protected void initProperties() throws SearchLibException {
 		super.initProperties();
 		addProperty(ClassPropertyEnum.MIN_GRAM,
-				Integer.toString(EdgeNGramTokenFilter.DEFAULT_MIN_GRAM_SIZE),
-				null);
+				Integer.toString(DEFAULT_MIN_GRAM_SIZE), null);
 		addProperty(ClassPropertyEnum.MAX_GRAM,
-				Integer.toString(EdgeNGramTokenFilter.DEFAULT_MAX_GRAM_SIZE),
-				null);
-		addProperty(ClassPropertyEnum.SIDE,
-				EdgeNGramTokenFilter.DEFAULT_SIDE.getLabel(), SIDE_VALUE_LIST);
+				Integer.toString(DEFAULT_MAX_GRAM_SIZE), null);
+		addProperty(ClassPropertyEnum.SIDE, DEFAULT_SIDE.name(),
+				SIDE_VALUE_LIST);
 	}
 
 	@Override
@@ -69,8 +78,9 @@ public class EdgeNGramFilter extends FilterFactory {
 	}
 
 	@Override
-	public TokenStream create(TokenStream input) {
-		return new EdgeNGramTokenFilter(input, side, min, max);
+	public TokenStream create(TokenStream tokenStream) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

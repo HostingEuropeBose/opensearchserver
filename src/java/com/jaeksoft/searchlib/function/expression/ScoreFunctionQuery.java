@@ -24,16 +24,11 @@
 
 package com.jaeksoft.searchlib.function.expression;
 
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.function.CustomScoreQuery;
-import org.apache.lucene.search.function.ValueSourceQuery;
+import com.jaeksoft.searchlib.query.CustomScoreQuery;
+import com.jaeksoft.searchlib.query.Query;
+import com.jaeksoft.searchlib.query.ValueSourceQuery;
 
 public class ScoreFunctionQuery extends CustomScoreQuery {
-
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = -3408889704609057463L;
 
 	private Query subQuery;
 

@@ -24,23 +24,16 @@
 
 package com.jaeksoft.searchlib.schema;
 
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.StringTokenizer;
 
-import org.apache.lucene.document.FieldSelector;
-import org.apache.lucene.document.FieldSelectorResult;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
+import com.jaeksoft.searchlib.index.FieldSelector;
 import com.jaeksoft.searchlib.util.DomUtils;
 import com.jaeksoft.searchlib.util.XmlWriter;
 
-public class Field implements FieldSelector, Externalizable, Comparable<Field> {
-
-	private static final long serialVersionUID = -7666123998960959190L;
+public class Field implements FieldSelector, Comparable<Field> {
 
 	protected String name;
 
@@ -71,10 +64,10 @@ public class Field implements FieldSelector, Externalizable, Comparable<Field> {
 	}
 
 	@Override
-	public FieldSelectorResult accept(String fieldName) {
+	public FieldSelector.Result accept(String fieldName) {
 		if (this.name.equals(fieldName))
-			return FieldSelectorResult.LOAD;
-		return FieldSelectorResult.NO_LOAD;
+			return FieldSelector.Result.LOAD;
+		return FieldSelector.Result.NO_LOAD;
 	}
 
 	public String getName() {
@@ -110,17 +103,6 @@ public class Field implements FieldSelector, Externalizable, Comparable<Field> {
 			String fieldName = st.nextToken().trim();
 			target.add(new Field(source.get(fieldName)));
 		}
-	}
-
-	@Override
-	public void readExternal(ObjectInput in) throws IOException,
-			ClassNotFoundException {
-		name = in.readUTF();
-	}
-
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		out.writeUTF(name);
 	}
 
 	public void writeXmlConfig(XmlWriter xmlWriter) throws SAXException {

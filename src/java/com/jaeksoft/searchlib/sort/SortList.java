@@ -29,11 +29,9 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-import org.apache.lucene.search.FieldCache.StringIndex;
-import org.apache.lucene.search.Sort;
-
 import com.jaeksoft.searchlib.cache.CacheKeyInterface;
 import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.index.StringIndex;
 import com.jaeksoft.searchlib.schema.FieldList;
 
 public class SortList implements Externalizable, CacheKeyInterface<SortList> {
@@ -67,17 +65,6 @@ public class SortList implements Externalizable, CacheKeyInterface<SortList> {
 
 	public FieldList<SortField> getFieldList() {
 		return sortFieldList;
-	}
-
-	public Sort getLuceneSort() {
-		if (sortFieldList.size() == 0)
-			return null;
-		org.apache.lucene.search.SortField[] sortFields = new org.apache.lucene.search.SortField[sortFieldList
-				.size()];
-		int i = 0;
-		for (SortField field : sortFieldList)
-			sortFields[i++] = field.getLuceneSortField();
-		return new Sort(sortFields);
 	}
 
 	public SorterAbstract getSorter() {

@@ -24,12 +24,10 @@
 
 package com.jaeksoft.searchlib.analysis.filter;
 
-import org.apache.lucene.analysis.TokenStream;
-
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.ClassPropertyEnum;
 import com.jaeksoft.searchlib.analysis.FilterFactory;
-import com.jaeksoft.searchlib.analysis.shingle.ShingleTokenFilter;
+import com.jaeksoft.searchlib.analysis.TokenStream;
 
 public class ShingleFilter extends FilterFactory {
 
@@ -60,8 +58,8 @@ public class ShingleFilter extends FilterFactory {
 
 	@Override
 	public TokenStream create(TokenStream tokenStream) {
-		return new ShingleTokenFilter(tokenStream, tokenSeparator,
-				minShingleSize, maxShingleSize);
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

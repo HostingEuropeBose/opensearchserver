@@ -25,18 +25,12 @@
 package com.jaeksoft.searchlib.index;
 
 import java.io.IOException;
-
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.search.Collector;
-import org.apache.lucene.search.Filter;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.Sort;
-import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.util.OpenBitSet;
+import java.util.BitSet;
 
 import com.jaeksoft.searchlib.facet.Facet;
+import com.jaeksoft.searchlib.filter.Filter;
+import com.jaeksoft.searchlib.query.Query;
+import com.jaeksoft.searchlib.sort.SortList;
 import com.jaeksoft.searchlib.util.ReadWriteLock;
 
 public class DocSetHits {
@@ -44,11 +38,11 @@ public class DocSetHits {
 	final private ReadWriteLock rwl = new ReadWriteLock();
 
 	private int[] collectedDocs;
-	private OpenBitSet bitset;
+	private BitSet bitset;
 	private ReaderLocal reader;
 	private Query query;
 	private Filter filter;
-	private Sort sort;
+	private SortList sort;
 	private ScoreDoc[] scoreDocs;
 	private int docNumFound;
 	private float maxScore;
@@ -59,37 +53,25 @@ public class DocSetHits {
 		final private long bitSetSize = bitset.size();
 
 		@Override
-		public void collect(int docId) {
+		final public void collect(int docId) {
 			lastDocId = docId;
 			collectedDocs[docNumFound++] = docId;
-			bitset.fastSet(docId);
+			bitset.set(docId);
 		}
 
 		@Override
-		public boolean acceptsDocsOutOfOrder() {
-			return true;
-		}
-
-		@Override
-		public void setNextReader(IndexReader reader, int docId)
-				throws IOException {
-		}
-
-		@Override
-		public void setScorer(Scorer scorer) throws IOException {
+		final public void setScorer(float score) throws IOException {
 			if (lastDocId < 0)
 				return;
 			if (lastDocId >= bitSetSize)
 				return;
-			float sc = scorer.score();
-			if (sc > maxScore)
-				maxScore = sc;
-
+			if (score > maxScore)
+				maxScore = score;
 		}
 	}
 
 	protected DocSetHits(ReaderLocal reader, Query query, Filter filter,
-			Sort sort, boolean collect) throws IOException {
+			SortList sort, boolean collect) throws IOException {
 		rwl.w.lock();
 		try {
 			this.query = query;
@@ -100,7 +82,7 @@ public class DocSetHits {
 			this.scoreDocs = new ScoreDoc[0];
 			this.reader = reader;
 			this.collectedDocs = new int[0];
-			this.bitset = new OpenBitSet(reader.maxDoc());
+			this.bitset = new BitSet(reader.maxDoc());
 			Collector collector = null;
 			if (reader.numDocs() == 0)
 				return;

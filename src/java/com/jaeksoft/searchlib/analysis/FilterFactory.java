@@ -24,7 +24,6 @@
 
 package com.jaeksoft.searchlib.analysis;
 
-import org.apache.lucene.analysis.TokenStream;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 

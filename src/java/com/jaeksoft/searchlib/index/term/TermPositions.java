@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2010 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2011 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -22,17 +22,23 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-package com.jaeksoft.searchlib.analysis.tokenizer;
+package com.jaeksoft.searchlib.index.term;
 
-import java.io.Reader;
+public class TermPositions {
 
-import org.apache.lucene.analysis.Tokenizer;
+	public void seek(Term term) {
+		// TODO Auto-generated method stub
 
-public class ChineseTokenizer extends TokenizerFactory {
+	}
 
-	@Override
-	public Tokenizer create(Reader reader) {
-		return new org.apache.lucene.analysis.cn.ChineseTokenizer(reader);
+	public boolean skipTo(int docId) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	public int doc() {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 
 }

@@ -24,8 +24,6 @@
 
 package com.jaeksoft.searchlib.schema;
 
-import org.apache.lucene.document.Field.Index;
-
 public enum Indexed {
 
 	YES(
@@ -55,10 +53,6 @@ public enum Indexed {
 			if (fs.name().equalsIgnoreCase(value))
 				return fs;
 		return Indexed.NO;
-	}
-
-	final public Index getLuceneIndex(String indexAnalyzer) {
-		return indexAnalyzer == null ? Index.NOT_ANALYZED : Index.ANALYZED;
 	}
 
 }

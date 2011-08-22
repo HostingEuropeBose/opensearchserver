@@ -24,16 +24,15 @@
 
 package com.jaeksoft.searchlib.analysis.filter;
 
-import org.apache.lucene.analysis.TokenStream;
-
 import com.jaeksoft.searchlib.analysis.FilterFactory;
+import com.jaeksoft.searchlib.analysis.TokenStream;
 
 public class SnowballGermanFilter extends FilterFactory {
 
 	@Override
 	public TokenStream create(TokenStream tokenStream) {
-		return new org.apache.lucene.analysis.snowball.SnowballFilter(
-				tokenStream, "German");
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

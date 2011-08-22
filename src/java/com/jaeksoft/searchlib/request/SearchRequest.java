@@ -35,12 +35,6 @@ import java.util.List;
 
 import javax.xml.xpath.XPathExpressionException;
 
-import org.apache.lucene.queryParser.ParseException;
-import org.apache.lucene.queryParser.QueryParser;
-import org.apache.lucene.queryParser.QueryParser.Operator;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.similar.MoreLikeThis;
-import org.apache.lucene.util.Version;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -57,6 +51,11 @@ import com.jaeksoft.searchlib.filter.FilterList;
 import com.jaeksoft.searchlib.function.expression.RootExpression;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.IndexAbstract;
+import com.jaeksoft.searchlib.query.MoreLikeThis;
+import com.jaeksoft.searchlib.query.ParseException;
+import com.jaeksoft.searchlib.query.Query;
+import com.jaeksoft.searchlib.query.QueryParser;
+import com.jaeksoft.searchlib.query.QueryParser.Operator;
 import com.jaeksoft.searchlib.result.Result;
 import com.jaeksoft.searchlib.schema.Field;
 import com.jaeksoft.searchlib.schema.FieldList;
@@ -419,7 +418,7 @@ public class SearchRequest implements Externalizable {
 		if (field == null)
 			throw new SearchLibException(
 					"Please select a default field in the schema");
-		queryParser = new QueryParser(Version.LUCENE_29, field.getName(),
+		queryParser = new QueryParser(field.getName(),
 				schema.getQueryPerFieldAnalyzer(getLang()));
 		queryParser.setAllowLeadingWildcard(allowLeadingWildcard);
 		queryParser.setPhraseSlop(phraseSlop);
@@ -1127,8 +1126,8 @@ public class SearchRequest implements Externalizable {
 						"allowLeadingWildcard"))),
 				XPathParser.getAttributeValue(node, "phraseSlop"),
 				("and".equalsIgnoreCase(XPathParser.getAttributeString(node,
-						"defaultOperator"))) ? QueryParser.AND_OPERATOR
-						: QueryParser.OR_OPERATOR,
+						"defaultOperator"))) ? QueryParser.Operator.AND
+						: QueryParser.Operator.OR,
 				XPathParser.getAttributeValue(node, "start"),
 				XPathParser.getAttributeValue(node, "rows"),
 				XPathParser.getAttributeString(node, "lang"),

@@ -27,33 +27,23 @@ package com.jaeksoft.searchlib.schema;
 public enum TermVector {
 
 	POSITIONS_OFFSETS(
-			"The position and offsets of the words/token are recorded. This allows for extracting snippets from this field.",
-			org.apache.lucene.document.Field.TermVector.WITH_POSITIONS_OFFSETS),
+			"The position and offsets of the words/token are recorded. This allows for extracting snippets from this field."),
 
-	YES("Store the term vectors of each document",
-			org.apache.lucene.document.Field.TermVector.YES),
+	YES("Store the term vectors of each document"),
 
 	NO(
-			"Term vectors are not recorded. This prevents using snippets in this field.",
-			org.apache.lucene.document.Field.TermVector.NO);
+			"Term vectors are not recorded. This prevents using snippets in this field.");
 
 	final public String description;
-	final public org.apache.lucene.document.Field.TermVector luceneTermVector;
 	final public String value;
 
-	private TermVector(String description,
-			org.apache.lucene.document.Field.TermVector luceneTermVector) {
+	private TermVector(String description) {
 		this.description = description;
-		this.luceneTermVector = luceneTermVector;
 		this.value = name().toLowerCase();
 	}
 
 	final public String getDescription() {
 		return description;
-	}
-
-	final public org.apache.lucene.document.Field.TermVector getLuceneTermVector() {
-		return luceneTermVector;
 	}
 
 	final public String getValue() {

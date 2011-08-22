@@ -30,21 +30,14 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.lucene.analysis.TokenStream;
-
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.analysis.tokenizer.TokenizerFactory;
 
-public class CompiledAnalyzer extends org.apache.lucene.analysis.Analyzer {
+public class CompiledAnalyzer extends Analyzer {
 
-	private TokenizerFactory tokenizer;
 	private FilterFactory[] filters;
 
-	protected CompiledAnalyzer(TokenizerFactory sourceTokenizer,
-			List<FilterFactory> sourceFilters, FilterScope scopeTarget)
-			throws SearchLibException {
-		sourceTokenizer.checkProperties();
-		tokenizer = sourceTokenizer;
+	protected CompiledAnalyzer(List<FilterFactory> sourceFilters,
+			FilterScope scopeTarget) throws SearchLibException {
 		List<FilterFactory> ff = new ArrayList<FilterFactory>();
 		if (scopeTarget == FilterScope.INDEX)
 			buildIndexList(sourceFilters, ff);
@@ -78,7 +71,7 @@ public class CompiledAnalyzer extends org.apache.lucene.analysis.Analyzer {
 
 	@Override
 	public TokenStream tokenStream(String fieldname, Reader reader) {
-		TokenStream ts = tokenizer.create(reader);
+		TokenStream ts = new TokenStream(reader);
 		for (FilterFactory filter : filters)
 			ts = filter.create(ts);
 		return ts;
@@ -86,20 +79,15 @@ public class CompiledAnalyzer extends org.apache.lucene.analysis.Analyzer {
 
 	public boolean isAnyToken(String fieldName, String value)
 			throws IOException {
-		if (tokenizer == null)
-			return false;
 		return tokenStream(fieldName, new StringReader(value)).incrementToken();
 	}
 
 	public List<DebugTokenFilter> test(String text) throws IOException {
 		List<DebugTokenFilter> list = new ArrayList<DebugTokenFilter>();
 		StringReader reader = new StringReader(text);
-		DebugTokenFilter lastDebugTokenFilter = new DebugTokenFilter(tokenizer,
-				tokenizer.create(reader));
-		lastDebugTokenFilter.incrementToken();
-		list.add(lastDebugTokenFilter);
+		DebugTokenFilter lastDebugTokenFilter = new DebugTokenFilter(null,
+				new TokenStream(reader));
 		for (FilterFactory filter : filters) {
-			lastDebugTokenFilter.reset();
 			DebugTokenFilter newDebugTokenFilter = new DebugTokenFilter(filter,
 					filter.create(lastDebugTokenFilter));
 			newDebugTokenFilter.incrementToken();

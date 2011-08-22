@@ -26,9 +26,9 @@ package com.jaeksoft.searchlib.function.expression;
 
 import java.util.ArrayList;
 
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.function.ValueSourceQuery;
+import com.jaeksoft.searchlib.query.BooleanQuery;
+import com.jaeksoft.searchlib.query.Query;
+import com.jaeksoft.searchlib.query.ValueSourceQuery;
 
 public class RootExpression extends GroupExpression {
 

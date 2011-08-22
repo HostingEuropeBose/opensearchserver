@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2011 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -22,16 +22,23 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-package com.jaeksoft.searchlib.schema;
+package com.jaeksoft.searchlib.index.term;
 
-import org.apache.lucene.search.DefaultSimilarity;
+public class TermDocs {
 
-public class FairSimilarity extends DefaultSimilarity {
-
-	private static final long serialVersionUID = -6126387002471023744L;
-
-	@Override
-	public float lengthNorm(String fieldName, int numTerms) {
-		return (float) (1.0 / numTerms);
+	final public boolean next() {
+		// TODO Auto-generated method stub
+		return false;
 	}
+
+	final public int freq() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	final public int doc() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
 }

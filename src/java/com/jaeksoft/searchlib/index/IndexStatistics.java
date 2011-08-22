@@ -26,8 +26,6 @@ package com.jaeksoft.searchlib.index;
 
 import java.io.IOException;
 
-import org.apache.lucene.index.IndexReader;
-
 public class IndexStatistics {
 
 	private int maxDoc;

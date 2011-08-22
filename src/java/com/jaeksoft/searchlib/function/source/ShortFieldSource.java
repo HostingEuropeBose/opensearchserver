@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2010 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2011 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -22,30 +22,15 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-package com.jaeksoft.searchlib.analysis.tokenizer;
+package com.jaeksoft.searchlib.function.source;
 
-import java.io.Reader;
+/*
+ * TODO Full implementation
+ */
+public class ShortFieldSource extends ValueSource {
 
-import org.apache.lucene.analysis.CharTokenizer;
-import org.apache.lucene.analysis.Tokenizer;
-
-public class LetterOrDigitTokenizerFactory extends TokenizerFactory {
-
-	public class LetterOrDigitTokenizer extends CharTokenizer {
-
-		public LetterOrDigitTokenizer(Reader input) {
-			super(input);
-		}
-
-		@Override
-		protected boolean isTokenChar(char c) {
-			return Character.isLetterOrDigit(c);
-		}
-	}
-
-	@Override
-	public Tokenizer create(Reader reader) {
-		return new LetterOrDigitTokenizer(reader);
+	public ShortFieldSource(String field) {
+		super(field);
 	}
 
 }

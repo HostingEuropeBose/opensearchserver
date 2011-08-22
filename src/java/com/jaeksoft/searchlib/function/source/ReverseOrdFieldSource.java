@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2010 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2011 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -22,17 +22,17 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-package com.jaeksoft.searchlib.analysis.tokenizer;
+package com.jaeksoft.searchlib.function.source;
 
-import java.io.Reader;
+import com.jaeksoft.searchlib.function.source.ValueSource;
 
-import org.apache.lucene.analysis.Tokenizer;
+/*
+ * TODO Full implementation
+ */
+public class ReverseOrdFieldSource extends ValueSource {
 
-public class CJKTokenizer extends TokenizerFactory {
-
-	@Override
-	public Tokenizer create(Reader reader) {
-		return new org.apache.lucene.analysis.cjk.CJKTokenizer(reader);
+	public ReverseOrdFieldSource(String field) {
+		super(field);
 	}
 
 }

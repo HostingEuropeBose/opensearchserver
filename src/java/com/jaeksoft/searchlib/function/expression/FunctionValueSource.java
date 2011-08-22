@@ -24,13 +24,13 @@
 
 package com.jaeksoft.searchlib.function.expression;
 
-import org.apache.lucene.search.function.ByteFieldSource;
-import org.apache.lucene.search.function.FloatFieldSource;
-import org.apache.lucene.search.function.IntFieldSource;
-import org.apache.lucene.search.function.OrdFieldSource;
-import org.apache.lucene.search.function.ReverseOrdFieldSource;
-import org.apache.lucene.search.function.ShortFieldSource;
-import org.apache.lucene.search.function.ValueSource;
+import com.jaeksoft.searchlib.function.source.ByteFieldSource;
+import com.jaeksoft.searchlib.function.source.FloatFieldSource;
+import com.jaeksoft.searchlib.function.source.IntFieldSource;
+import com.jaeksoft.searchlib.function.source.OrdFieldSource;
+import com.jaeksoft.searchlib.function.source.ReverseOrdFieldSource;
+import com.jaeksoft.searchlib.function.source.ShortFieldSource;
+import com.jaeksoft.searchlib.function.source.ValueSource;
 
 public class FunctionValueSource {
 

@@ -33,42 +33,27 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.FieldSelector;
-import org.apache.lucene.index.CorruptIndexException;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexReader.FieldOption;
-import org.apache.lucene.index.StaleReaderException;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.index.TermDocs;
-import org.apache.lucene.index.TermEnum;
-import org.apache.lucene.index.TermFreqVector;
-import org.apache.lucene.index.TermPositions;
-import org.apache.lucene.queryParser.ParseException;
-import org.apache.lucene.search.Collector;
-import org.apache.lucene.search.Explanation;
-import org.apache.lucene.search.FieldCache.StringIndex;
-import org.apache.lucene.search.Filter;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.Similarity;
-import org.apache.lucene.search.Sort;
-import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.similar.MoreLikeThis;
-import org.apache.lucene.search.spell.LuceneDictionary;
-import org.apache.lucene.search.spell.SpellChecker;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.LockObtainFailedException;
+import org.apache.commons.io.FileUtils;
 
 import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.analysis.Analyzer;
+import com.jaeksoft.searchlib.analysis.stopwords.WordSet;
 import com.jaeksoft.searchlib.cache.FieldCache;
 import com.jaeksoft.searchlib.cache.FilterCache;
 import com.jaeksoft.searchlib.cache.SearchCache;
 import com.jaeksoft.searchlib.cache.SpellCheckerCache;
+import com.jaeksoft.searchlib.filter.Filter;
 import com.jaeksoft.searchlib.filter.FilterHits;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
+import com.jaeksoft.searchlib.index.term.Term;
+import com.jaeksoft.searchlib.index.term.TermDocs;
+import com.jaeksoft.searchlib.index.term.TermEnum;
+import com.jaeksoft.searchlib.index.term.TermFreqVector;
+import com.jaeksoft.searchlib.index.term.TermPositions;
+import com.jaeksoft.searchlib.query.MoreLikeThis;
+import com.jaeksoft.searchlib.query.ParseException;
+import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.remote.UriWriteStream;
 import com.jaeksoft.searchlib.request.DocumentRequest;
 import com.jaeksoft.searchlib.request.DocumentsRequest;
@@ -80,14 +65,13 @@ import com.jaeksoft.searchlib.schema.FieldList;
 import com.jaeksoft.searchlib.schema.FieldValue;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
 import com.jaeksoft.searchlib.schema.Schema;
+import com.jaeksoft.searchlib.sort.SortList;
 import com.jaeksoft.searchlib.util.ReadWriteLock;
 
 public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 
 	final private ReadWriteLock rwl = new ReadWriteLock();
 
-	private IndexDirectory indexDirectory;
-	private IndexSearcher indexSearcher;
 	private IndexReader indexReader;
 
 	private SearchCache searchCache;
@@ -116,15 +100,7 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 		try {
 			this.rootDir = rootDir;
 			this.dataDir = dataDir;
-			this.indexDirectory = new IndexDirectory("index", dataDir);
-			this.indexReader = IndexReader.open(indexDirectory.getDirectory(),
-					readOnly);
-			this.indexSearcher = new IndexSearcher(indexReader);
-			if (similarityClass != null) {
-				Similarity similarity = (Similarity) Class.forName(
-						similarityClass).newInstance();
-				this.indexSearcher.setSimilarity(similarity);
-			}
+			this.indexReader = new IndexReader(dataDir);
 		} finally {
 			rwl.w.unlock();
 		}
@@ -135,8 +111,6 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 		try {
 			this.rootDir = r.rootDir;
 			this.dataDir = r.dataDir;
-			this.indexDirectory = r.indexDirectory;
-			this.indexSearcher = r.indexSearcher;
 			this.indexReader = r.indexReader;
 		} finally {
 			rwl.w.unlock();
@@ -177,7 +151,7 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 		}
 	}
 
-	protected File getDatadir() {
+	File getDatadir() {
 		rwl.r.lock();
 		try {
 			return dataDir;
@@ -220,7 +194,7 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 	public int getDocFreq(Term term) throws SearchLibException {
 		rwl.r.lock();
 		try {
-			return indexSearcher.docFreq(term);
+			return indexReader.docFreq(term);
 		} catch (IOException e) {
 			throw new SearchLibException(e);
 		} finally {
@@ -257,7 +231,7 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 	public Collection<?> getFieldNames() {
 		rwl.r.lock();
 		try {
-			return indexReader.getFieldNames(FieldOption.ALL);
+			return indexReader.getFieldNames();
 		} finally {
 			rwl.r.unlock();
 		}
@@ -288,21 +262,13 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 	public void close(boolean bDeleteDirectory) {
 		rwl.w.lock();
 		try {
-			if (indexSearcher != null) {
-				indexSearcher.close();
-				indexSearcher = null;
-			}
 			if (indexReader != null) {
-				org.apache.lucene.search.FieldCache.DEFAULT.purge(indexReader);
 				indexReader.close();
 				indexReader = null;
 			}
-			if (indexDirectory != null) {
-				if (bDeleteDirectory)
-					indexDirectory.delete();
-				indexDirectory.close();
-				indexDirectory = null;
-			}
+			if (bDeleteDirectory)
+				if (dataDir.exists())
+					FileUtils.deleteDirectory(dataDir);
 		} catch (IOException e) {
 			Logging.warn(e.getMessage(), e);
 		} finally {
@@ -318,7 +284,7 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 	public int maxDoc() throws IOException {
 		rwl.r.lock();
 		try {
-			return indexSearcher.maxDoc();
+			return indexReader.maxDoc();
 		} finally {
 			rwl.r.unlock();
 		}
@@ -333,17 +299,17 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 		}
 	}
 
-	public TopDocs search(Query query, Filter filter, Sort sort, int nTop)
+	public TopDocs search(Query query, Filter filter, SortList sort, int nTop)
 			throws IOException {
 		rwl.r.lock();
 		try {
 			if (sort == null) {
 				if (filter == null)
-					return indexSearcher.search(query, nTop);
+					return indexReader.search(query, nTop);
 				else
-					return indexSearcher.search(query, filter, nTop);
+					return indexReader.search(query, filter, nTop);
 			} else {
-				return indexSearcher.search(query, filter, nTop, sort);
+				return indexReader.search(query, filter, nTop, sort);
 			}
 		} finally {
 			rwl.r.unlock();
@@ -375,7 +341,7 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 			throws SearchLibException {
 		rwl.r.lock();
 		try {
-			Explanation explanation = indexSearcher.explain(
+			Explanation explanation = indexReader.explain(
 					searchRequest.getQuery(), docId);
 			return explanation.toString();
 		} catch (IOException e) {
@@ -394,9 +360,9 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 		rwl.r.lock();
 		try {
 			if (filter == null)
-				indexSearcher.search(query, collector);
+				indexReader.search(query, collector);
 			else
-				indexSearcher.search(query, filter, collector);
+				indexReader.search(query, filter, collector);
 		} finally {
 			rwl.r.unlock();
 		}
@@ -413,19 +379,17 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 		}
 	}
 
-	protected void fastDeleteDocument(int docNum) throws StaleReaderException,
-			CorruptIndexException, LockObtainFailedException, IOException {
+	protected void fastDeleteDocument(int docNum) throws IOException {
 		indexReader.deleteDocument(docNum);
 	}
 
 	protected void fastDeleteDocument(String fieldName, String value)
-			throws StaleReaderException, CorruptIndexException,
-			LockObtainFailedException, IOException {
+			throws IOException {
 		indexReader.deleteDocuments(new Term(fieldName, value));
 	}
 
-	public Document getDocFields(int docId, FieldSelector selector)
-			throws CorruptIndexException, IOException {
+	public IndexDocument getDocFields(int docId, FieldSelector selector)
+			throws IOException {
 		rwl.r.lock();
 		try {
 			return indexReader.document(docId, selector);
@@ -439,17 +403,16 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 	public StringIndex getStringIndex(String fieldName) throws IOException {
 		rwl.r.lock();
 		try {
-			return org.apache.lucene.search.FieldCache.DEFAULT.getStringIndex(
-					indexReader, fieldName);
+			return indexReader.getStringIndex(fieldName);
 		} finally {
 			rwl.r.unlock();
 		}
 	}
 
-	public LuceneDictionary getLuceneDirectionary(String fieldName) {
+	public WordSet getWordSet(String fieldName) {
 		rwl.r.lock();
 		try {
-			return new LuceneDictionary(indexReader, fieldName);
+			return indexReader.getWordSet(fieldName);
 		} finally {
 			rwl.r.unlock();
 		}
@@ -458,8 +421,8 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 	public void xmlInfo(PrintWriter writer) {
 		rwl.r.lock();
 		try {
-			writer.println("<index name=\"" + indexDirectory.getName()
-					+ "\" path=\"" + indexDirectory.getDirectory() + "\"/>");
+			writer.println("<index name=\"" + dataDir.getName() + "\" path=\""
+					+ dataDir.getAbsolutePath() + "\"/>");
 		} finally {
 			rwl.r.unlock();
 		}
@@ -514,13 +477,13 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 		return null;
 	}
 
-	private void deleteAllOthers() {
+	private void deleteAllOthers() throws IOException {
 		for (File f : rootDir.listFiles()) {
 			if (f.getName().startsWith("."))
 				continue;
 			if (f.equals(dataDir))
 				continue;
-			IndexDirectory.deleteDir(f);
+			FileUtils.deleteDirectory(f);
 		}
 	}
 
@@ -551,15 +514,6 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 		return reader;
 	}
 
-	public Directory getDirectory() {
-		rwl.r.lock();
-		try {
-			return indexDirectory.getDirectory();
-		} finally {
-			rwl.r.unlock();
-		}
-	}
-
 	@Override
 	public void reload() throws SearchLibException {
 		rwl.w.lock();
@@ -581,7 +535,7 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 	}
 
 	@Override
-	public void swap(long version, boolean deleteOld) {
+	public void swap(long version, boolean deleteOld) throws SearchLibException {
 		ReaderLocal newReader = null;
 		if (version > 0)
 			newReader = ReaderLocal.findVersion(rootDir, version,
@@ -598,6 +552,8 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 			resetCache();
 			if (deleteOld)
 				deleteAllOthers();
+		} catch (IOException e) {
+			throw new SearchLibException(e);
 		} finally {
 			rwl.w.unlock();
 		}
@@ -633,16 +589,15 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 
 		FilterHits filterHits = searchRequest.getFilterList().getFilterHits(
 				this, defaultField, analyzer);
-		Sort sort = searchRequest.getSortList().getLuceneSort();
 
 		DocSetHits dsh = new DocSetHits(this, searchRequest.getQuery(),
-				filterHits, sort, isFacet);
+				filterHits, searchRequest.getSortList(), isFacet);
 		return dsh;
 	}
 
 	public FieldList<FieldValue> getDocumentFields(int docId,
-			FieldList<Field> fieldList) throws CorruptIndexException,
-			IOException, ParseException, SyntaxError {
+			FieldList<Field> fieldList) throws IOException, ParseException,
+			SyntaxError {
 		rwl.r.lock();
 		try {
 			return fieldCache.get(this, docId, fieldList);
@@ -661,13 +616,9 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 						docId, field.getName());
 				if (termFreqVector == null)
 					continue;
-				String[] terms = termFreqVector.getTerms();
-				if (terms == null)
+				FieldValueItem[] fieldValueItem = termFreqVector.getTerms();
+				if (fieldValueItem == null)
 					continue;
-				FieldValueItem[] fieldValueItem = new FieldValueItem[terms.length];
-				int i = 0;
-				for (String term : terms)
-					fieldValueItem[i++] = new FieldValueItem(term);
 				fieldValueList.add(new FieldValue(field, fieldValueItem));
 			}
 			return fieldValueList;

@@ -38,13 +38,12 @@ import java.util.TreeSet;
 
 import javax.xml.xpath.XPathExpressionException;
 
-import org.apache.lucene.document.FieldSelector;
-import org.apache.lucene.document.FieldSelectorResult;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.cache.CacheKeyInterface;
+import com.jaeksoft.searchlib.index.FieldSelector;
 import com.jaeksoft.searchlib.util.External;
 import com.jaeksoft.searchlib.util.External.Collecter;
 import com.jaeksoft.searchlib.util.XPathParser;
@@ -165,10 +164,10 @@ public class FieldList<T extends Field> implements
 	}
 
 	@Override
-	public FieldSelectorResult accept(String fieldName) {
+	public FieldSelector.Result accept(String fieldName) {
 		if (this.fieldsName.containsKey(fieldName))
-			return FieldSelectorResult.LOAD;
-		return FieldSelectorResult.NO_LOAD;
+			return FieldSelector.Result.LOAD;
+		return FieldSelector.Result.NO_LOAD;
 	}
 
 	public String[] toArrayName() {
