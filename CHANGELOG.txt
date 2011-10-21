@@ -35,6 +35,7 @@ New features:
 - 2958005: Upgrade Apache HttpClient library to 4.1.1
 
 Bug fixes:
+- 3426912: Authorization error when loading binary with XML Load
 - 3409814: Error: The document is really a RTF file
 - 3408193: Password of the XMLLoad task is not encrypted
 - 3406657	File crawler error: unknown protocol: smb
