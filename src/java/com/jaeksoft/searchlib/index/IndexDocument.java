@@ -43,6 +43,8 @@ import org.w3c.dom.DOMException;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import com.jaeksoft.searchlib.Client;
+import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.LanguageEnum;
 import com.jaeksoft.searchlib.crawler.web.database.CredentialItem;
@@ -102,8 +104,9 @@ public class IndexDocument implements Externalizable, Collecter<FieldContent>,
 	 * @throws IOException
 	 * @throws URISyntaxException
 	 */
-	public IndexDocument(ParserSelector parserSelector, XPathParser xpp,
-			Node documentNode, CredentialItem urlDefaultCredential)
+	public IndexDocument(Client client, ParserSelector parserSelector,
+			XPathParser xpp, Node documentNode,
+			CredentialItem urlDefaultCredential)
 			throws XPathExpressionException, SearchLibException,
 			InstantiationException, IllegalAccessException,
 			ClassNotFoundException, IOException, URISyntaxException {
@@ -132,6 +135,8 @@ public class IndexDocument implements Externalizable, Collecter<FieldContent>,
 		int binaryCount = binaryNodes.getLength();
 		for (int i = 0; i < binaryCount; i++) {
 			Node node = binaryNodes.item(i);
+			boolean bFaultTolerant = "yes".equalsIgnoreCase(XPathParser
+					.getAttributeString(node, "faultTolerant"));
 			String filename = XPathParser.getAttributeString(node, "fileName");
 			if (filename == null || filename.length() == 0)
 				filename = XPathParser.getAttributeString(node, "filename");
@@ -145,6 +150,21 @@ public class IndexDocument implements Externalizable, Collecter<FieldContent>,
 						"contenttype");
 			String content = node.getTextContent();
 			String url = XPathParser.getAttributeString(node, "url");
+			Parser parser = doBinary(url, content, filePath, filename, client,
+					parserSelector, contentType, urlDefaultCredential,
+					bFaultTolerant);
+			if (parser != null)
+				parser.populate(this);
+		}
+	}
+
+	private Parser doBinary(String url, String content, String filePath,
+			String filename, Client client, ParserSelector parserSelector,
+			String contentType, CredentialItem urlDefaultCredential,
+			boolean bFaultTolerant) throws IOException, URISyntaxException,
+			InstantiationException, IllegalAccessException,
+			ClassNotFoundException, SearchLibException {
+		try {
 			Parser parser = null;
 			if (url != null)
 				parser = binaryFromUrl(parserSelector, url,
@@ -155,9 +175,29 @@ public class IndexDocument implements Externalizable, Collecter<FieldContent>,
 			else if (filePath != null && filePath.length() > 0)
 				parser = binaryFromFile(parserSelector, filename, contentType,
 						filePath);
-			if (parser != null)
-				parser.populate(this);
+			return parser;
+		} catch (SearchLibException e) {
+			if (!bFaultTolerant)
+				throw e;
+			Logging.error(e);
+		} catch (NullPointerException e) {
+			if (!bFaultTolerant)
+				throw e;
+			Logging.error(e);
+		} catch (IllegalArgumentException e) {
+			if (!bFaultTolerant)
+				throw e;
+			Logging.error(e);
+		} catch (RuntimeException e) {
+			if (!bFaultTolerant)
+				throw new SearchLibException(e);
+			Logging.error(e);
+		} catch (Exception e) {
+			if (!bFaultTolerant)
+				throw new SearchLibException(e);
+			Logging.error(e);
 		}
+		return null;
 	}
 
 	private Parser binaryFromUrl(ParserSelector parserSelector, String url,
@@ -173,9 +213,12 @@ public class IndexDocument implements Externalizable, Collecter<FieldContent>,
 				return null;
 			parser.parseContent(httpDownloader.getContent());
 			return parser;
-		} catch (IOException e) {
-			throw new SearchLibException("While getting binary from URL: "
-					+ url, e);
+		} catch (RuntimeException e) {
+			throw new SearchLibException(
+					"Parser error while getting binary from URL: " + url, e);
+		} catch (Exception e) {
+			throw new SearchLibException(
+					"Parser error while getting binary from URL: " + url, e);
 		} finally {
 			httpDownloader.release();
 		}
@@ -183,27 +226,43 @@ public class IndexDocument implements Externalizable, Collecter<FieldContent>,
 
 	private Parser binaryFromBase64(ParserSelector parserSelector,
 			String filename, String contentType, String content)
-			throws InstantiationException, IllegalAccessException,
-			ClassNotFoundException, SearchLibException, IOException {
-		Parser parser = parserSelector.getParser(filename, contentType);
-		if (parser == null)
-			return null;
-		parser.parseContentBase64(content);
-		return parser;
+			throws SearchLibException {
+		try {
+			Parser parser = parserSelector.getParser(filename, contentType);
+			if (parser == null)
+				return null;
+			parser.parseContentBase64(content);
+			return parser;
+		} catch (RuntimeException e) {
+			throw new SearchLibException("Parser error while getting binary : "
+					+ filename + " /" + contentType, e);
+		} catch (Exception e) {
+			throw new SearchLibException("Parser error while getting binary : "
+					+ filename + " /" + contentType, e);
+		}
 	}
 
 	private Parser binaryFromFile(ParserSelector parserSelector,
 			String filename, String contentType, String filePath)
-			throws InstantiationException, IllegalAccessException,
-			ClassNotFoundException, SearchLibException, IOException {
-		Parser parser = parserSelector.getParser(filename, contentType);
-		if (parser == null)
-			return null;
-		File f = new File(filePath);
-		if (f.isDirectory())
-			f = new File(f, filename);
-		parser.parseContent(f);
-		return parser;
+			throws SearchLibException {
+		try {
+			Parser parser = parserSelector.getParser(filename, contentType);
+			if (parser == null)
+				return null;
+			File f = new File(filePath);
+			if (f.isDirectory())
+				f = new File(f, filename);
+			parser.parseContent(f);
+			return parser;
+		} catch (RuntimeException e) {
+			throw new SearchLibException(
+					"Parser error while getting binary from file : " + filePath
+							+ " /" + filename, e);
+		} catch (Exception e) {
+			throw new SearchLibException(
+					"Parser error while getting binary from file : " + filePath
+							+ " /" + filename, e);
+		}
 	}
 
 	public IndexDocument(IndexDocument sourceDocument) {

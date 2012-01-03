@@ -67,7 +67,7 @@ public class IndexSingle extends IndexAbstract {
 		super(indexConfig);
 		online = true;
 		readonly = false;
-		if (indexConfig.getNativeOSSE()) {
+		if (indexConfig.getNativeOSSE() || true == Boolean.TRUE) {
 			reader = new ReaderNativeOSSE(configDir, indexConfig);
 			writer = new WriterNativeOSSE(configDir, indexConfig,
 					(ReaderNativeOSSE) reader);

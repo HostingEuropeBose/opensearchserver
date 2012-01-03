@@ -63,7 +63,10 @@ public class WriterNativeOSSE extends WriterAbstract {
 
 	@Override
 	public boolean updateDocument(Schema schema, IndexDocument document) {
-		Pointer doc = OsseLibrary.INSTANCE.document_new();
+		Pointer transactPtr = OsseLibrary.INSTANCE.OSSCLib_Transact_Begin(
+				reader.getIndex(), null);
+		Pointer docPtr = OsseLibrary.INSTANCE.OSSCLib_Transact_Document_New(
+				transactPtr, null);
 		for (FieldContent fieldContent : document) {
 			WString field = new WString(fieldContent.getField());
 			for (FieldValueItem valueItem : fieldContent.getValues()) {
@@ -74,13 +77,14 @@ public class WriterNativeOSSE extends WriterAbstract {
 					int i = 0;
 					for (String term : terms)
 						wTerms[i++] = new WString(term);
-					OsseLibrary.INSTANCE.document_add(doc, field, wTerms,
-							wTerms.length);
+					OsseLibrary.INSTANCE
+							.OSSCLib_Transact_Document_AddStringTerms(
+									transactPtr, docPtr, field, wTerms,
+									wTerms.length, null);
 				}
 			}
 		}
-		OsseLibrary.INSTANCE.index_add(reader.getIndex(), doc);
-		OsseLibrary.INSTANCE.document_delete(doc);
+		OsseLibrary.INSTANCE.OSSCLib_Transact_RollBack(transactPtr, null);
 		return true;
 	}
 

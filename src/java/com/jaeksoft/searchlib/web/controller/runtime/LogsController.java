@@ -61,7 +61,8 @@ public class LogsController extends CommonController {
 		logFileList = null;
 	}
 
-	private final static String[] buildOrderedLogFiles() {
+	private final static String[] buildOrderedLogFiles()
+			throws SearchLibException {
 		File[] files = Logging.getLogFiles();
 		if (files == null)
 			return null;
@@ -75,14 +76,14 @@ public class LogsController extends CommonController {
 		return names;
 	}
 
-	public String[] getLogFiles() {
+	public String[] getLogFiles() throws SearchLibException {
 		if (logFileList == null)
 			logFileList = buildOrderedLogFiles();
 		return logFileList;
 	}
 
-	public String getCurrentLog() throws IOException {
-		if (currentLog == null)
+	public String getCurrentLog() throws IOException, SearchLibException {
+		if (currentLog == null && selectedFile != null)
 			currentLog = Logging.readLogs(100000, selectedFile);
 		return currentLog;
 	}
@@ -102,8 +103,8 @@ public class LogsController extends CommonController {
 		return selectedFile == null;
 	}
 
-	public void onReloadFileList() {
-		logFileList = null;
+	public void onReloadFileList() throws SearchLibException {
+		reset();
 		reloadPage();
 	}
 
@@ -119,6 +120,8 @@ public class LogsController extends CommonController {
 	}
 
 	public void onGoToEnd() {
+		if (currentLog == null)
+			return;
 		Textbox tb = (Textbox) getFellow("logview");
 		Clients.evalJavaScript("toTheEnd('" + tb.getUuid() + "')");
 		tb.setSelectionRange(currentLog.length(), currentLog.length());

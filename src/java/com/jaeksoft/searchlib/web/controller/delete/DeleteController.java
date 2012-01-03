@@ -75,8 +75,6 @@ public class DeleteController extends CommonController {
 				throw new SearchLibException(e);
 			} catch (ClassNotFoundException e) {
 				throw new SearchLibException(e);
-			} catch (ParseException e) {
-				throw new SearchLibException(e);
 			} catch (SyntaxError e) {
 				throw new SearchLibException(e);
 			} catch (URISyntaxException e) {

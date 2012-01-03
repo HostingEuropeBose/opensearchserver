@@ -43,7 +43,6 @@ import com.jaeksoft.searchlib.config.Config;
 import com.jaeksoft.searchlib.crawler.web.database.CredentialItem;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.IndexDocument;
-import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.request.DocumentsRequest;
 import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.result.Result;
@@ -73,6 +72,7 @@ public class Client extends Config {
 			ClassNotFoundException {
 		Timer timer = new Timer("Update document " + document.toString());
 		try {
+			checkMaxDocumentLimit(1);
 			return getIndex().updateDocument(getSchema(), document);
 		} finally {
 			getStatisticsList().addUpdate(timer);
@@ -85,6 +85,7 @@ public class Client extends Config {
 			ClassNotFoundException {
 		Timer timer = new Timer("Update " + documents.size() + " documents");
 		try {
+			checkMaxDocumentLimit(documents.size());
 			return getIndex().updateDocuments(getSchema(), documents);
 		} finally {
 			getStatisticsList().addUpdate(timer);
@@ -103,15 +104,17 @@ public class Client extends Config {
 				bufferSize);
 		int docCount = 0;
 		for (int i = 0; i < l; i++) {
-			docList.add(new IndexDocument(getParserSelector(), xpp, nodeList
-					.item(i), urlDefaultCredential));
+			docList.add(new IndexDocument(this, getParserSelector(), xpp,
+					nodeList.item(i), urlDefaultCredential));
 			if (docList.size() == bufferSize) {
+				checkMaxDocumentLimit(docList.size());
 				docCount += updateDocuments(docList);
 				Logging.info(docCount + " / " + l + " XML document(s) indexed.");
 				docList.clear();
 			}
 		}
 		if (docList.size() > 0) {
+			checkMaxDocumentLimit(docList.size());
 			docCount += updateDocuments(docList);
 			Logging.info(docCount + " / " + l + " XML document(s) indexed.");
 		}
@@ -153,8 +156,8 @@ public class Client extends Config {
 
 	public int deleteDocuments(SearchRequest searchRequest)
 			throws SearchLibException, IOException, InstantiationException,
-			IllegalAccessException, ClassNotFoundException, ParseException,
-			SyntaxError, URISyntaxException, InterruptedException {
+			IllegalAccessException, ClassNotFoundException, SyntaxError,
+			URISyntaxException, InterruptedException {
 		Timer timer = new Timer("Delete by query documents");
 		try {
 			return getIndex().deleteDocuments(searchRequest);
@@ -245,10 +248,17 @@ public class Client extends Config {
 	}
 
 	public ResultDocument[] documents(DocumentsRequest documentsRequest)
-			throws IOException, ParseException, SyntaxError,
-			URISyntaxException, ClassNotFoundException, InterruptedException,
-			SearchLibException, IllegalAccessException, InstantiationException {
+			throws IOException, SyntaxError, URISyntaxException,
+			ClassNotFoundException, InterruptedException, SearchLibException,
+			IllegalAccessException, InstantiationException {
 		return getIndex().documents(documentsRequest);
 	}
 
+	protected final void checkMaxDocumentLimit(int additionalCount)
+			throws SearchLibException, IOException {
+		if (ClientFactory.INSTANCE.properties.getMaxDocumentLimit() == 0)
+			return;
+		ClientFactory.INSTANCE.properties.checkMaxDocumentLimit(ClientCatalog
+				.countAllDocuments() + additionalCount);
+	}
 }

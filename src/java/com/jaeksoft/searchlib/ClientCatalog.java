@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2010 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -55,12 +55,10 @@ import com.jaeksoft.searchlib.user.UserList;
 import com.jaeksoft.searchlib.util.LastModifiedAndSize;
 import com.jaeksoft.searchlib.util.XPathParser;
 import com.jaeksoft.searchlib.util.XmlWriter;
+import com.jaeksoft.searchlib.web.StartStopListener;
 import com.jaeksoft.searchlib.web.controller.PushEvent;
 
 public class ClientCatalog {
-
-	public static final String OPENSEARCHSERVER_DATA = System
-			.getenv("OPENSEARCHSERVER_DATA");
 
 	private static transient volatile Map<File, Client> CLIENTS = new TreeMap<File, Client>();
 
@@ -90,11 +88,6 @@ public class ClientCatalog {
 			Client client = CLIENTS.get(indexDirectory);
 			if (client != null)
 				return client;
-			File dataDir = new File(OPENSEARCHSERVER_DATA);
-			if (!indexDirectory.getParentFile().equals(dataDir))
-				throw new SearchLibException("Security alert: "
-						+ indexDirectory
-						+ " is outside OPENSEARCHSERVER_DATA (" + dataDir + ")");
 			client = ClientFactory.INSTANCE.newClient(indexDirectory, true,
 					false);
 			CLIENTS.put(indexDirectory, client);
@@ -124,13 +117,27 @@ public class ClientCatalog {
 	public static final void closeAll() {
 		w.lock();
 		try {
-			for (File file : CLIENTS.keySet()) {
-				Client client = CLIENTS.remove(file);
-				Logging.info("OSS unload index " + client.getIndexName());
-				client.close();
+			for (Client client : CLIENTS.values()) {
+				if (client != null) {
+					Logging.info("OSS unload index " + client.getIndexName());
+					client.close();
+				}
 			}
+			CLIENTS.clear();
 		} finally {
 			w.unlock();
+		}
+	}
+
+	public static final long countAllDocuments() throws IOException {
+		r.lock();
+		try {
+			long count = 0;
+			for (Client client : CLIENTS.values())
+				count += client.getIndex().getStatistics().getNumDocs();
+			return count;
+		} finally {
+			r.unlock();
 		}
 	}
 
@@ -139,7 +146,8 @@ public class ClientCatalog {
 		if (!isValidIndexName(indexName))
 			throw new SearchLibException("The name '" + indexName
 					+ "' is not allowed");
-		File file = new File(getDataDir(), indexName);
+		File file = new File(StartStopListener.OPENSEARCHSERVER_DATA_FILE,
+				indexName);
 		if (!file.exists())
 			return null;
 		return new LastModifiedAndSize(file, false);
@@ -150,23 +158,13 @@ public class ClientCatalog {
 		if (!isValidIndexName(indexName))
 			throw new SearchLibException("The name '" + indexName
 					+ "' is not allowed");
-		return getClient(new File(getDataDir(), indexName));
-	}
-
-	public static File getDataDir() throws SearchLibException {
-		if (OPENSEARCHSERVER_DATA == null)
-			throw new SearchLibException("OPENSEARCHSERVER_DATA is not defined");
-		File dataDir = new File(OPENSEARCHSERVER_DATA);
-		if (!dataDir.exists())
-			throw new SearchLibException("Data directory does not exists ("
-					+ dataDir + ")");
-		return dataDir;
+		return getClient(new File(StartStopListener.OPENSEARCHSERVER_DATA_FILE,
+				indexName));
 	}
 
 	public static final Set<ClientCatalogItem> getClientCatalog(User user)
 			throws SearchLibException {
-		File dataDir = getDataDir();
-		File[] files = dataDir
+		File[] files = StartStopListener.OPENSEARCHSERVER_DATA_FILE
 				.listFiles((FileFilter) DirectoryFileFilter.INSTANCE);
 		Set<ClientCatalogItem> set = new TreeSet<ClientCatalogItem>();
 		for (File file : files) {
@@ -209,7 +207,8 @@ public class ClientCatalog {
 					+ "' is not allowed");
 		w.lock();
 		try {
-			File indexDir = new File(getDataDir(), indexName);
+			File indexDir = new File(
+					StartStopListener.OPENSEARCHSERVER_DATA_FILE, indexName);
 			if (indexDir.exists())
 				throw new SearchLibException("directory " + indexName
 						+ " already exists");
@@ -242,7 +241,9 @@ public class ClientCatalog {
 		r.lock();
 		try {
 			if (userList == null) {
-				File userFile = new File(getDataDir(), "users.xml");
+				File userFile = new File(
+						StartStopListener.OPENSEARCHSERVER_DATA_FILE,
+						"users.xml");
 				if (userFile.exists()) {
 					XPathParser xpp = new XPathParser(userFile);
 					userList = UserList.fromXml(xpp,
@@ -276,7 +277,8 @@ public class ClientCatalog {
 	private static void saveUserListWithoutLock()
 			throws TransformerConfigurationException, SAXException,
 			IOException, SearchLibException {
-		ConfigFileRotation cfr = configFiles.get(getDataDir(), "users.xml");
+		ConfigFileRotation cfr = configFiles.get(
+				StartStopListener.OPENSEARCHSERVER_DATA_FILE, "users.xml");
 		try {
 			XmlWriter xmlWriter = new XmlWriter(
 					cfr.getTempPrintWriter("UTF-8"), "UTF-8");

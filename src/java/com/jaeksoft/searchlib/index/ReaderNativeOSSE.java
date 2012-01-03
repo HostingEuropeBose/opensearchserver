@@ -41,18 +41,20 @@ import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.result.Result;
 import com.jaeksoft.searchlib.result.ResultDocument;
 import com.sun.jna.Pointer;
+import com.sun.jna.WString;
 
 public class ReaderNativeOSSE extends ReaderAbstract {
 
 	private Pointer index;
 
 	protected ReaderNativeOSSE(File configDir, IndexConfig indexConfig) {
-		index = OsseLibrary.INSTANCE.index_new();
+		index = OsseLibrary.INSTANCE.OSSCLib_Index_Create(
+				new WString(configDir.getPath()), null);
 	}
 
 	@Override
 	public void close() {
-		OsseLibrary.INSTANCE.index_delete(index);
+		OsseLibrary.INSTANCE.OSSCLib_Index_Close(index, null);
 	}
 
 	protected Pointer getIndex() {

@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2009 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -31,37 +31,21 @@ import com.sun.jna.WString;
 
 public interface OsseLibrary extends Library {
 
-	final public static int LOG_FATAL = 0, LOG_SEVERE = 1, LOG_WARNING = 2,
-			LOG_INFO = 3, LOG_DEBUG = 4;
-
-	public void logger_setLevel(int level);
-
-	public Pointer document_new();
-
-	public void document_delete(Pointer document);
-
-	public void document_add(Pointer document, WString field, WString[] terms,
-			int count);
-
-	public Pointer index_new();
-
-	public void index_delete(Pointer index);
-
-	public long index_add(Pointer index, Pointer document);
-
-	public void index_search(WString query, Pointer result);
-
-	public Pointer result_new();
-
-	void result_delete(Pointer result);
-
-	float result_getScore(Pointer result, long pos);
-
-	long result_getDocumentId(Pointer result, long pos);
-
-	public void test();
-
 	public OsseLibrary INSTANCE = (OsseLibrary) Native.loadLibrary(
-			"OpenSearchServerEngine", OsseLibrary.class);
+			"OpenSearchServer_CLib", OsseLibrary.class);
+
+	Pointer OSSCLib_Index_Create(WString wszIndexName, Pointer hExtErrInfo);
+
+	boolean OSSCLib_Index_Close(Pointer hIndex, Pointer hExtErrInfo);
+
+	Pointer OSSCLib_Transact_Begin(Pointer hIndex, Pointer hExtErrInfo);
+
+	Pointer OSSCLib_Transact_Document_New(Pointer hTransact, Pointer hExtErrInfo);
+
+	int OSSCLib_Transact_Document_AddStringTerms(Pointer hTransact,
+			Pointer hDoc, WString lpwszFieldName, WString[] lplpTerm,
+			int ui32NumberOfTerms, Pointer hExtErrInfo);
+
+	boolean OSSCLib_Transact_RollBack(Pointer hTransact, Pointer hExtErrInfo);
 
 }
