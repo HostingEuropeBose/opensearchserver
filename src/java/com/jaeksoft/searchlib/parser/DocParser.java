@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -40,8 +40,7 @@ public class DocParser extends Parser {
 
 	private static ParserFieldEnum[] fl = { ParserFieldEnum.title,
 			ParserFieldEnum.author, ParserFieldEnum.subject,
-			ParserFieldEnum.content, ParserFieldEnum.lang,
-			ParserFieldEnum.filename, ParserFieldEnum.content_type };
+			ParserFieldEnum.content, ParserFieldEnum.lang };
 
 	public DocParser() {
 		super(fl);
@@ -81,12 +80,10 @@ public class DocParser extends Parser {
 			addField(ParserFieldEnum.subject, si.getSubject());
 		}
 
-		String[] paragraphes = word6.getParagraphText();
-		for (String paragraph : paragraphes) {
-			String[] frags = paragraph.split("\\n");
-			for (String frag : frags)
-				addField(ParserFieldEnum.content, frag.replaceAll("\\s+", " "));
-		}
+		String text = word6.getText();
+		String[] frags = text.split("\\n");
+		for (String frag : frags)
+			addField(ParserFieldEnum.content, frag.replaceAll("\\s+", " "));
 	}
 
 	@Override

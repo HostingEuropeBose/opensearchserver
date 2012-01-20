@@ -117,7 +117,7 @@ public class AnalyzersController extends CommonController implements
 		Client client = getClient();
 		if (client != null) {
 			currentFilter = FilterFactory.getDefaultFilter(client);
-			currentAnalyzer = new Analyzer();
+			currentAnalyzer = new Analyzer(client);
 		}
 		testType = "query";
 		testText = null;
@@ -245,7 +245,7 @@ public class AnalyzersController extends CommonController implements
 
 	public void onCancel() throws SearchLibException {
 		editAnalyzer = null;
-		currentAnalyzer = new Analyzer();
+		currentAnalyzer = new Analyzer(getClient());
 		reloadPage();
 	}
 

@@ -34,6 +34,12 @@ public interface OsseLibrary extends Library {
 	public OsseLibrary INSTANCE = (OsseLibrary) Native.loadLibrary(
 			"OpenSearchServer_CLib", OsseLibrary.class);
 
+	Pointer OSSCLib_ExtErrInfo_Create();
+
+	int OSSCLib_ExtErrInfo_GetErrorCode(Pointer hExtErrInfo);
+
+	void OSSCLib_ExtErrInfo_Delete(Pointer hExtErrInfo);
+
 	Pointer OSSCLib_Index_Create(WString wszIndexName, Pointer hExtErrInfo);
 
 	boolean OSSCLib_Index_Close(Pointer hIndex, Pointer hExtErrInfo);
@@ -47,5 +53,8 @@ public interface OsseLibrary extends Library {
 			int ui32NumberOfTerms, Pointer hExtErrInfo);
 
 	boolean OSSCLib_Transact_RollBack(Pointer hTransact, Pointer hExtErrInfo);
+
+	boolean OSSCLib_Transact_Commit(Pointer hTransact, Pointer lphDoc,
+			long ui64NumberOfDocs, Pointer lpui64DocId, Pointer hExtErrInfo);
 
 }

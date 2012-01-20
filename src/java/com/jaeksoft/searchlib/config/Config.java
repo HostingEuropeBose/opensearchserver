@@ -31,6 +31,7 @@ import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
+import java.util.InvalidPropertiesFormatException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Lock;
@@ -54,6 +55,8 @@ import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.LanguageEnum;
 import com.jaeksoft.searchlib.analysis.stopwords.StopWordsManager;
 import com.jaeksoft.searchlib.analysis.synonym.SynonymsManager;
+import com.jaeksoft.searchlib.api.ApiManager;
+import com.jaeksoft.searchlib.autocompletion.AutoCompletionManager;
 import com.jaeksoft.searchlib.collapse.CollapseMode;
 import com.jaeksoft.searchlib.crawler.FieldMap;
 import com.jaeksoft.searchlib.crawler.database.DatabaseCrawlList;
@@ -144,6 +147,8 @@ public abstract class Config {
 
 	private FilePropertyManager filePropertyManager = null;
 
+	private AutoCompletionManager autoCompletionManager = null;
+
 	private XPathParser xppConfig = null;
 
 	private WebCrawlMaster webCrawlMaster = null;
@@ -158,6 +163,8 @@ public abstract class Config {
 
 	private RendererManager rendererManager = null;
 
+	private ApiManager apiManager = null;
+
 	private FieldMap webCrawlerFieldMap = null;
 
 	private FieldMap fileCrawlerFieldMap = null;
@@ -166,7 +173,7 @@ public abstract class Config {
 
 	private RobotsTxtCache robotsTxtCache = null;
 
-	private File indexDir;
+	protected final File indexDir;
 
 	protected final ReadWriteLock rwl = new ReadWriteLock();
 
@@ -747,6 +754,33 @@ public abstract class Config {
 		return directory;
 	}
 
+	public ApiManager getApiManager() throws SearchLibException,
+			TransformerConfigurationException {
+		rwl.r.lock();
+		try {
+			if (apiManager != null)
+				return apiManager;
+		} finally {
+			rwl.r.unlock();
+		}
+		rwl.w.lock();
+		try {
+			if (apiManager != null)
+				return apiManager;
+			return apiManager = new ApiManager(indexDir, "api.xml");
+		} catch (XPathExpressionException e) {
+			throw new SearchLibException(e);
+		} catch (ParserConfigurationException e) {
+			throw new SearchLibException(e);
+		} catch (SAXException e) {
+			throw new SearchLibException(e);
+		} catch (IOException e) {
+			throw new SearchLibException(e);
+		} finally {
+			rwl.w.unlock();
+		}
+	}
+
 	public RendererManager getRendererManager() throws SearchLibException {
 		rwl.r.lock();
 		try {
@@ -914,6 +948,29 @@ public abstract class Config {
 			if (logReportManager != null)
 				return logReportManager;
 			return logReportManager = new LogReportManager(getIndexName());
+		} catch (IOException e) {
+			throw new SearchLibException(e);
+		} finally {
+			rwl.w.unlock();
+		}
+	}
+
+	public AutoCompletionManager getAutoCompletionManager()
+			throws SearchLibException {
+		rwl.r.lock();
+		try {
+			if (autoCompletionManager != null)
+				return autoCompletionManager;
+		} finally {
+			rwl.r.unlock();
+		}
+		rwl.w.lock();
+		try {
+			if (autoCompletionManager != null)
+				return autoCompletionManager;
+			return autoCompletionManager = new AutoCompletionManager(this);
+		} catch (InvalidPropertiesFormatException e) {
+			throw new SearchLibException(e);
 		} catch (IOException e) {
 			throw new SearchLibException(e);
 		} finally {
@@ -1547,12 +1604,14 @@ public abstract class Config {
 		boolean isWebCrawlMaster;
 		boolean isDatabaseCrawlMaster;
 		boolean isUrlManager;
+		boolean isAutoCompletionManager;
 		rwl.r.lock();
 		try {
 			isFileCrawlMaster = fileCrawlMaster != null;
 			isWebCrawlMaster = webCrawlMaster != null;
 			isDatabaseCrawlMaster = databaseCrawlMaster != null;
 			isUrlManager = urlManager != null;
+			isAutoCompletionManager = autoCompletionManager != null;
 		} finally {
 			rwl.r.unlock();
 		}
@@ -1573,6 +1632,8 @@ public abstract class Config {
 		}
 		if (isUrlManager)
 			urlManager.free();
+		if (isAutoCompletionManager)
+			autoCompletionManager.close();
 	}
 
 	private void closeQuiet() {

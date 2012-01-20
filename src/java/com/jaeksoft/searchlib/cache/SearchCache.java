@@ -48,12 +48,13 @@ public class SearchCache extends LRUCache<DocSetHitCacheKey, DocSetHits> {
 	}
 
 	public DocSetHits get(ReaderLocal reader, SearchRequest searchRequest,
-			Schema schema, Field defaultField, Analyzer analyzer)
+			Schema schema, Field defaultField)
 			throws ParseException, SyntaxError, IOException,
 			InstantiationException, IllegalAccessException,
 			ClassNotFoundException, SearchLibException {
 		rwl.w.lock();
 		try {
+			Analyzer analyzer = searchRequest.getAnalyzer();
 			DocSetHitCacheKey key = new DocSetHitCacheKey(searchRequest,
 					defaultField, analyzer);
 			DocSetHits dsh = getAndPromote(key);

@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -36,7 +36,10 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.commons.io.IOUtils;
+
 import com.jaeksoft.searchlib.Client;
+import com.jaeksoft.searchlib.ClientCatalog;
 import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.LanguageEnum;
@@ -190,12 +193,13 @@ public class Crawl {
 		} else
 			robotsTxtStatus = RobotsTxtStatus.DISABLED;
 		urlItem.setRobotsTxtStatus(robotsTxtStatus);
-		if (robotsTxtStatus != RobotsTxtStatus.ALLOW
-				&& robotsTxtStatus != RobotsTxtStatus.NO_ROBOTSTXT) {
-			urlItem.setFetchStatus(FetchStatus.NOT_ALLOWED);
-			return false;
-		}
-		return true;
+		if (robotsTxtStatus == RobotsTxtStatus.DISABLED
+				|| robotsTxtStatus == RobotsTxtStatus.ALLOW)
+			return true;
+		if (robotsTxtStatus == RobotsTxtStatus.NO_ROBOTSTXT)
+			return true;
+		urlItem.setFetchStatus(FetchStatus.NOT_ALLOWED);
+		return false;
 	}
 
 	/**
@@ -212,36 +216,41 @@ public class Crawl {
 				credentialItem = credentialManager == null ? null
 						: credentialManager.matchCredential(uri.toURL());
 
-				httpDownloader.get(uri, credentialItem);
+				DownloadItem downloadItem = ClientCatalog.getHadoopManager()
+						.loadCache(uri);
 
-				String contentDispositionFilename = httpDownloader
-						.getContentDispositionFilename();
-				urlItem.setContentDispositionFilename(contentDispositionFilename);
+				boolean fromCache = (downloadItem != null);
 
-				String contentBaseType = httpDownloader.getContentBaseType();
-				urlItem.setContentBaseType(contentBaseType);
+				if (!fromCache)
+					downloadItem = httpDownloader.get(uri, credentialItem);
 
-				String contentTypeCharset = httpDownloader
-						.getContentTypeCharset();
-				urlItem.setContentTypeCharset(contentTypeCharset);
+				urlItem.setContentDispositionFilename(downloadItem
+						.getContentDispositionFilename());
 
-				String encoding = httpDownloader.getContentEncoding();
-				urlItem.setContentEncoding(encoding);
+				urlItem.setContentBaseType(downloadItem.getContentBaseType());
 
-				Long contentLength = httpDownloader.getContentLength();
-				urlItem.setContentLength(contentLength);
+				urlItem.setContentTypeCharset(downloadItem
+						.getContentTypeCharset());
+
+				urlItem.setContentEncoding(downloadItem.getContentEncoding());
+
+				urlItem.setContentLength(downloadItem.getContentLength());
 
 				urlItem.setFetchStatus(FetchStatus.FETCHED);
 
-				Integer code = httpDownloader.getStatusCode();
+				Integer code = downloadItem.getStatusCode();
 				if (code == null)
 					throw new IOException("Http status is null");
 
 				urlItem.setResponseCode(code);
-				redirectUrlLocation = httpDownloader.getRedirectLocation();
+				redirectUrlLocation = downloadItem.getRedirectLocation();
 
 				if (code >= 200 && code < 300) {
-					is = httpDownloader.getContent();
+					if (!fromCache)
+						is = ClientCatalog.getHadoopManager().storeCache(
+								downloadItem);
+					else
+						is = downloadItem.getContentInputStream();
 					parseContent(is);
 				} else if ("301".equals(code)) {
 					urlItem.setFetchStatus(FetchStatus.REDIR_PERM);
@@ -289,12 +298,8 @@ public class Crawl {
 				urlItem.setFetchStatus(FetchStatus.ERROR);
 				setError(e.getMessage());
 			}
-			try {
-				if (is != null)
-					is.close();
-			} catch (IOException e) {
-				Logging.warn(e.getMessage(), e);
-			}
+			if (is != null)
+				IOUtils.closeQuietly(is);
 		}
 	}
 

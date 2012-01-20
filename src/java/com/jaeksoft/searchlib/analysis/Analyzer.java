@@ -47,11 +47,13 @@ public class Analyzer {
 	private List<FilterFactory> filters;
 	private String name;
 	private LanguageEnum lang;
+	private Config config;
 	private CompiledAnalyzer queryAnalyzer;
 	private CompiledAnalyzer indexAnalyzer;
 
-	public Analyzer() throws SearchLibException {
+	public Analyzer(Config config) throws SearchLibException {
 		name = null;
+		this.config = config;
 		lang = LanguageEnum.UNDEFINED;
 		filters = new ArrayList<FilterFactory>();
 		queryAnalyzer = null;
@@ -76,6 +78,7 @@ public class Analyzer {
 			for (FilterFactory filter : filters)
 				target.filters
 						.add((FilterFactory) FilterFactory.create(filter));
+			target.config = this.config;
 			target.queryAnalyzer = null;
 			target.indexAnalyzer = null;
 
@@ -84,7 +87,9 @@ public class Analyzer {
 		}
 	}
 
-	private Analyzer(XPathParser xpp, Node node) throws SearchLibException {
+	private Analyzer(Config config, XPathParser xpp, Node node)
+			throws SearchLibException {
+		this.config = config;
 		this.name = XPathParser.getAttributeString(node, "name");
 		this.lang = LanguageEnum.findByCode(XPathParser.getAttributeString(
 				node, "lang"));
@@ -204,7 +209,7 @@ public class Analyzer {
 			Node node) throws SearchLibException, XPathExpressionException {
 		if (node == null)
 			return null;
-		Analyzer analyzer = new Analyzer(xpp, node);
+		Analyzer analyzer = new Analyzer(config, xpp, node);
 
 		NodeList nodes = xpp.getNodeList(node, "filter");
 		for (int i = 0; i < nodes.getLength(); i++) {

@@ -75,8 +75,7 @@ public class ReaderNativeOSSE extends ReaderAbstract {
 
 	@Override
 	public IndexStatistics getStatistics() throws IOException {
-		// TODO Auto-generated method stub
-		return null;
+		return new IndexStatistics();
 	}
 
 	@Override

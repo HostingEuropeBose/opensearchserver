@@ -61,11 +61,12 @@ public class TaskLog {
 			}
 		}
 		startTime = System.currentTimeMillis();
-		endTime = startTime;
+		endTime = 0;
 	}
 
 	protected void end() {
 		endTime = System.currentTimeMillis();
+		endDate = null;
 		duration = endTime - startTime;
 	}
 
@@ -84,7 +85,7 @@ public class TaskLog {
 	}
 
 	public Date getEndDate() {
-		if (endDate == null)
+		if (endDate == null && endTime != 0)
 			endDate = new Date(endTime);
 		return endDate;
 	}

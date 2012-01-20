@@ -104,7 +104,6 @@ public class TermController extends CommonController {
 
 	private TermEnum getTermEnum() throws IOException, SearchLibException {
 		synchronized (this) {
-
 			if (currentTermEnum == null)
 				setTermEnum();
 			return currentTermEnum;
@@ -276,7 +275,7 @@ public class TermController extends CommonController {
 	}
 
 	@Override
-	protected void eventSchemaChange() throws SearchLibException {
+	public void eventSchemaChange() throws SearchLibException {
 		synchronized (this) {
 			fieldList = null;
 			reloadPage();

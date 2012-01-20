@@ -164,4 +164,9 @@ public class IndexReader {
 		return false;
 	}
 
+	public int numDeletedDocs() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
 }

@@ -63,28 +63,45 @@ public class WriterNativeOSSE extends WriterAbstract {
 
 	@Override
 	public boolean updateDocument(Schema schema, IndexDocument document) {
-		Pointer transactPtr = OsseLibrary.INSTANCE.OSSCLib_Transact_Begin(
-				reader.getIndex(), null);
-		Pointer docPtr = OsseLibrary.INSTANCE.OSSCLib_Transact_Document_New(
-				transactPtr, null);
-		for (FieldContent fieldContent : document) {
-			WString field = new WString(fieldContent.getField());
-			for (FieldValueItem valueItem : fieldContent.getValues()) {
-				String value = valueItem.getValue();
-				String[] terms = value.split("\\s");
-				if (terms.length > 0) {
-					WString[] wTerms = new WString[terms.length];
-					int i = 0;
-					for (String term : terms)
-						wTerms[i++] = new WString(term);
-					OsseLibrary.INSTANCE
-							.OSSCLib_Transact_Document_AddStringTerms(
-									transactPtr, docPtr, field, wTerms,
-									wTerms.length, null);
+		Pointer errorPtr = null;
+		Pointer transactPtr = null;
+		try {
+			errorPtr = OsseLibrary.INSTANCE.OSSCLib_ExtErrInfo_Create();
+			transactPtr = OsseLibrary.INSTANCE.OSSCLib_Transact_Begin(
+					reader.getIndex(), errorPtr);
+			Pointer docPtr = OsseLibrary.INSTANCE
+					.OSSCLib_Transact_Document_New(transactPtr, errorPtr);
+			for (FieldContent fieldContent : document) {
+				WString field = new WString(fieldContent.getField());
+				for (FieldValueItem valueItem : fieldContent.getValues()) {
+					String value = valueItem.getValue();
+					String[] terms = value.split("\\s");
+					if (terms.length > 0) {
+						WString[] wTerms = new WString[terms.length];
+						int i = 0;
+						for (String term : terms)
+							wTerms[i++] = new WString(term);
+						int res = OsseLibrary.INSTANCE
+								.OSSCLib_Transact_Document_AddStringTerms(
+										transactPtr, docPtr, field, wTerms,
+										wTerms.length, errorPtr);
+						System.out
+								.println("OSSCLib_Transact_Document_AddStringTerms returns "
+										+ res + " / " + wTerms.length);
+					}
 				}
 			}
+			// OsseLibrary.INSTANCE.OSSCLib_Transact_Commit(transactPtr, null,
+			// 0,
+			// null, errorPtr);
+			// transactPtr = null;
+		} finally {
+			if (transactPtr != null)
+				OsseLibrary.INSTANCE.OSSCLib_Transact_RollBack(transactPtr,
+						errorPtr);
+			if (errorPtr != null)
+				OsseLibrary.INSTANCE.OSSCLib_ExtErrInfo_Delete(errorPtr);
 		}
-		OsseLibrary.INSTANCE.OSSCLib_Transact_RollBack(transactPtr, null);
 		return true;
 	}
 

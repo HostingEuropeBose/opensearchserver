@@ -32,7 +32,7 @@ import com.jaeksoft.searchlib.SearchLibException;
 public class KeywordAnalyzer extends Analyzer {
 
 	public KeywordAnalyzer() throws SearchLibException {
-		super();
+		super(null);
 		// TODO Auto-generated constructor stub
 	}
 

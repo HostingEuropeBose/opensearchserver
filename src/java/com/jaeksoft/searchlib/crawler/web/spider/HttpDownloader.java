@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -30,19 +30,18 @@ import java.net.URI;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpVersion;
 import org.apache.http.ProtocolException;
 import org.apache.http.StatusLine;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.RedirectStrategy;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.params.HttpClientParams;
-import org.apache.http.conn.params.ConnRoutePNames;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.http.params.BasicHttpParams;
@@ -64,9 +63,10 @@ public class HttpDownloader {
 	private HttpEntity httpEntity = null;
 	private StatusLine statusLine = null;
 	private RedirectStrategy redirectStrategy;
+	private ProxyHandler proxyHandler;
 
 	public HttpDownloader(String userAgent, boolean bFollowRedirect,
-			String proxyHost, int proxyPort) {
+			ProxyHandler proxyHandler) {
 		redirectStrategy = new DefaultRedirectStrategy();
 		HttpParams params = new BasicHttpParams();
 		HttpProtocolParamBean paramsBean = new HttpProtocolParamBean(params);
@@ -75,11 +75,8 @@ public class HttpDownloader {
 		paramsBean.setUserAgent(userAgent);
 		HttpClientParams.setRedirecting(params, bFollowRedirect);
 		httpClient = new DefaultHttpClient(params);
-		if (proxyHost != null && proxyHost.length() > 0 && proxyPort != 0) {
-			HttpHost proxy = new HttpHost(proxyHost, proxyPort);
-			httpClient.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY,
-					proxy);
-		}
+		this.proxyHandler = proxyHandler;
+		;
 		// TIMEOUT ?
 		// RETRY HANDLER ?
 	}
@@ -114,9 +111,12 @@ public class HttpDownloader {
 		}
 	}
 
-	public void get(URI uri, CredentialItem credentialItem) throws IOException {
+	public DownloadItem get(URI uri, CredentialItem credentialItem)
+			throws ClientProtocolException, IOException {
 		synchronized (this) {
 			reset();
+			if (proxyHandler != null)
+				proxyHandler.check(httpClient, uri);
 			CredentialsProvider credential = httpClient
 					.getCredentialsProvider();
 			if (credentialItem == null)
@@ -134,27 +134,43 @@ public class HttpDownloader {
 				statusLine = httpResponse.getStatusLine();
 				httpEntity = httpResponse.getEntity();
 			}
+			DownloadItem downloadItem = new DownloadItem(uri);
+			downloadItem.setRedirectLocation(getRedirectLocation());
+			downloadItem.setContentLength(getContentLength());
+			downloadItem
+					.setContentDispositionFilename(getContentDispositionFilename());
+			downloadItem.setContentBaseType(getContentBaseType());
+			downloadItem.setContentEncoding(getContentEncoding());
+			downloadItem.setContentTypeCharset(getContentTypeCharset());
+			downloadItem.setStatusCode(getStatusCode());
+			downloadItem.setContentInputStream(getContent());
+			return downloadItem;
 		}
 	}
 
-	public URI getRedirectLocation() throws ProtocolException {
+	private URI getRedirectLocation() {
 		synchronized (this) {
 			if (httpResponse == null)
 				return null;
 			if (httpContext == null)
 				return null;
-			if (!redirectStrategy.isRedirected(httpGet, httpResponse,
-					httpContext))
+			try {
+				if (!redirectStrategy.isRedirected(httpGet, httpResponse,
+						httpContext))
+					return null;
+				HttpUriRequest httpUri = redirectStrategy.getRedirect(httpGet,
+						httpResponse, httpContext);
+				if (httpUri == null)
+					return null;
+				return httpUri.getURI();
+			} catch (ProtocolException e) {
+				Logging.error(e);
 				return null;
-			HttpUriRequest httpUri = redirectStrategy.getRedirect(httpGet,
-					httpResponse, httpContext);
-			if (httpUri == null)
-				return null;
-			return httpUri.getURI();
+			}
 		}
 	}
 
-	public Long getContentLength() {
+	private Long getContentLength() {
 		synchronized (this) {
 			if (httpEntity == null)
 				return null;
@@ -162,7 +178,7 @@ public class HttpDownloader {
 		}
 	}
 
-	public String getContentDispositionFilename() {
+	private String getContentDispositionFilename() {
 		if (httpResponse == null)
 			return null;
 		Header header = httpResponse.getFirstHeader("Content-Disposition");
@@ -178,7 +194,7 @@ public class HttpDownloader {
 		return f.replace("\"", "");
 	}
 
-	public String getContentBaseType() {
+	private String getContentBaseType() {
 		synchronized (this) {
 			if (httpEntity == null)
 				return null;
@@ -193,7 +209,7 @@ public class HttpDownloader {
 		}
 	}
 
-	public String getContentTypeCharset() {
+	private String getContentTypeCharset() {
 		synchronized (this) {
 			if (httpEntity == null)
 				return null;
@@ -201,7 +217,7 @@ public class HttpDownloader {
 		}
 	}
 
-	public String getContentEncoding() {
+	private String getContentEncoding() {
 		synchronized (this) {
 			if (httpEntity == null)
 				return null;
@@ -213,7 +229,7 @@ public class HttpDownloader {
 
 	}
 
-	public InputStream getContent() throws IllegalStateException, IOException {
+	private InputStream getContent() throws IllegalStateException, IOException {
 		synchronized (this) {
 			if (httpEntity == null)
 				return null;
@@ -221,7 +237,7 @@ public class HttpDownloader {
 		}
 	}
 
-	public Integer getStatusCode() {
+	private Integer getStatusCode() {
 		synchronized (this) {
 			if (statusLine == null)
 				return null;

@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2010-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2010-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -39,7 +39,9 @@ import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.config.Config;
 import com.jaeksoft.searchlib.crawler.web.database.CredentialItem;
+import com.jaeksoft.searchlib.crawler.web.spider.DownloadItem;
 import com.jaeksoft.searchlib.crawler.web.spider.HttpDownloader;
+import com.jaeksoft.searchlib.crawler.web.spider.ProxyHandler;
 import com.jaeksoft.searchlib.scheduler.TaskAbstract;
 import com.jaeksoft.searchlib.scheduler.TaskProperties;
 import com.jaeksoft.searchlib.scheduler.TaskPropertyDef;
@@ -73,30 +75,39 @@ public class TaskXmlLoad extends TaskAbstract {
 	}
 
 	@Override
-	public String[] getPropertyValues(Config config, String property)
+	public String[] getPropertyValues(Config config, TaskPropertyDef propertyDef)
 			throws SearchLibException {
+		return null;
+	}
+
+	@Override
+	public String getDefaultValue(Config config, TaskPropertyDef propertyDef) {
 		return null;
 	}
 
 	@Override
 	public void execute(Client client, TaskProperties properties)
 			throws SearchLibException {
-		String uri = properties.getValue(propUri.name);
-		String login = properties.getValue(propLogin.name);
-		String password = properties.getValue(propPassword.name);
-		String p = properties.getValue(propBuffersize.name);
+		String uri = properties.getValue(propUri);
+		String login = properties.getValue(propLogin);
+		String password = properties.getValue(propPassword);
+		String p = properties.getValue(propBuffersize);
 		int bufferSize = 50;
 		if (p != null && p.length() > 0)
 			bufferSize = Integer.parseInt(p);
-		HttpDownloader httpDownloader = new HttpDownloader(null, false, null, 0);
+		ProxyHandler proxyHandler = client.getWebPropertyManager()
+				.getProxyHandler();
+		HttpDownloader httpDownloader = new HttpDownloader(null, false,
+				proxyHandler);
 		try {
 			CredentialItem credentialItem = null;
 			if (login != null && password != null)
 				credentialItem = new CredentialItem(null, login, password);
-			httpDownloader.get(new URI(uri), credentialItem);
-			client.updateXmlDocuments(
-					new InputSource(httpDownloader.getContent()), bufferSize,
+			DownloadItem downloadItem = httpDownloader.get(new URI(uri),
 					credentialItem);
+			client.updateXmlDocuments(
+					new InputSource(downloadItem.getContentInputStream()),
+					bufferSize, credentialItem, proxyHandler);
 		} catch (XPathExpressionException e) {
 			throw new SearchLibException(e);
 		} catch (NoSuchAlgorithmException e) {

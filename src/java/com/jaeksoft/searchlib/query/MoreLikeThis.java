@@ -26,7 +26,7 @@ package com.jaeksoft.searchlib.query;
 
 import java.io.StringReader;
 
-import com.jaeksoft.searchlib.analysis.PerFieldAnalyzerWrapper;
+import com.jaeksoft.searchlib.analysis.Analyzer;
 import com.jaeksoft.searchlib.analysis.stopwords.WordSet;
 import com.jaeksoft.searchlib.index.IndexReader;
 
@@ -69,7 +69,7 @@ public class MoreLikeThis {
 
 	}
 
-	public void setAnalyzer(PerFieldAnalyzerWrapper queryPerFieldAnalyzer) {
+	public void setAnalyzer(Analyzer analyzer) {
 		// TODO Auto-generated method stub
 
 	}

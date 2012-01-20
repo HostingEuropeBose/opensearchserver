@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -27,10 +27,15 @@ package com.jaeksoft.searchlib.crawler.web.database;
 import java.io.File;
 import java.io.IOException;
 
+import com.jaeksoft.searchlib.ClientFactory;
+import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.crawler.common.database.PropertyItem;
+import com.jaeksoft.searchlib.crawler.common.database.PropertyItemListener;
 import com.jaeksoft.searchlib.crawler.common.database.PropertyManager;
+import com.jaeksoft.searchlib.crawler.web.spider.ProxyHandler;
 
-public class WebPropertyManager extends PropertyManager {
+public class WebPropertyManager extends PropertyManager implements
+		PropertyItemListener {
 
 	private PropertyItem<Integer> delayBetweenAccesses;
 	private PropertyItem<Integer> fetchInterval;
@@ -50,15 +55,20 @@ public class WebPropertyManager extends PropertyManager {
 	private PropertyItem<Integer> screenshotResizeHeight;
 	private PropertyItem<String> proxyHost;
 	private PropertyItem<Integer> proxyPort;
+	private PropertyItem<String> proxyExclusion;
 	private PropertyItem<Boolean> proxyEnabled;
+
+	private ProxyHandler proxyHandler = null;
 
 	public WebPropertyManager(File file) throws IOException {
 		super(file);
-		delayBetweenAccesses = newIntegerProperty("delayBetweenAccesses", 10);
-		fetchInterval = newIntegerProperty("fetchInterval", 30);
+		delayBetweenAccesses = newIntegerProperty("delayBetweenAccesses", 10,
+				ClientFactory.INSTANCE.properties.getMinCrawlerDelay(), null);
+		fetchInterval = newIntegerProperty("fetchInterval", 30, 1, null);
 		fetchIntervalUnit = newStringProperty("fechIntervalUnit", "days");
-		maxUrlPerHost = newIntegerProperty("maxUrlPerHost", 100);
-		maxUrlPerSession = newIntegerProperty("maxUrlPerSession", 10000);
+		maxUrlPerHost = newIntegerProperty("maxUrlPerHost", 100, 1, null);
+		maxUrlPerSession = newIntegerProperty("maxUrlPerSession", 10000, 1,
+				null);
 		userAgent = newStringProperty("userAgent", "OpenSearchServer_Bot");
 		replicationAfterSession = newBooleanProperty("replicationAfterSession",
 				false);
@@ -68,19 +78,28 @@ public class WebPropertyManager extends PropertyManager {
 		robotsTxtEnabled = newBooleanProperty("robotsTxtEnabled", true);
 		screenshotMethod = newStringProperty("screenshotMethod", "");
 		screenshotCaptureWidth = newIntegerProperty("screenshotCaptureWidth",
-				1024);
+				1024, 1, null);
 		screenshotCaptureHeight = newIntegerProperty("screenshotCaptureHeight",
-				768);
-		screenshotResizeWidth = newIntegerProperty("screenshotResizeWidth", 240);
+				768, 1, null);
+		screenshotResizeWidth = newIntegerProperty("screenshotResizeWidth",
+				240, 1, null);
 		screenshotResizeHeight = newIntegerProperty("screenshotResizeHeight",
-				180);
+				180, 1, null);
 		proxyHost = newStringProperty("proxyHost", "");
-		proxyPort = newIntegerProperty("proxyPort", 8080);
+		proxyPort = newIntegerProperty("proxyPort", 8080, null, null);
+		proxyExclusion = newStringProperty("proxyExclusion", "");
 		proxyEnabled = newBooleanProperty("proxyEnabled", false);
+		proxyHost.addListener(this);
+		proxyPort.addListener(this);
+		proxyExclusion.addListener(this);
 	}
 
 	public PropertyItem<String> getProxyHost() {
 		return proxyHost;
+	}
+
+	public PropertyItem<String> getProxyExclusion() {
+		return proxyExclusion;
 	}
 
 	public PropertyItem<Boolean> getProxyEnabled() {
@@ -153,5 +172,23 @@ public class WebPropertyManager extends PropertyManager {
 
 	public PropertyItem<Integer> getScreenshotResizeHeight() {
 		return screenshotResizeHeight;
+	}
+
+	@Override
+	public void hasBeenSet(PropertyItem<?> prop) throws SearchLibException {
+		synchronized (this) {
+			if (prop == proxyHost || prop == proxyPort
+					|| prop == proxyExclusion)
+				proxyHandler = null;
+		}
+	}
+
+	public ProxyHandler getProxyHandler() throws SearchLibException {
+		synchronized (this) {
+			if (proxyHandler != null)
+				return proxyHandler;
+			proxyHandler = new ProxyHandler(this);
+			return proxyHandler;
+		}
 	}
 }

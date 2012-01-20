@@ -220,7 +220,11 @@ public class JobItem extends UniqueNameItem<JobItem> {
 			taskLog.setError(e);
 			setLastError(e);
 			Logging.warn(e);
-			e.printStackTrace();
+		} catch (Exception e) {
+			SearchLibException se = new SearchLibException(e);
+			taskLog.setError(se);
+			setLastError(se);
+			Logging.warn(e);
 		} finally {
 			if (taskLog != null)
 				taskLog.end();

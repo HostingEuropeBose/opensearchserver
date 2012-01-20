@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2010 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -25,10 +25,10 @@
 package com.jaeksoft.searchlib.crawler.common.database;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Properties;
+
+import com.jaeksoft.searchlib.util.PropertiesUtils;
 
 public abstract class PropertyManager {
 
@@ -42,42 +42,22 @@ public abstract class PropertyManager {
 
 	protected PropertyManager(File file) throws IOException {
 		propFile = file;
-		properties = new Properties();
-		if (propFile.exists()) {
-			FileInputStream inputStream = null;
-			try {
-				inputStream = new FileInputStream(propFile);
-				properties.loadFromXML(inputStream);
-			} catch (IOException e) {
-				throw e;
-			} finally {
-				if (inputStream != null)
-					inputStream.close();
-			}
-		}
+		properties = PropertiesUtils.loadFromXml(propFile);
 		indexDocumentBufferSize = new PropertyItem<Integer>(this,
-				"indexDocumentBufferSize", 1000);
-		maxThreadNumber = newIntegerProperty("maxThreadNumber", 10);
+				"indexDocumentBufferSize", 1000, null, null);
+		maxThreadNumber = newIntegerProperty("maxThreadNumber", 10, null, null);
 		crawlEnabled = newBooleanProperty("crawlEnabled", false);
 	}
 
 	protected void save() throws IOException {
-		FileOutputStream fos = null;
-		try {
-			fos = new FileOutputStream(propFile);
-			properties.storeToXML(fos, "");
-		} catch (IOException e) {
-			throw e;
-		} finally {
-			if (fos != null)
-				fos.close();
-		}
+		PropertiesUtils.storeToXml(properties, propFile);
 	}
 
 	protected PropertyItem<Integer> newIntegerProperty(String name,
-			Integer defaultValue) throws NumberFormatException, IOException {
+			Integer defaultValue, Integer min, Integer max)
+			throws NumberFormatException, IOException {
 		PropertyItem<Integer> propertyItem = new PropertyItem<Integer>(this,
-				name, defaultValue);
+				name, defaultValue, min, max);
 		String value = properties.getProperty(name);
 		if (value != null)
 			propertyItem.initValue(Integer.parseInt(value));
@@ -87,7 +67,7 @@ public abstract class PropertyManager {
 	protected PropertyItem<Boolean> newBooleanProperty(String name,
 			Boolean defaultValue) {
 		PropertyItem<Boolean> propertyItem = new PropertyItem<Boolean>(this,
-				name, defaultValue);
+				name, defaultValue, null, null);
 		String value = properties.getProperty(name);
 		if (value != null)
 			propertyItem.initValue("1".equals(value)
@@ -99,7 +79,7 @@ public abstract class PropertyManager {
 	protected PropertyItem<String> newStringProperty(String name,
 			String defaultValue) {
 		PropertyItem<String> propertyItem = new PropertyItem<String>(this,
-				name, defaultValue);
+				name, defaultValue, null, null);
 		String value = properties.getProperty(name);
 		if (value != null)
 			propertyItem.initValue(value);

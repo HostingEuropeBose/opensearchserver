@@ -1,6 +1,6 @@
 /**   
  *
- * Copyright (C) 2009-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2009-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -24,6 +24,7 @@
 package com.jaeksoft.searchlib.util;
 
 import java.text.DecimalFormat;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.codec.binary.Base64;
@@ -69,10 +70,30 @@ public class StringUtils {
 	private final static Pattern removeEndTagBlockPattern = Pattern
 			.compile("[^\\p{Punct}].<\\/(p|td|div|h1|h2|h3|h4|h5|h6|hr|li|option|pre|select|table|tbody|td|textarea|tfoot|thead|th|title|tr|ul)>");
 
-	public static String removeTag(String text) {
+	public static final String removeTag(String text) {
 		text = removeSpacePattern.matcher(text).replaceAll(" ");
 		text = removeEndTagBlockPattern.matcher(text).replaceAll(". ");
 		return removeTagPattern.matcher(text).replaceAll("");
+	}
+
+	public static final String removeTag(String text, String[] allowedTags) {
+		if (allowedTags == null)
+			return removeSpacePattern.matcher(text).replaceAll(" ");
+		StringBuffer sb = new StringBuffer();
+		Matcher matcher = removeTagPattern.matcher(text);
+		while (matcher.find()) {
+			boolean allowed = false;
+			String group = matcher.group();
+			for (String tag : allowedTags) {
+				if (tag.equals(group)) {
+					allowed = true;
+					break;
+				}
+			}
+			matcher.appendReplacement(sb, allowed ? group : "");
+		}
+		matcher.appendTail(sb);
+		return sb.toString();
 	}
 
 	/**
@@ -95,36 +116,6 @@ public class StringUtils {
 		return new String(Base64.decodeBase64(base64String));
 	}
 
-	private final static String[] zeroArray = {
-			org.apache.commons.lang.StringUtils.repeat("0", 1),
-			org.apache.commons.lang.StringUtils.repeat("0", 2),
-			org.apache.commons.lang.StringUtils.repeat("0", 3),
-			org.apache.commons.lang.StringUtils.repeat("0", 4),
-			org.apache.commons.lang.StringUtils.repeat("0", 5),
-			org.apache.commons.lang.StringUtils.repeat("0", 6),
-			org.apache.commons.lang.StringUtils.repeat("0", 7),
-			org.apache.commons.lang.StringUtils.repeat("0", 8),
-			org.apache.commons.lang.StringUtils.repeat("0", 9),
-			org.apache.commons.lang.StringUtils.repeat("0", 10),
-			org.apache.commons.lang.StringUtils.repeat("0", 11),
-			org.apache.commons.lang.StringUtils.repeat("0", 12),
-			org.apache.commons.lang.StringUtils.repeat("0", 13),
-			org.apache.commons.lang.StringUtils.repeat("0", 14),
-			org.apache.commons.lang.StringUtils.repeat("0", 15),
-			org.apache.commons.lang.StringUtils.repeat("0", 16) };
-
-	public final static String longToHexString(long value) {
-		String s = Long.toString(value, 16);
-		int l = 16 - s.length();
-		if (l <= 0)
-			return s;
-		return zeroArray[l - 1] + s;
-	}
-
-	public final static long hexStringToLong(String s) {
-		return Long.parseLong(s, 16);
-	}
-
 	public final static int compareNullValues(Object v1, Object v2) {
 		if (v1 == null) {
 			if (v2 == null)
@@ -134,5 +125,15 @@ public class StringUtils {
 		if (v2 == null)
 			return 1;
 		return 0;
+	}
+
+	public final static String leftPad(int value, int size) {
+		return org.apache.commons.lang.StringUtils.leftPad(
+				Integer.toString(value), size, '0');
+	}
+
+	public final static String leftPad(long value, int size) {
+		return org.apache.commons.lang.StringUtils.leftPad(
+				Long.toString(value), size, '0');
 	}
 }

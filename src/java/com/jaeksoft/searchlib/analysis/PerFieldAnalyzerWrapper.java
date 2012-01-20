@@ -33,6 +33,7 @@ public class PerFieldAnalyzerWrapper extends Analyzer {
 
 	public PerFieldAnalyzerWrapper(Analyzer defaultAnalyzer)
 			throws SearchLibException {
+		super(null);
 	}
 
 	public void addAnalyzer(String name, CompiledAnalyzer queryAnalyzer) {

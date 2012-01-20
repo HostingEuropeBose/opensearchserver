@@ -120,8 +120,8 @@ public class SpellCheckField extends Field implements CacheKeyInterface<Field> {
 	@Override
 	public void writeXmlConfig(XmlWriter xmlWriter) throws SAXException {
 		xmlWriter.startElement("spellCheckField", "name", name, "minScore",
-				Float.toString(minScore), "suggestionNumber",
-				Integer.toString(suggestionNumber));
+				Float.toString(minScore), "suggestionNumber", Integer
+						.toString(suggestionNumber));
 		xmlWriter.endElement();
 	}
 

@@ -38,7 +38,10 @@ import org.apache.commons.codec.binary.Base64InputStream;
 import org.apache.commons.io.IOUtils;
 import org.knallgrau.utils.textcat.TextCategorizer;
 
+import com.jaeksoft.searchlib.ClientFactory;
+import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.crawler.file.process.FileInstanceAbstract;
+import com.jaeksoft.searchlib.crawler.file.process.fileInstances.LocalFileInstance;
 import com.jaeksoft.searchlib.index.FieldContent;
 import com.jaeksoft.searchlib.index.IndexDocument;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
@@ -185,10 +188,22 @@ public abstract class Parser extends ParserFactory {
 		}
 	}
 
+	final private void doParseContent(LocalFileInstance localFileInstance)
+			throws IOException {
+		File file = new File(localFileInstance.getURI());
+		if (localFileInstance.getFileSize() > getSizeLimit())
+			throw new LimitException();
+		doParseContent(file);
+	}
+
 	final public void parseContent(FileInstanceAbstract fileInstance)
 			throws IOException {
 		if (!requireContent())
 			return;
+		if (fileInstance instanceof LocalFileInstance) {
+			doParseContent((LocalFileInstance) fileInstance);
+			return;
+		}
 		InputStream is = null;
 		try {
 			is = fileInstance.getInputStream();
@@ -240,7 +255,7 @@ public abstract class Parser extends ParserFactory {
 		}
 	}
 
-	public void parseContent(File file) throws IOException {
+	protected void doParseContent(File file) throws IOException {
 		FileInputStream fileInputStream = null;
 		try {
 			fileInputStream = new FileInputStream(file);
@@ -249,6 +264,13 @@ public abstract class Parser extends ParserFactory {
 			if (fileInputStream != null)
 				fileInputStream.close();
 		}
+
+	}
+
+	final public void parseContent(File file) throws IOException,
+			SearchLibException {
+		ClientFactory.INSTANCE.properties.checkChroot(file);
+		doParseContent(file);
 	}
 
 	public String getMd5size() throws NoSuchAlgorithmException {

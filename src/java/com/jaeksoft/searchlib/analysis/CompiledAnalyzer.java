@@ -38,6 +38,7 @@ public class CompiledAnalyzer extends Analyzer {
 
 	protected CompiledAnalyzer(List<FilterFactory> sourceFilters,
 			FilterScope scopeTarget) throws SearchLibException {
+		super(null);
 		List<FilterFactory> ff = new ArrayList<FilterFactory>();
 		if (scopeTarget == FilterScope.INDEX)
 			buildIndexList(sourceFilters, ff);
