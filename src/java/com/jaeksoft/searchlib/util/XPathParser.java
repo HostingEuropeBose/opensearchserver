@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -28,8 +28,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
@@ -45,32 +43,32 @@ import org.xml.sax.SAXException;
 
 public class XPathParser {
 
+	private static XPathFactory xPathFactory = XPathFactory.newInstance();
+
 	private XPath xPath;
 	private Node rootNode;
 	private File currentFile;
 
 	public XPathParser() {
-		XPathFactory xPathfactory = XPathFactory.newInstance();
-		xPath = xPathfactory.newXPath();
+		synchronized (xPathFactory) {
+			xPath = xPathFactory.newXPath();
+		}
 		currentFile = null;
-	}
-
-	private DocumentBuilder getBuilder() throws ParserConfigurationException {
-		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-		return factory.newDocumentBuilder();
 	}
 
 	public XPathParser(File file) throws ParserConfigurationException,
 			SAXException, IOException {
 		this();
 		currentFile = file;
-		setRoot(getBuilder().parse(currentFile.getAbsoluteFile()));
+		setRoot(DomUtils.getNewDocumentBuilder(false, true).parse(
+				currentFile.getAbsoluteFile()));
 	}
 
 	public XPathParser(InputSource inputSource) throws SAXException,
 			IOException, ParserConfigurationException {
 		this();
-		Document document = getBuilder().parse(inputSource);
+		Document document = DomUtils.getNewDocumentBuilder(false, true).parse(
+				inputSource);
 		document.normalize();
 		setRoot(document);
 	}
@@ -78,7 +76,7 @@ public class XPathParser {
 	public XPathParser(InputStream inputStream) throws SAXException,
 			IOException, ParserConfigurationException {
 		this();
-		setRoot(getBuilder().parse(inputStream));
+		setRoot(DomUtils.getNewDocumentBuilder(false, true).parse(inputStream));
 	}
 
 	public XPathParser(Node rootNode) {
