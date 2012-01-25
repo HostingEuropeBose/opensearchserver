@@ -34,6 +34,7 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
+import org.apache.commons.lang.StringEscapeUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
@@ -43,53 +44,46 @@ import org.xml.sax.SAXException;
 
 public class XPathParser {
 
-	private static XPathFactory xPathFactory = XPathFactory.newInstance();
+	private final static XPathFactory xPathfactory = XPathFactory.newInstance();
 
-	private XPath xPath;
-	private Node rootNode;
-	private File currentFile;
+	private final XPath xPath;
+	private final Node rootNode;
+	private final File currentFile;
 
-	public XPathParser() {
-		synchronized (xPathFactory) {
-			xPath = xPathFactory.newXPath();
+	private XPathParser(File currentFile, Node rootNode) {
+		synchronized (xPathfactory) {
+			xPath = xPathfactory.newXPath();
 		}
-		currentFile = null;
+		this.currentFile = currentFile;
+		this.rootNode = rootNode;
 	}
 
 	public XPathParser(File file) throws ParserConfigurationException,
 			SAXException, IOException {
-		this();
-		currentFile = file;
-		setRoot(DomUtils.getNewDocumentBuilder(false, true).parse(
-				currentFile.getAbsoluteFile()));
+		this(file, DomUtils.getNewDocumentBuilder(false, true).parse(
+				file.getAbsoluteFile()));
 	}
 
 	public XPathParser(InputSource inputSource) throws SAXException,
 			IOException, ParserConfigurationException {
-		this();
-		Document document = DomUtils.getNewDocumentBuilder(false, true).parse(
-				inputSource);
+		this(null, DomUtils.getNewDocumentBuilder(false, true).parse(
+				inputSource));
+		Document document = (Document) rootNode;
 		document.normalize();
-		setRoot(document);
 	}
 
 	public XPathParser(InputStream inputStream) throws SAXException,
 			IOException, ParserConfigurationException {
-		this();
-		setRoot(DomUtils.getNewDocumentBuilder(false, true).parse(inputStream));
+		this(null, DomUtils.getNewDocumentBuilder(false, true).parse(
+				inputStream));
 	}
 
 	public XPathParser(Node rootNode) {
-		this();
-		setRoot(rootNode);
+		this(null, rootNode);
 	}
 
 	public File getCurrentFile() {
 		return currentFile;
-	}
-
-	private void setRoot(Node rootNode) {
-		this.rootNode = rootNode;
 	}
 
 	public Object evaluate(Node parentNode, String query)
@@ -101,40 +95,43 @@ public class XPathParser {
 		return evaluate(rootNode, query);
 	}
 
-	public Node getNode(Node parentNode, String query)
+	public final Node getNode(Node parentNode, String query)
 			throws XPathExpressionException {
 		return (Node) xPath.evaluate(query, parentNode, XPathConstants.NODE);
 	}
 
-	public Node getNode(String query) throws XPathExpressionException {
+	public final Node getNode(String query) throws XPathExpressionException {
 		return getNode(rootNode, query);
 	}
 
-	public String getNodeString(Node parentNode, String query)
+	public final String getNodeString(Node parentNode, String query)
 			throws XPathExpressionException {
 		return (String) xPath
 				.evaluate(query, parentNode, XPathConstants.STRING);
 	}
 
-	public String getNodeString(String query) throws XPathExpressionException {
+	public final String getNodeString(String query)
+			throws XPathExpressionException {
 		return getNodeString(rootNode, query);
 	}
 
-	public String getNodeString(Node node) throws XPathExpressionException {
+	public final String getNodeString(Node node)
+			throws XPathExpressionException {
 		return xPath.evaluate("text()", node);
 	}
 
-	public NodeList getNodeList(Node parentNode, String query)
+	public final NodeList getNodeList(Node parentNode, String query)
 			throws XPathExpressionException {
 		return (NodeList) xPath.evaluate(query, parentNode,
 				XPathConstants.NODESET);
 	}
 
-	public NodeList getNodeList(String query) throws XPathExpressionException {
+	public final NodeList getNodeList(String query)
+			throws XPathExpressionException {
 		return getNodeList(rootNode, query);
 	}
 
-	public String getAttributeString(String query, String attributeName)
+	public final String getAttributeString(String query, String attributeName)
 			throws XPathExpressionException {
 		Node node = getNode(query);
 		if (node == null)
@@ -142,7 +139,7 @@ public class XPathParser {
 		return getAttributeString(node, attributeName);
 	}
 
-	public int getAttributeValue(String query, String attributeName)
+	public final int getAttributeValue(String query, String attributeName)
 			throws XPathExpressionException {
 		Node node = getNode(query);
 		if (node == null)
@@ -150,32 +147,41 @@ public class XPathParser {
 		return getAttributeValue(node, attributeName);
 	}
 
-	public static String getAttributeString(Node node, String attributeName) {
+	private final static String getAttributeString(Node node,
+			String attributeName, boolean unescapeXml) {
 		NamedNodeMap attr = node.getAttributes();
 		if (attr == null)
 			return null;
 		Node n = attr.getNamedItem(attributeName);
 		if (n == null)
 			return null;
-		return n.getTextContent();
+		String t = n.getTextContent();
+		if (t == null)
+			return null;
+		return unescapeXml ? StringEscapeUtils.unescapeXml(t) : t;
 	}
 
-	public static int getAttributeValue(Node node, String attributeName) {
-		String value = getAttributeString(node, attributeName);
+	public final static String getAttributeString(Node node,
+			String attributeName) {
+		return getAttributeString(node, attributeName, true);
+	}
+
+	public final static int getAttributeValue(Node node, String attributeName) {
+		String value = getAttributeString(node, attributeName, false);
 		if (value == null || value.length() == 0)
 			return 0;
 		return Integer.parseInt(value);
 	}
 
-	public static long getAttributeLong(Node node, String attributeName) {
-		String value = getAttributeString(node, attributeName);
+	public final static long getAttributeLong(Node node, String attributeName) {
+		String value = getAttributeString(node, attributeName, false);
 		if (value == null || value.length() == 0)
 			return 0;
 		return Long.parseLong(value);
 	}
 
-	public static Float getAttributeFloat(Node node, String attributeName) {
-		String value = getAttributeString(node, attributeName);
+	public final static Float getAttributeFloat(Node node, String attributeName) {
+		String value = getAttributeString(node, attributeName, false);
 		if (value == null || value.length() == 0)
 			return null;
 		return Float.parseFloat(value);
