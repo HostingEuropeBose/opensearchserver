@@ -57,6 +57,22 @@ a:visited{
 a:active{
 <%=renderer.getAactive()==null?"":renderer.getAactive()%>
 }
+#ossautocomplete{
+<%=renderer.getAutocompleteStyle()==null?"":renderer.getAutocompleteStyle()%>
+}
+#ossautocompletelist {
+<%=renderer.getAutocompleteListStyle()==null?"":renderer.getAutocompleteListStyle()%>
+}
+.ossautocomplete_link {
+<%=renderer.getAutocompleteLinkStyle()==null?"":renderer.getAutocompleteLinkStyle()%>
+}
+.ossautocomplete_link_over {
+<%=renderer.getAutocompleteLinkHoverStyle()==null?"":renderer.getAutocompleteLinkHoverStyle()%>
+}
+.ossnumfound {
+<%=renderer.getDocumentFoundStyle()==null?"":renderer.getDocumentFoundStyle()%>
+}
+
 </style>
 </head>
 <body>
@@ -80,10 +96,12 @@ a:active{
 		%>
 		
 		 
-		<input class="osscmnrdr ossinputrdr" size="60" type="text" name="query" value="<%=query%>" />
+		<input class="osscmnrdr ossinputrdr" size="60" type="text" id="query" name="query" value="<%=query%>" onkeyup="autosuggest(event)" autocomplete="off"/>
 		<input class="osscmnrdr ossbuttonrdr"
 			type="submit" value="<%=renderer.getSearchButtonLabel()%>" />
-			 
+				<div style="position:absolute;">
+					<div id="ossautocomplete"></div>
+				</div>
 	</form>
  
 	<br/>
@@ -92,7 +110,9 @@ a:active{
 			SearchRequest searchRequest = result.getSearchRequest();
 			int start = searchRequest.getStart();
 			int end = searchRequest.getStart() + result.getDocumentCount();
+			float time=(float)(searchRequest.getFinalTime());
 	%>
+	<div class="ossnumfound"><%=result.getDocumentCount()%> documents found (<%=time/1000 %> seconds)</div>
 	<ul style="margin: 0px; padding: 0px; list-style-type: none">
 		<%
 			for (int i = start; i < end; i++) {
@@ -150,5 +170,6 @@ a:active{
 	 				<label class="osscmnrdr">Enterprise Search Made Yours.</label></a>
 	 			<img alt="OPENSEARCHSERVER" src=" images/oss_logo_32.png" style="vertical-align:bottom" />
 	 </div>
+<script type="text/javascript" src="js/opensearchserver.js"> </script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2011-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -53,7 +53,10 @@ public class Renderer implements Comparable<Renderer> {
 	private final static String RENDERER_ITEM_NODE_INPUT_STYLE = "inputStyle";
 	private final static String RENDERER_ITEM_NODE_BUTTON_STYLE = "buttonStyle";
 	private final static String RENDERER_ITEM_NODE_AUTOCOMPLETE_STYLE = "autocompleteStyle";
-	private final static String RENDERER_ITEM_NODE_AUTOCOMPLETESELECTED_STYLE = "autocompleteSelectedStyle";
+	private final static String RENDERER_ITEM_NODE_AUTOCOMPLETELIST_STYLE = "autocompleteListStyle";
+	private final static String RENDERER_ITEM_NODE_AUTOCOMPLETELINK_STYLE = "autocompleteLinkStyle";
+	private final static String RENDERER_ITEM_NODE_AUTOCOMPLETELINKHOVER_STYLE = "autocompleteLinkHoverStyle";
+	private final static String RENDERER_ITEM_NODE_DOCUMENTFOUND_STYLE = "documentFoundStyle";
 	private final static String RENDERER_ITEM_NODE_ALINK = "alink";
 	private final static String RENDERER_ITEM_NODE_AVISITED = "avisited";
 	private final static String RENDERER_ITEM_NODE_AACTIVE = "aactive";
@@ -71,9 +74,15 @@ public class Renderer implements Comparable<Renderer> {
 
 	private String buttonStyle;
 
+	private String documentFoundStyle;
+
 	private String autocompleteStyle;
 
-	private String autocompleteSelectedStyle;
+	private String autocompleteListStyle;
+
+	private String autocompleteLinkStyle;
+
+	private String autocompleteLinkHoverStyle;
 
 	private String searchButtonLabel;
 
@@ -93,8 +102,11 @@ public class Renderer implements Comparable<Renderer> {
 		commonStyle = null;
 		inputStyle = null;
 		buttonStyle = null;
+		documentFoundStyle = null;
 		autocompleteStyle = null;
-		autocompleteSelectedStyle = null;
+		autocompleteListStyle = null;
+		autocompleteLinkStyle = null;
+		autocompleteLinkHoverStyle = null;
 		searchButtonLabel = "Search";
 		fields = new ArrayList<RendererField>();
 	}
@@ -120,10 +132,16 @@ public class Renderer implements Comparable<Renderer> {
 				RENDERER_ITEM_NODE_INPUT_STYLE));
 		setButtonStyle(xpp.getSubNodeTextIfAny(rootNode,
 				RENDERER_ITEM_NODE_BUTTON_STYLE));
+		setDocumentFoundStyle(xpp.getSubNodeTextIfAny(rootNode,
+				RENDERER_ITEM_NODE_DOCUMENTFOUND_STYLE));
 		setAutocompleteStyle(xpp.getSubNodeTextIfAny(rootNode,
 				RENDERER_ITEM_NODE_AUTOCOMPLETE_STYLE));
-		setAutocompleteSelectedStyle(xpp.getSubNodeTextIfAny(rootNode,
-				RENDERER_ITEM_NODE_AUTOCOMPLETESELECTED_STYLE));
+		setAutocompleteListStyle(xpp.getSubNodeTextIfAny(rootNode,
+				RENDERER_ITEM_NODE_AUTOCOMPLETELIST_STYLE));
+		setAutocompleteLinkStyle(xpp.getSubNodeTextIfAny(rootNode,
+				RENDERER_ITEM_NODE_AUTOCOMPLETELINK_STYLE));
+		setAutocompleteLinkHoverStyle(xpp.getSubNodeTextIfAny(rootNode,
+				RENDERER_ITEM_NODE_AUTOCOMPLETELINKHOVER_STYLE));
 		setAactive(xpp
 				.getSubNodeTextIfAny(rootNode, RENDERER_ITEM_NODE_AACTIVE));
 		setAhover(xpp.getSubNodeTextIfAny(rootNode, RENDERER_ITEM_NODE_AHOVER));
@@ -151,8 +169,11 @@ public class Renderer implements Comparable<Renderer> {
 				target.commonStyle = commonStyle;
 				target.inputStyle = inputStyle;
 				target.buttonStyle = buttonStyle;
+				target.documentFoundStyle = documentFoundStyle;
 				target.autocompleteStyle = autocompleteStyle;
-				target.autocompleteSelectedStyle = autocompleteSelectedStyle;
+				target.autocompleteListStyle = autocompleteListStyle;
+				target.autocompleteLinkStyle = autocompleteLinkStyle;
+				target.autocompleteLinkHoverStyle = autocompleteLinkHoverStyle;
 				target.searchButtonLabel = searchButtonLabel;
 				target.aactive = aactive;
 				target.ahover = ahover;
@@ -308,6 +329,14 @@ public class Renderer implements Comparable<Renderer> {
 		this.buttonStyle = buttonStyle;
 	}
 
+	public String getDocumentFoundStyle() {
+		return documentFoundStyle;
+	}
+
+	public void setDocumentFoundStyle(String documentFoundStyle) {
+		this.documentFoundStyle = documentFoundStyle;
+	}
+
 	/**
 	 * @return the autocompleteStyle
 	 */
@@ -324,18 +353,34 @@ public class Renderer implements Comparable<Renderer> {
 	}
 
 	/**
-	 * @return the autocompleteSelectedStyle
+	 * @return the autocompleteListStyle
 	 */
-	public String getAutocompleteSelectedStyle() {
-		return autocompleteSelectedStyle;
+	public String getAutocompleteListStyle() {
+		return autocompleteListStyle;
 	}
 
 	/**
-	 * @param autocompleteSelectedStyle
-	 *            the autocompleteSelectedStyle to set
+	 * @param autocompleteListStyle
+	 *            the autocompleteListStyle to set
 	 */
-	public void setAutocompleteSelectedStyle(String autocompleteSelectedStyle) {
-		this.autocompleteSelectedStyle = autocompleteSelectedStyle;
+	public void setAutocompleteListStyle(String autocompleteListStyle) {
+		this.autocompleteListStyle = autocompleteListStyle;
+	}
+
+	public String getAutocompleteLinkStyle() {
+		return autocompleteLinkStyle;
+	}
+
+	public void setAutocompleteLinkStyle(String autocompleteLinkStyle) {
+		this.autocompleteLinkStyle = autocompleteLinkStyle;
+	}
+
+	public String getAutocompleteLinkHoverStyle() {
+		return autocompleteLinkHoverStyle;
+	}
+
+	public void setAutocompleteLinkHoverStyle(String autocompleteLinkHoverStyle) {
+		this.autocompleteLinkHoverStyle = autocompleteLinkHoverStyle;
 	}
 
 	/**
@@ -425,10 +470,18 @@ public class Renderer implements Comparable<Renderer> {
 			xmlWriter.writeSubTextNodeIfAny(RENDERER_ITEM_NODE_BUTTON_STYLE,
 					buttonStyle);
 			xmlWriter.writeSubTextNodeIfAny(
+					RENDERER_ITEM_NODE_DOCUMENTFOUND_STYLE, documentFoundStyle);
+			xmlWriter.writeSubTextNodeIfAny(
 					RENDERER_ITEM_NODE_AUTOCOMPLETE_STYLE, autocompleteStyle);
 			xmlWriter.writeSubTextNodeIfAny(
-					RENDERER_ITEM_NODE_AUTOCOMPLETESELECTED_STYLE,
-					autocompleteSelectedStyle);
+					RENDERER_ITEM_NODE_AUTOCOMPLETELIST_STYLE,
+					autocompleteListStyle);
+			xmlWriter.writeSubTextNodeIfAny(
+					RENDERER_ITEM_NODE_AUTOCOMPLETELINK_STYLE,
+					autocompleteLinkStyle);
+			xmlWriter.writeSubTextNodeIfAny(
+					RENDERER_ITEM_NODE_AUTOCOMPLETELINKHOVER_STYLE,
+					autocompleteLinkHoverStyle);
 			for (RendererField field : fields)
 				field.writeXml(xmlWriter, RENDERER_ITEM_NODE_NAME_FIELD);
 			xmlWriter.endElement();
