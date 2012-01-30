@@ -91,10 +91,9 @@ public class WriterNativeOSSE extends WriterAbstract {
 					}
 				}
 			}
-			// OsseLibrary.INSTANCE.OSSCLib_Transact_Commit(transactPtr, null,
-			// 0,
-			// null, errorPtr);
-			// transactPtr = null;
+			OsseLibrary.INSTANCE.OSSCLib_Transact_Commit(transactPtr, null, 0,
+					null, errorPtr);
+			transactPtr = null;
 		} finally {
 			if (transactPtr != null)
 				OsseLibrary.INSTANCE.OSSCLib_Transact_RollBack(transactPtr,
