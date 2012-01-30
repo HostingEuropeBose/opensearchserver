@@ -422,7 +422,7 @@ public abstract class Config {
 	private IndexAbstract newIndex(File indexDir, XPathParser xpp,
 			boolean createIndexIfNotExists) throws XPathExpressionException,
 			IOException, URISyntaxException, InstantiationException,
-			IllegalAccessException, ClassNotFoundException {
+			IllegalAccessException, ClassNotFoundException, SearchLibException {
 		NodeList nodeList = xpp.getNodeList("/configuration/indices/index");
 		switch (nodeList.getLength()) {
 		default:

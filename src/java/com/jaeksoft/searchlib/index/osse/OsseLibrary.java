@@ -34,12 +34,15 @@ public interface OsseLibrary extends Library {
 	public OsseLibrary INSTANCE = (OsseLibrary) Native.loadLibrary(
 			"OpenSearchServer_CLib", OsseLibrary.class);
 
-	int OSSCLib_GetVersionInfo(char[] lpwszCompleteInfo, char[][] lpwszBuild,
-			char[] lpwszOS, char[] lpwszCompiler, Pointer lpui32SizeOfPtr);
+	int OSSCLib_GetVersionInfo(WString lpwszCompleteInfo, WString lpwszBuild,
+			WString lpwszOS, WString lpwszCompiler, Pointer lpui32SizeOfPtr);
 
 	Pointer OSSCLib_ExtErrInfo_Create();
 
 	int OSSCLib_ExtErrInfo_GetErrorCode(Pointer hExtErrInfo);
+
+	WString OSSCLib_ExtErrInfo_GetText(Pointer lpErr, Pointer lpui32TextSize,
+			Pointer lpi32OwnErrCode);
 
 	void OSSCLib_ExtErrInfo_Delete(Pointer hExtErrInfo);
 

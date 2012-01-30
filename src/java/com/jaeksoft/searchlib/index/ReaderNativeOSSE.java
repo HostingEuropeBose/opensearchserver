@@ -29,7 +29,9 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Collection;
 
+import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.index.osse.OsseErrorHandler;
 import com.jaeksoft.searchlib.index.osse.OsseLibrary;
 import com.jaeksoft.searchlib.index.term.Term;
 import com.jaeksoft.searchlib.index.term.TermEnum;
@@ -47,14 +49,22 @@ public class ReaderNativeOSSE extends ReaderAbstract {
 
 	private Pointer index;
 
-	protected ReaderNativeOSSE(File configDir, IndexConfig indexConfig) {
+	private OsseErrorHandler err;
+
+	protected ReaderNativeOSSE(File configDir, IndexConfig indexConfig)
+			throws SearchLibException {
+		err = new OsseErrorHandler();
 		index = OsseLibrary.INSTANCE.OSSCLib_Index_Create(
-				new WString(configDir.getPath()), null);
+				new WString(configDir.getPath()), err.getPointer());
+		if (index == null)
+			throw new SearchLibException(err.getError());
 	}
 
 	@Override
 	public void close() {
-		OsseLibrary.INSTANCE.OSSCLib_Index_Close(index, null);
+		if (!OsseLibrary.INSTANCE.OSSCLib_Index_Close(index, err.getPointer()))
+			Logging.warn(err.getError());
+		err.release();
 	}
 
 	protected Pointer getIndex() {

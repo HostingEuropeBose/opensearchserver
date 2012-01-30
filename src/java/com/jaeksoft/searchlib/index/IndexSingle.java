@@ -63,7 +63,7 @@ public class IndexSingle extends IndexAbstract {
 	public IndexSingle(File configDir, IndexConfig indexConfig,
 			boolean createIfNotExists) throws IOException, URISyntaxException,
 			InstantiationException, IllegalAccessException,
-			ClassNotFoundException {
+			ClassNotFoundException, SearchLibException {
 		super(indexConfig);
 		online = true;
 		readonly = false;
