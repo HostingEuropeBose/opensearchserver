@@ -52,6 +52,8 @@ public class StartStopListener implements ServletContextListener {
 			OPENSEARCHSERVER_DATA_FILE = new File(single_data);
 		if (!OPENSEARCHSERVER_DATA_FILE.exists())
 			OPENSEARCHSERVER_DATA_FILE.mkdir();
+		System.out.println("JNA.LIBRARY.PATH IS: "
+				+ System.getProperty("jna.library.path"));
 		System.out.println("OPENSEARCHSERVER_DATA_FILE IS: "
 				+ OPENSEARCHSERVER_DATA_FILE);
 	}
