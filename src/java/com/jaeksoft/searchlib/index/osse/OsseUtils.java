@@ -24,30 +24,15 @@
 
 package com.jaeksoft.searchlib.index.osse;
 
-import com.sun.jna.Pointer;
-import com.sun.jna.WString;
+import com.sun.jna.Native;
 
-public class OsseErrorHandler {
+public class OsseUtils {
 
-	private Pointer errPtr;
-
-	public OsseErrorHandler() {
-		errPtr = OsseLibrary.INSTANCE.OSSCLib_ExtErrInfo_Create();
+	public static final String getVersion() {
+		char[] buffer = new char[1024];
+		System.out.println(" buffer length="
+				+ OsseLibrary.INSTANCE.OSSCLib_GetVersionInfoText(buffer,
+						buffer.length));
+		return Native.toString(buffer);
 	}
-
-	public String getError() {
-		WString error = OsseLibrary.INSTANCE.OSSCLib_ExtErrInfo_GetText(errPtr);
-		return error.toString();
-	}
-
-	public Pointer getPointer() {
-		return errPtr;
-	}
-
-	public void release() {
-		if (errPtr != null)
-			OsseLibrary.INSTANCE.OSSCLib_ExtErrInfo_Delete(errPtr);
-		errPtr = null;
-	}
-
 }
