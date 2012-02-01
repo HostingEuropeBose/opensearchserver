@@ -24,15 +24,7 @@
 
 package com.jaeksoft.searchlib.index.osse;
 
-import com.sun.jna.Native;
 
 public class OsseUtils {
 
-	public static final String getVersion() {
-		char[] buffer = new char[1024];
-		System.out.println(" buffer length="
-				+ OsseLibrary.INSTANCE.OSSCLib_GetVersionInfoText(buffer,
-						buffer.length));
-		return Native.toString(buffer);
-	}
 }

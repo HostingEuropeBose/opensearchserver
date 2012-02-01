@@ -35,7 +35,7 @@ import com.jaeksoft.searchlib.ClientCatalog;
 import com.jaeksoft.searchlib.ClientFactory;
 import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.index.osse.OsseUtils;
+import com.jaeksoft.searchlib.index.osse.OsseLibrary;
 import com.jaeksoft.searchlib.logreport.ErrorParserLogger;
 import com.jaeksoft.searchlib.scheduler.TaskManager;
 
@@ -57,7 +57,8 @@ public class StartStopListener implements ServletContextListener {
 				+ System.getProperty("jna.library.path"));
 		System.out.println("OPENSEARCHSERVER_DATA_FILE IS: "
 				+ OPENSEARCHSERVER_DATA_FILE);
-		System.out.println("OSS CLIB VERSION: " + OsseUtils.getVersion());
+		System.out.println("OSS CLIB VERSION: "
+				+ OsseLibrary.INSTANCE.OSSCLib_GetVersionInfoText());
 	}
 
 	@Override

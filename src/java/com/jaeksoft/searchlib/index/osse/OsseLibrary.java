@@ -34,7 +34,7 @@ public interface OsseLibrary extends Library {
 	public OsseLibrary INSTANCE = (OsseLibrary) Native.loadLibrary(
 			"OpenSearchServer_CLib", OsseLibrary.class);
 
-	int OSSCLib_GetVersionInfoText(char[] buffer, int bufferSize);
+	WString OSSCLib_GetVersionInfoText();
 
 	Pointer OSSCLib_ExtErrInfo_Create();
 
