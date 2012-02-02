@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2009-2010 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2009-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -29,7 +29,7 @@ import com.jaeksoft.searchlib.analysis.ClassPropertyEnum;
 import com.jaeksoft.searchlib.analysis.FilterFactory;
 import com.jaeksoft.searchlib.analysis.TokenStream;
 import com.jaeksoft.searchlib.analysis.synonym.SynonymMap;
-import com.jaeksoft.searchlib.analysis.synonym.SynonymQueue;
+import com.jaeksoft.searchlib.analysis.synonym.SynonymTokenFilter;
 
 public class SynonymFilter extends FilterFactory {
 
@@ -40,13 +40,13 @@ public class SynonymFilter extends FilterFactory {
 		super.initProperties();
 		String[] values = config.getSynonymsManager().getList();
 		String value = (values != null && values.length > 0) ? values[0] : null;
-		addProperty(ClassPropertyEnum.FILE, value, values);
+		addProperty(ClassPropertyEnum.FILE_LIST, value, values);
 	}
 
 	@Override
 	public void checkValue(ClassPropertyEnum prop, String value)
 			throws SearchLibException {
-		if (prop != ClassPropertyEnum.FILE)
+		if (prop != ClassPropertyEnum.FILE_LIST)
 			return;
 		if (value == null || value.length() == 0)
 			return;
@@ -57,9 +57,7 @@ public class SynonymFilter extends FilterFactory {
 	public TokenStream create(TokenStream tokenStream) {
 		if (synonyms == null)
 			return tokenStream;
-		for (SynonymQueue queue : synonyms.getSynonymQueues())
-			;// TODO tokenStream = new SynonymTokenFilter(tokenStream, queue);
-		return tokenStream;
+		return new SynonymTokenFilter(tokenStream, synonyms);
 	}
 
 }

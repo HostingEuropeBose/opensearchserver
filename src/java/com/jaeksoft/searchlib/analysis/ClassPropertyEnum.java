@@ -36,8 +36,8 @@ public class ClassPropertyEnum extends ExtensibleEnumItem<ClassPropertyEnum> {
 	public final static ClassPropertyEnum CLASS = new ClassPropertyEnum(false,
 			"class", "Class", "The name of the class");
 
-	public final static ClassPropertyEnum FILE = new ClassPropertyEnum(true,
-			"file", "List", "The name of the list");
+	public final static ClassPropertyEnum FILE_LIST = new ClassPropertyEnum(
+			true, "file", "List", "The name of the list");
 
 	public final static ClassPropertyEnum SIZE_LIMIT = new ClassPropertyEnum(
 			true, "sizeLimit", "Size Limit",

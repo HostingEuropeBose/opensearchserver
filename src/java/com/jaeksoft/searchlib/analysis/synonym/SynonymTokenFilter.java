@@ -28,70 +28,48 @@ import com.jaeksoft.searchlib.analysis.TokenStream;
 
 public class SynonymTokenFilter extends TokenStream {
 
-	// private TermAttribute termAtt;
+	private SynonymMap synonymMap = null;
 
-	// private AttributeSource.State current = null;
+	private String[] wordQueue = null;
 
-	// private PositionIncrementAttribute posIncrAtt = null;
+	private String currentTerm = null;
 
-	// private OffsetAttribute offsetAtt = null;
+	private int currentPos = 0;
 
-	private SynonymQueue synonymQueue;
-
-	public SynonymTokenFilter(TokenStream input, SynonymQueue synonymQueue) {
+	public SynonymTokenFilter(TokenStream input, SynonymMap synonymMap) {
 		super(input);
-		// this.termAtt = (TermAttribute) addAttribute(TermAttribute.class);
-		// this.posIncrAtt = (PositionIncrementAttribute)
-		// addAttribute(PositionIncrementAttribute.class);
-		// this.offsetAtt = (OffsetAttribute)
-		// addAttribute(OffsetAttribute.class);
-
-		this.synonymQueue = synonymQueue;
+		this.synonymMap = synonymMap;
 	}
 
-	private final boolean createToken(String term, int posInc, int startOff,
-			int endOff) {
-		// restoreState(current);
-		// termAtt.setTermBuffer(term);
-		// posIncrAtt.setPositionIncrement(posInc);
-		// offsetAtt.setOffset(startOff, endOff);
-		return true;
-	}
-
-	private final boolean createToken(SynonymToken token) {
-		if (token == null)
+	private final boolean popToken() {
+		if (currentTerm != null) {
+			// createToken(currentTerm);
+			currentTerm = null;
+			return true;
+		}
+		if (wordQueue == null)
 			return false;
-		createToken(token.getTerm(), token.getPositionIncrement(),
-				token.getStartOffset(), token.getEndOffset());
+		if (currentPos == wordQueue.length)
+			return false;
+		// createToken(wordQueue[currentPos++]);
 		return true;
 	}
 
-	private final boolean createToken(String synonymKey,
-			SynonymQueue synonymQueue) {
-		createToken(synonymKey, synonymQueue.getPositionIncrement(),
-				synonymQueue.getStartOffset(), synonymQueue.getEndOffset());
-		return true;
+	private final void createTokens() {
+		// currentTerm = getTerm();
+		wordQueue = synonymMap.getSynonyms(currentTerm);
+		currentPos = 0;
 	}
 
 	@Override
 	public final boolean incrementToken() {
 		// current = captureState();
 		for (;;) {
-			if (!input.incrementToken())
-				return createToken(synonymQueue.popToken());
-			// synonymQueue.addToken(new SynonymToken(termAtt.term(), posIncrAtt
-			// .getPositionIncrement(), offsetAtt.startOffset(), offsetAtt
-			// .endOffset()));
-			// restoreState(current);
-			String synonymKey = synonymQueue.findSynonym();
-			if (synonymKey != null) {
-				if (!createToken(synonymKey, synonymQueue))
-					return false;
-				synonymQueue.clean();
+			if (popToken())
 				return true;
-			}
-			if (synonymQueue.isFull())
-				return createToken(synonymQueue.popToken());
+			if (!input.incrementToken())
+				return false;
+			createTokens();
 		}
 	}
 

@@ -33,11 +33,6 @@ public class ShingleTokenFilter extends TokenStream {
 	public ShingleTokenFilter(TokenStream tokenStream, String tokenSeparator,
 			int minShingleSize, int maxShingleSize) {
 		super(tokenStream);
-		// this.termAtt = (TermAttribute) addAttribute(TermAttribute.class);
-		// this.posIncrAtt = (PositionIncrementAttribute)
-		// addAttribute(PositionIncrementAttribute.class);
-		// this.offsetAtt = (OffsetAttribute)
-		// addAttribute(OffsetAttribute.class);
 		shingles = new ShingleQueue[maxShingleSize - minShingleSize + 1];
 		for (int i = 0; i < shingles.length; i++)
 			shingles[i] = new ShingleQueue(tokenSeparator, maxShingleSize - i);
@@ -50,19 +45,11 @@ public class ShingleTokenFilter extends TokenStream {
 		return null;
 	}
 
-	private final boolean createToken(String term, int posInc, int startOff,
-			int endOff) {
-		// restoreState(current);
-		// termAtt.setTermBuffer(term);
-		// posIncrAtt.setPositionIncrement(posInc);
-		// offsetAtt.setOffset(startOff, endOff);
-		return true;
-	}
-
 	private final boolean createToken(ShingleQueue shingle) {
-		if (!createToken(shingle.getTerm(), shingle.getPositionIncrement(),
-				shingle.getStartOffset(), shingle.getEndOffset()))
+		if (shingle.getTerm() == null)
 			return false;
+		// createToken(shingle.getTerm(), shingle.getPositionIncrement(),
+		// shingle.getStartOffset(), shingle.getEndOffset());
 		shingle.pop();
 		return true;
 	}
