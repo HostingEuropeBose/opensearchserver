@@ -86,7 +86,7 @@ public class Logging {
 		return new File(StartStopListener.OPENSEARCHSERVER_DATA_FILE, "logs");
 	}
 
-	public final static File[] getLogFiles() throws SearchLibException {
+	public final static File[] getLogFiles() {
 		File dirLog = getLogDirectory();
 		if (!dirLog.exists())
 			return null;
