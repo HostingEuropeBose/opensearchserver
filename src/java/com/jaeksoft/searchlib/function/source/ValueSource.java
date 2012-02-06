@@ -24,6 +24,9 @@
 
 package com.jaeksoft.searchlib.function.source;
 
+import com.jaeksoft.searchlib.index.IndexReader;
+import com.jaeksoft.searchlib.query.DocValues;
+
 /*
  * TODO Full implemenetation
  */
@@ -31,6 +34,11 @@ public class ValueSource {
 
 	public ValueSource(String field) {
 		// TODO Auto-generated constructor stub
+	}
+
+	public DocValues getValues(IndexReader reader) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

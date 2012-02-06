@@ -24,6 +24,9 @@
 
 package com.jaeksoft.searchlib.query;
 
+import com.jaeksoft.searchlib.index.IndexReader;
+import com.jaeksoft.searchlib.scoring.CustomScoreProvider;
+
 /*
  * TODO full implementation
  */
@@ -50,6 +53,16 @@ public class CustomScoreQuery extends Query {
 	public float customScore(int doc, float subQueryScore, float[] valSrcScores) {
 		// TODO Auto-generated method stub
 		return 0;
+	}
+
+	public CustomScoreProvider getCustomScoreProvider(IndexReader reader) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public String name() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

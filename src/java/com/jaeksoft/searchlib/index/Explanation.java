@@ -26,4 +26,27 @@ package com.jaeksoft.searchlib.index;
 
 public class Explanation {
 
+	public Explanation(int i, String string) {
+		// TODO Auto-generated constructor stub
+	}
+
+	public Explanation(float value, String string) {
+		// TODO Auto-generated constructor stub
+	}
+
+	public void addDetail(Explanation e1) {
+		// TODO Auto-generated method stub
+
+	}
+
+	public int getValue() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	public void setValue(float f) {
+		// TODO Auto-generated method stub
+
+	}
+
 }
