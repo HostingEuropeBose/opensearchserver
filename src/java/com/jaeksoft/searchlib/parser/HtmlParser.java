@@ -25,42 +25,30 @@
 package com.jaeksoft.searchlib.parser;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.TreeSet;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.xpath.XPathExpressionException;
-
 import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.xalan.xsltc.trax.SAX2DOM;
-import org.cyberneko.html.parsers.DOMParser;
-import org.htmlcleaner.CleanerProperties;
-import org.htmlcleaner.DomSerializer;
-import org.htmlcleaner.HtmlCleaner;
-import org.htmlcleaner.TagNode;
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 
-import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.ClassPropertyEnum;
 import com.jaeksoft.searchlib.crawler.web.database.UrlFilterItem;
 import com.jaeksoft.searchlib.crawler.web.database.UrlItemFieldEnum;
 import com.jaeksoft.searchlib.index.IndexDocument;
+import com.jaeksoft.searchlib.parser.htmlParser.HtmlCleanerParser;
+import com.jaeksoft.searchlib.parser.htmlParser.HtmlDocumentProvider;
+import com.jaeksoft.searchlib.parser.htmlParser.HtmlNodeAbstract;
+import com.jaeksoft.searchlib.parser.htmlParser.JSoupParser;
+import com.jaeksoft.searchlib.parser.htmlParser.NekoHtmlParser;
+import com.jaeksoft.searchlib.parser.htmlParser.StrictXhtmlParser;
+import com.jaeksoft.searchlib.parser.htmlParser.TagsoupParser;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
-import com.jaeksoft.searchlib.util.DomUtils;
 import com.jaeksoft.searchlib.util.Lang;
 import com.jaeksoft.searchlib.util.LinkUtils;
 import com.jaeksoft.searchlib.util.MimeUtils;
-import com.jaeksoft.searchlib.util.XPathParser;
 
 public class HtmlParser extends Parser {
 
@@ -72,7 +60,8 @@ public class HtmlParser extends Parser {
 			ParserFieldEnum.internal_link,
 			ParserFieldEnum.internal_link_nofollow,
 			ParserFieldEnum.external_link,
-			ParserFieldEnum.external_link_nofollow, ParserFieldEnum.lang };
+			ParserFieldEnum.external_link_nofollow, ParserFieldEnum.lang,
+			ParserFieldEnum.htmlProvider };
 
 	private UrlItemFieldEnum urlItemFieldEnum = null;
 
@@ -122,9 +111,9 @@ public class HtmlParser extends Parser {
 	private final static int OPENSEARCHSERVER_FIELD_LENGTH = OPENSEARCHSERVER_FIELD
 			.length();
 
-	private void getBodyTextContent(StringBuffer sb, Node node,
+	private void getBodyTextContent(StringBuffer sb, HtmlNodeAbstract<?> node,
 			boolean bAddBlock, String[] directFields) {
-		if (node.getNodeType() == Node.COMMENT_NODE)
+		if (node.isComment())
 			return;
 		String nodeName = node.getNodeName();
 		if ("script".equalsIgnoreCase(nodeName))
@@ -134,14 +123,12 @@ public class HtmlParser extends Parser {
 		if ("title".equalsIgnoreCase(nodeName))
 			return;
 		if ("oss".equalsIgnoreCase(nodeName)) {
-			if ("yes".equalsIgnoreCase(XPathParser.getAttributeString(node,
-					"ignore")))
+			if ("yes".equalsIgnoreCase(node.getAttribute("ignore")))
 				return;
 		}
 		boolean bEnterDirectField = false;
 		if ("div".equalsIgnoreCase(nodeName)) {
-			String classAttribute = XPathParser.getAttributeString(node,
-					"class");
+			String classAttribute = node.getAttribute("class");
 			if (classAttribute != null) {
 				if (OPENSEARCHSERVER_IGNORE.equalsIgnoreCase(classAttribute))
 					return;
@@ -155,7 +142,7 @@ public class HtmlParser extends Parser {
 				}
 			}
 		}
-		if (node.getNodeType() == Node.TEXT_NODE) {
+		if (node.isTextNode()) {
 			String text = node.getNodeValue();
 			text = text.replaceAll("\\r", "");
 			text = text.replaceAll("\\n", "");
@@ -168,12 +155,10 @@ public class HtmlParser extends Parser {
 				sb.append(text);
 			}
 		}
-		NodeList children = node.getChildNodes();
-		if (children == null)
-			return;
-		int len = children.getLength();
-		for (int i = 0; i < len; i++)
-			getBodyTextContent(sb, children.item(i), bAddBlock, directFields);
+		List<HtmlNodeAbstract<?>> children = node.getChildNodes();
+		if (children != null)
+			for (HtmlNodeAbstract<?> htmlNode : children)
+				getBodyTextContent(sb, htmlNode, bAddBlock, directFields);
 
 		if (bAddBlock && nodeName != null && sb.length() > 0) {
 			String currentTag = nodeName.toLowerCase();
@@ -189,286 +174,22 @@ public class HtmlParser extends Parser {
 		}
 	}
 
-	/**
-	 * Parse the HTML/XHTML document using HTMLCleaner parser
-	 * 
-	 * @param charset
-	 * @param inputStream
-	 * @return
-	 * @throws IOException
-	 * @throws ParserConfigurationException
-	 */
-	private static Document htmlCleanerDomDocument(String charset,
-			LimitInputStream inputStream) throws IOException,
-			ParserConfigurationException {
-		HtmlCleaner cleaner = new HtmlCleaner();
-		CleanerProperties props = cleaner.getProperties();
-		props.setNamespacesAware(true);
-		TagNode node = cleaner.clean(inputStream, charset);
-		if (!inputStream.isComplete())
-			throw new LimitException();
-		return new DomSerializer(props, true).createDOM(node);
-	}
+	private HtmlDocumentProvider findBestProvider(String charset,
+			LimitInputStream inputStream) throws IOException {
 
-	/**
-	 * Parse the HTML/XHTML document using NekoHTML parser
-	 * 
-	 * @param charset
-	 * @param inputStream
-	 * @return
-	 * @throws XPathExpressionException
-	 * @throws SAXException
-	 * @throws IOException
-	 * @throws ParserConfigurationException
-	 */
-	private static Document nekoHtmlDomDocument(String charset,
-			LimitInputStream inputStream) throws XPathExpressionException,
-			SAXException, IOException, ParserConfigurationException {
-		DOMParser parser = new DOMParser();
-		parser.setFeature("http://xml.org/sax/features/namespaces", true);
-		parser.setFeature(
-				"http://cyberneko.org/html/features/balance-tags/ignore-outside-content",
-				false);
-		parser.setFeature("http://cyberneko.org/html/features/balance-tags",
-				true);
-		parser.setFeature("http://cyberneko.org/html/features/report-errors",
-				false);
-		parser.setProperty("http://cyberneko.org/html/properties/names/elems",
-				"lower");
-		parser.setProperty("http://cyberneko.org/html/properties/names/attrs",
-				"lower");
-		InputSource inputSource = new InputSource(inputStream);
-		inputSource.setEncoding(charset);
-		parser.parse(inputSource);
-		return parser.getDocument();
-	}
+		HtmlDocumentProvider provider = new StrictXhtmlParser(charset,
+				inputStream);
+		if (provider.getRootNode() != null)
+			return provider;
 
-	/**
-	 * Parse the HTML/XHTML document using TagSoup parser
-	 * 
-	 * @param charset
-	 * @param inputStream
-	 * @return
-	 * @throws XPathExpressionException
-	 * @throws SAXException
-	 * @throws IOException
-	 * @throws ParserConfigurationException
-	 */
-	private static Document tagSoupDomDocument(String charset,
-			LimitInputStream inputStream) throws XPathExpressionException,
-			SAXException, IOException, ParserConfigurationException {
-		org.ccil.cowan.tagsoup.Parser parser = new org.ccil.cowan.tagsoup.Parser();
-		parser.setFeature("http://xml.org/sax/features/namespace-prefixes",
-				true);
-		SAX2DOM sax2dom = new SAX2DOM();
-		parser.setContentHandler(sax2dom);
-		InputSource inputSource = new InputSource(inputStream);
-		inputSource.setEncoding(charset);
-		parser.parse(inputSource);
-		return (Document) sax2dom.getDOM();
-	}
+		List<HtmlDocumentProvider> providerList = new ArrayList<HtmlDocumentProvider>(
+				0);
+		providerList.add(new TagsoupParser(charset, inputStream));
+		providerList.add(new NekoHtmlParser(charset, inputStream));
+		providerList.add(new HtmlCleanerParser(charset, inputStream));
+		providerList.add(new JSoupParser(charset, inputStream));
 
-	/**
-	 * Parse the HTML/XHTML document using standard DOM parser
-	 * 
-	 * @param charset
-	 * @param inputStream
-	 * @return
-	 * @throws ParserConfigurationException
-	 * @throws SAXException
-	 * @throws IOException
-	 */
-	private static Document xmlDomDocument(String charset,
-			LimitInputStream inputStream) throws SAXException, IOException,
-			ParserConfigurationException {
-		DocumentBuilder builder = DomUtils.getNewDocumentBuilder(false, true);
-		InputSource inputSource = new InputSource(inputStream);
-		inputSource.setEncoding(charset);
-		return builder.parse(inputSource);
-	}
-
-	// private static Document tidyDomDocument(String charset,
-	// LimitInputStream inputStream) throws LimitException {
-	// Tidy tidy = new Tidy();
-	// tidy.setQuiet(true);
-	// tidy.setOnlyErrors(false);
-	// tidy.setShowWarnings(false);
-	//
-	// if ("utf-8".equalsIgnoreCase(charset))
-	// tidy.setCharEncoding(Configuration.UTF8);
-	// else if ("iso-8859-1".equalsIgnoreCase(charset))
-	// tidy.setCharEncoding(Configuration.LATIN1);
-	// else if ("macroman".equalsIgnoreCase(charset))
-	// tidy.setCharEncoding(Configuration.MACROMAN);
-	// else if ("iso-2022".equalsIgnoreCase(charset))
-	// tidy.setCharEncoding(Configuration.ISO2022);
-	//
-	// // Création de l'arbre DOM avec Tidy
-	// Document dom = tidy.parseDOM(inputStream, null);
-	// if (!inputStream.isComplete())
-	// throw new LimitException();
-	// return dom;
-	// }
-
-	private String getTitleText(Document doc, String[] path) {
-		List<Node> nodes = DomUtils.getNodes(doc, path);
-		if (nodes == null)
-			return null;
-		if (nodes.size() < 1)
-			return null;
-		return DomUtils.getText(nodes.get(0));
-	}
-
-	private String getTitle(Document doc) {
-		String[] p1 = { "html", "head", "title" };
-		String title = getTitleText(doc, p1);
-		if (title != null)
-			return title;
-		String[] p2 = { "html", "title" };
-		return getTitleText(doc, p2);
-	}
-
-	private static List<Node> getMetas(Document doc) {
-		String[] p1 = { "html", "head", "meta" };
-		String[] p2 = { "html", "meta" };
-		List<Node> metas = new ArrayList<Node>();
-		DomUtils.getNodes(metas, doc, p1);
-		DomUtils.getNodes(metas, doc, p2);
-		return metas;
-	}
-
-	private static URL getBaseHref(Document doc) {
-		List<Node> list = DomUtils.getNodes(doc, "html", "head", "base");
-		if (list == null)
-			return null;
-		if (list.size() == 0)
-			return null;
-		Node node = list.get(0);
-		if (node == null)
-			return null;
-		String url = DomUtils.getAttributeText(node, "href");
-		if (url == null)
-			return null;
-		try {
-			return new URL(url);
-		} catch (MalformedURLException e) {
-			Logging.warn(e);
-			return null;
-		}
-	}
-
-	private static String getMetaContent(Node node) {
-		String content = DomUtils.getAttributeText(node, "content");
-		if (content == null)
-			return null;
-		return StringEscapeUtils.unescapeHtml(content);
-	}
-
-	private static String getMetaCharset(List<Node> metas) {
-		for (Node node : metas) {
-			String charset = DomUtils.getAttributeText(node, "charset");
-			if (charset != null && charset.length() > 0)
-				return charset;
-		}
-		return null;
-	}
-
-	private static String getMetaHttpEquiv(List<Node> metas, String name) {
-		for (Node node : metas) {
-			String attr_http_equiv = DomUtils.getAttributeText(node,
-					"http-equiv");
-			if (name.equalsIgnoreCase(attr_http_equiv))
-				return getMetaContent(node);
-		}
-		return null;
-	}
-
-	private boolean checkDocument(Document doc) {
-		if (doc == null)
-			return false;
-		int i = DomUtils.countElements(doc);
-		return i > 0;
-	}
-
-	private Document htmlParserLine(String charset, LimitInputStream inputStream)
-			throws IOException {
-		inputStream.consume();
-		Document doc = null;
-		if (doc == null) {
-			try {
-				inputStream.restartFromCache();
-				doc = xmlDomDocument(charset, inputStream);
-				if (checkDocument(doc))
-					return doc;
-				else
-					doc = null;
-			} catch (LimitException e) {
-				throw e;
-			} catch (Exception e) {
-				Logging.warn(e.getMessage(), e);
-				doc = null;
-			}
-		}
-		if (doc == null) {
-			try {
-				doc = tagSoupDomDocument(charset, inputStream);
-				if (checkDocument(doc))
-					return doc;
-				else
-					doc = null;
-			} catch (LimitException e) {
-				throw e;
-			} catch (Exception e) {
-				Logging.warn(e.getMessage(), e);
-				doc = null;
-			}
-		}
-		if (doc == null) {
-			try {
-				inputStream.restartFromCache();
-				doc = nekoHtmlDomDocument(charset, inputStream);
-				if (checkDocument(doc))
-					return doc;
-				else
-					doc = null;
-			} catch (LimitException e) {
-				throw e;
-			} catch (Exception e) {
-				Logging.warn(e.getMessage(), e);
-				doc = null;
-			}
-		}
-		// if (doc == null) {
-		// try {
-		// inputStream.restartFromCache();
-		// doc = tidyDomDocument(charset, inputStream);
-		// if (checkDocument(doc))
-		// return doc;
-		// else
-		// doc = null;
-		// } catch (LimitException e) {
-		// throw e;
-		// } catch (Exception e) {
-		// Logging.error(e.getMessage(), e);
-		// doc = null;
-		// }
-		// }
-		if (doc == null) {
-			try {
-				inputStream.restartFromCache();
-				doc = htmlCleanerDomDocument(charset, inputStream);
-				if (checkDocument(doc))
-					return doc;
-				else
-					doc = null;
-			} catch (LimitException e) {
-				throw e;
-			} catch (Exception e) {
-				Logging.warn(e.getMessage(), e);
-				doc = null;
-			}
-		}
-		return doc;
+		return HtmlDocumentProvider.bestScore(providerList);
 	}
 
 	protected void addFieldTitle(String value) {
@@ -482,6 +203,8 @@ public class HtmlParser extends Parser {
 	@Override
 	protected void parseContent(LimitInputStream inputStream)
 			throws IOException {
+
+		inputStream.consume();
 
 		String charset = null;
 		IndexDocument sourceDocument = getSourceDocument();
@@ -501,14 +224,15 @@ public class HtmlParser extends Parser {
 		if (charsetWasNull)
 			charset = getProperty(ClassPropertyEnum.DEFAULT_CHARSET).getValue();
 
-		Document doc = htmlParserLine(charset, inputStream);
-		if (doc == null)
+		HtmlDocumentProvider htmlProvider = findBestProvider(charset,
+				inputStream);
+		if (htmlProvider == null)
 			return;
 
-		List<Node> metas = getMetas(doc);
+		addField(ParserFieldEnum.htmlProvider, htmlProvider.getName());
 
 		// Check ContentType charset in meta http-equiv
-		String contentType = getMetaHttpEquiv(metas, "content-type");
+		String contentType = htmlProvider.getMetaHttpEquiv("content-type");
 		String contentTypeCharset = null;
 		if (contentType != null) {
 			contentTypeCharset = MimeUtils
@@ -524,22 +248,25 @@ public class HtmlParser extends Parser {
 			if (contentTypeCharset != null)
 				charset = contentTypeCharset;
 			else
-				charset = getMetaCharset(metas);
+				charset = htmlProvider.getMetaCharset();
 			if (charset != null) {
 				inputStream.restartFromCache();
-				doc = htmlParserLine(charset, inputStream);
+				htmlProvider = findBestProvider(charset, inputStream);
 			}
 		}
 
-		for (Node metaNode : metas) {
-			String metaName = DomUtils.getAttributeText(metaNode, "name");
+		HtmlNodeAbstract<?> rootNode = htmlProvider.getRootNode();
+		if (rootNode == null)
+			return;
+
+		for (HtmlNodeAbstract<?> metaNode : htmlProvider.getMetas()) {
+			String metaName = metaNode.getAttributeText("name");
 			if (metaName != null && metaName.startsWith(OPENSEARCHSERVER_FIELD)) {
 				String field = metaName
 						.substring(OPENSEARCHSERVER_FIELD_LENGTH);
 				String[] fields = field.split("\\.");
 				if (fields != null) {
-					String content = DomUtils.getAttributeText(metaNode,
-							"content");
+					String content = metaNode.getAttributeText("content");
 					addDirectFields(fields, content);
 				}
 			}
@@ -547,7 +274,7 @@ public class HtmlParser extends Parser {
 
 		addField(ParserFieldEnum.charset, charset);
 
-		addFieldTitle(getTitle(doc));
+		addFieldTitle(htmlProvider.getTitle());
 
 		String metaRobots = null;
 
@@ -555,27 +282,31 @@ public class HtmlParser extends Parser {
 
 		String metaContentLanguage = null;
 
-		for (Node node : metas) {
-			String attr_name = DomUtils.getAttributeText(node, "name");
-			String attr_http_equiv = DomUtils.getAttributeText(node,
-					"http-equiv");
+		for (HtmlNodeAbstract<?> node : htmlProvider.getMetas()) {
+			String attr_name = node.getAttributeText("name");
+			String attr_http_equiv = node.getAttributeText("http-equiv");
 			if ("keywords".equalsIgnoreCase(attr_name))
-				addField(ParserFieldEnum.meta_keywords, getMetaContent(node));
+				addField(ParserFieldEnum.meta_keywords,
+						HtmlDocumentProvider.getMetaContent(node));
 			else if ("description".equalsIgnoreCase(attr_name))
-				addField(ParserFieldEnum.meta_description, getMetaContent(node));
+				addField(ParserFieldEnum.meta_description,
+						HtmlDocumentProvider.getMetaContent(node));
 			else if ("robots".equalsIgnoreCase(attr_name))
-				metaRobots = getMetaContent(node);
+				metaRobots = HtmlDocumentProvider.getMetaContent(node);
 			else if ("dc.language".equalsIgnoreCase(attr_name))
-				metaDcLanguage = getMetaContent(node);
+				metaDcLanguage = HtmlDocumentProvider.getMetaContent(node);
 			else if ("content-language".equalsIgnoreCase(attr_http_equiv))
-				metaContentLanguage = getMetaContent(node);
+				metaContentLanguage = HtmlDocumentProvider.getMetaContent(node);
 		}
 
 		boolean metaRobotsFollow = true;
+		boolean metaRobotsNoIndex = false;
 		if (metaRobots != null) {
 			metaRobots = metaRobots.toLowerCase();
-			if (metaRobots.contains("noindex"))
+			if (metaRobots.contains("noindex")) {
+				metaRobotsNoIndex = true;
 				addField(ParserFieldEnum.meta_robots, "noindex");
+			}
 			if (metaRobots.contains("nofollow")) {
 				metaRobotsFollow = false;
 				addField(ParserFieldEnum.meta_robots, "nofollow");
@@ -584,25 +315,25 @@ public class HtmlParser extends Parser {
 
 		UrlFilterItem[] urlFilterList = getUrlFilterList();
 
-		List<Node> nodes = DomUtils.getAllNodes(doc, "a", "frame");
+		List<HtmlNodeAbstract<?>> nodes = rootNode.getAllNodes("a", "frame");
 		IndexDocument srcDoc = getSourceDocument();
 		if (srcDoc != null && nodes != null && metaRobotsFollow) {
-			URL currentURL = getBaseHref(doc);
+			URL currentURL = htmlProvider.getBaseHref();
 			if (currentURL == null && urlItemFieldEnum != null) {
 				FieldValueItem fvi = srcDoc.getFieldValue(
 						urlItemFieldEnum.url.getName(), 0);
 				if (fvi != null)
 					currentURL = new URL(fvi.getValue());
 			}
-			for (Node node : nodes) {
+			for (HtmlNodeAbstract<?> node : nodes) {
 				String href = null;
 				String rel = null;
 				String nodeName = node.getNodeName();
 				if ("a".equals(nodeName)) {
-					href = DomUtils.getAttributeText(node, "href");
-					rel = DomUtils.getAttributeText(node, "rel");
+					href = node.getAttributeText("href");
+					rel = node.getAttributeText("rel");
 				} else if ("frame".equals(nodeName)) {
-					href = DomUtils.getAttributeText(node, "src");
+					href = node.getAttributeText("src");
 				}
 				boolean follow = true;
 				if (rel != null)
@@ -632,23 +363,25 @@ public class HtmlParser extends Parser {
 			}
 		}
 
-		nodes = DomUtils.getNodes(doc, "html", "body");
-		if (nodes == null || nodes.size() == 0)
-			nodes = DomUtils.getNodes(doc, "html");
-		if (nodes != null && nodes.size() > 0) {
-			StringBuffer sb = new StringBuffer();
-			getBodyTextContent(sb, nodes.get(0), true, null);
-			addField(ParserFieldEnum.body, sb);
+		if (!metaRobotsNoIndex) {
+			nodes = rootNode.getNodes("html", "body");
+			if (nodes == null || nodes.size() == 0)
+				nodes = rootNode.getNodes("html");
+			if (nodes != null && nodes.size() > 0) {
+				StringBuffer sb = new StringBuffer();
+				getBodyTextContent(sb, nodes.get(0), true, null);
+				addField(ParserFieldEnum.body, sb);
+			}
 		}
 
 		// Identification de la langue:
 		Locale lang = null;
 		String langMethod = null;
 		String[] pathHtml = { "html" };
-		nodes = DomUtils.getNodes(doc, pathHtml);
+		nodes = rootNode.getNodes(pathHtml);
 		if (nodes != null && nodes.size() > 0) {
 			langMethod = "html lang attribute";
-			String l = DomUtils.getAttributeText(nodes.get(0), "lang");
+			String l = nodes.get(0).getAttributeText("lang");
 			if (l != null)
 				lang = Lang.findLocaleISO639(l);
 		}
@@ -664,7 +397,7 @@ public class HtmlParser extends Parser {
 		if (lang != null) {
 			addField(ParserFieldEnum.lang, lang.getLanguage());
 			addField(ParserFieldEnum.lang_method, langMethod);
-		} else
+		} else if (!metaRobotsNoIndex)
 			lang = langDetection(10000, ParserFieldEnum.body);
 
 	}

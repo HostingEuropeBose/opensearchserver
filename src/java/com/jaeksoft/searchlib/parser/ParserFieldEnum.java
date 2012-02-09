@@ -109,6 +109,8 @@ public enum ParserFieldEnum {
 
 	info_hash,
 
-	info_hash_urlencoded;
+	info_hash_urlencoded, 
+	
+	htmlProvider;
 
 }
