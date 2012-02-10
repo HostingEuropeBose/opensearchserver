@@ -150,6 +150,7 @@ public class Crawl {
 		parser.setSourceDocument(sourceDocument);
 		Date parserStartDate = new Date();
 		parser.parseContent(inputStream);
+
 		urlItem.clearInLinks();
 		urlItem.addInLinks(parser
 				.getFieldContent(ParserFieldEnum.internal_link));
@@ -180,6 +181,21 @@ public class Crawl {
 		}
 		if (newLastModifiedTime != null)
 			urlItem.setLastModifiedDate(newLastModifiedTime);
+
+		FieldContent fieldContent = parser
+				.getFieldContent(ParserFieldEnum.meta_robots);
+		if (fieldContent != null) {
+			List<FieldValueItem> fieldValues = fieldContent.getValues();
+			if (fieldValues != null) {
+				for (FieldValueItem item : parser.getFieldContent(
+						ParserFieldEnum.meta_robots).getValues())
+					if ("noindex".equalsIgnoreCase(item.getValue())) {
+						urlItem.setIndexStatus(IndexStatus.META_NOINDEX);
+						break;
+					}
+			}
+		}
+
 		this.parser = parser;
 	}
 
@@ -216,8 +232,8 @@ public class Crawl {
 				credentialItem = credentialManager == null ? null
 						: credentialManager.matchCredential(uri.toURL());
 
-				DownloadItem downloadItem = ClientCatalog.getHadoopManager()
-						.loadCache(uri);
+				DownloadItem downloadItem = ClientCatalog
+						.getCrawlCacheManager().loadCache(uri);
 
 				boolean fromCache = (downloadItem != null);
 
@@ -247,7 +263,7 @@ public class Crawl {
 
 				if (code >= 200 && code < 300) {
 					if (!fromCache)
-						is = ClientCatalog.getHadoopManager().storeCache(
+						is = ClientCatalog.getCrawlCacheManager().storeCache(
 								downloadItem);
 					else
 						is = downloadItem.getContentInputStream();
