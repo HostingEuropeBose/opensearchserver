@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -151,6 +151,8 @@ public class SchemaField extends Field {
 	public static SchemaFieldList fromXmlConfig(XPathParser xpp, Node parentNode)
 			throws XPathExpressionException {
 		SchemaFieldList fieldList = new SchemaFieldList();
+		if (parentNode == null)
+			return fieldList;
 		NodeList nodes = xpp.getNodeList(parentNode, "field");
 		if (nodes == null)
 			return fieldList;
