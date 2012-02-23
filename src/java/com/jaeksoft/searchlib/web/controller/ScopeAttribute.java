@@ -31,11 +31,13 @@ public enum ScopeAttribute {
 
 	BASKET_CURRENT_DOCUMENT(Component.SESSION_SCOPE),
 
-	QUERY_SEARCH_REQUEST(Component.SESSION_SCOPE),
+	QUERY_REQUEST(Component.SESSION_SCOPE),
 
 	QUERY_SEARCH_RESULT(Component.SESSION_SCOPE),
 
 	UPDATE_FORM_INDEX_DOCUMENT(Component.SESSION_SCOPE),
+
+	UPDATE_XML_MAP(Component.SESSION_SCOPE),
 
 	CURRENT_CLIENT(Component.SESSION_SCOPE),
 
@@ -149,4 +151,15 @@ public enum ScopeAttribute {
 		}
 	}
 
+	public void remove(Component component) {
+		switch (scope) {
+		case Component.SESSION_SCOPE:
+			Sessions.getCurrent().removeAttribute(name());
+			break;
+		default:
+			component.removeAttribute(name(), scope);
+			break;
+		}
+
+	}
 }
