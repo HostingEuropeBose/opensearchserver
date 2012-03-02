@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -32,13 +32,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.zkoss.zk.ui.Component;
+import org.zkoss.zk.ui.Executions;
 import org.zkoss.zul.AbstractTreeModel;
 import org.zkoss.zul.Filedownload;
+import org.zkoss.zul.Html;
 import org.zkoss.zul.TreeModel;
 import org.zkoss.zul.Treecell;
 import org.zkoss.zul.Treeitem;
 import org.zkoss.zul.TreeitemRenderer;
 import org.zkoss.zul.Treerow;
+import org.zkoss.zul.api.Window;
 
 import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.SearchLibException;
@@ -47,16 +50,15 @@ import com.jaeksoft.searchlib.facet.FacetList;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.render.RenderCSV;
-import com.jaeksoft.searchlib.result.Result;
+import com.jaeksoft.searchlib.request.RequestTypeEnum;
+import com.jaeksoft.searchlib.result.AbstractResultSearch;
 import com.jaeksoft.searchlib.result.ResultDocument;
 import com.jaeksoft.searchlib.schema.FieldList;
 import com.jaeksoft.searchlib.schema.FieldValue;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
 import com.jaeksoft.searchlib.snippet.SnippetFieldValue;
-import com.jaeksoft.searchlib.spellcheck.SpellCheck;
-import com.jaeksoft.searchlib.spellcheck.SpellCheckList;
 
-public class ResultController extends AbstractQueryController implements
+public class ResultSearchController extends AbstractQueryController implements
 		TreeitemRenderer {
 
 	/**
@@ -68,7 +70,7 @@ public class ResultController extends AbstractQueryController implements
 
 	private transient Facet selectedFacet;
 
-	public ResultController() throws SearchLibException {
+	public ResultSearchController() throws SearchLibException {
 		super();
 	}
 
@@ -109,29 +111,29 @@ public class ResultController extends AbstractQueryController implements
 		}
 
 		public float getScore() {
-			Result result = getResult();
+			AbstractResultSearch result = getResult();
 			if (result == null)
 				return 0;
 			return result.getScore(pos);
 		}
 
 		public int getCollapseCount() {
-			Result result = getResult();
+			AbstractResultSearch result = getResult();
 			if (result == null)
 				return 0;
 			return result.getCollapseCount(pos);
 		}
 
 		public int getDocId() {
-			Result result = getResult();
+			AbstractResultSearch result = getResult();
 			if (result == null)
 				return 0;
-			return getResult().getDocs()[pos].doc;
+			return result.getDocs()[pos].doc;
 		}
 
 		public ResultDocument getResultDocument() throws IOException,
 				ParseException, SyntaxError {
-			Result result = getResult();
+			AbstractResultSearch result = getResult();
 			if (result == null)
 				return null;
 			return result.getDocument(pos);
@@ -231,18 +233,22 @@ public class ResultController extends AbstractQueryController implements
 		}
 	}
 
+	public AbstractResultSearch getResult() {
+		return (AbstractResultSearch) getResult(RequestTypeEnum.SearchRequest);
+	}
+
 	public List<Document> getDocuments() {
 		synchronized (this) {
 			if (documents != null)
 				return documents;
-			Result result = getResult();
+			AbstractResultSearch result = getResult();
 			if (result == null)
 				return null;
 			int i = result.getDocumentCount();
 			if (i <= 0)
 				return null;
 			documents = new ArrayList<Document>(i);
-			int pos = result.getSearchRequest().getStart();
+			int pos = result.getRequest().getStart();
 			int end = pos + result.getDocumentCount();
 			while (pos < end)
 				documents.add(new Document(pos++));
@@ -252,7 +258,7 @@ public class ResultController extends AbstractQueryController implements
 
 	public boolean getDocumentFound() {
 		synchronized (this) {
-			Result result = getResult();
+			AbstractResultSearch result = getResult();
 			if (result == null)
 				return false;
 			return result.getDocumentCount() > 0;
@@ -261,7 +267,7 @@ public class ResultController extends AbstractQueryController implements
 
 	public FacetList getFacetList() {
 		synchronized (this) {
-			Result result = getResult();
+			AbstractResultSearch result = getResult();
 			if (result == null)
 				return null;
 			FacetList facetList = result.getFacetList();
@@ -280,46 +286,37 @@ public class ResultController extends AbstractQueryController implements
 		}
 	}
 
-	public List<SpellCheck> getSpellCheckList() {
-		synchronized (this) {
-			Result result = getResult();
-			if (result == null)
-				return null;
-			SpellCheckList spellChecklist = result.getSpellCheckList();
-			if (spellChecklist == null)
-				return null;
-			return spellChecklist.getList();
-		}
-	}
-
 	public void explainScore(Component comp) throws SearchLibException,
 			InterruptedException, IOException, ParseException, SyntaxError {
 		Client client = getClient();
 		if (client == null)
 			return;
-		Result result = getResult();
+		AbstractResultSearch result = getResult();
 		if (result == null)
 			return;
 		Document document = (Document) comp.getAttribute("document");
 		if (document == null)
 			return;
 		int docId = document.getDocId();
-		String explanation = client.explain(result.getSearchRequest(), docId);
-		Filedownload.save(explanation, "text/plain; charset-UTF-8",
-				"Score explanation " + docId + ".txt");
+		String explanation = client.explain(result.getRequest(), docId, true);
+		Window win = (Window) Executions.createComponents(
+				"/WEB-INF/zul/query/result/explanation.zul", null, null);
+		Html html = (Html) win.getFellow("htmlExplain", true);
+		html.setContent(explanation);
+		win.doModal();
 	}
 
 	public void exportSearchResultToCsv() throws Exception {
 		Client client = getClient();
 		if (client == null)
 			return;
-		Result result = getResult();
+		AbstractResultSearch result = getResult();
 		if (result == null)
 			return;
 
 		PrintWriter pw = null;
 		try {
-			File tempFile = File.createTempFile("OSS_Search_Result", "csv");
+			File tempFile = File.createTempFile("OSS_Search_Result", ".csv");
 			pw = new PrintWriter(tempFile);
 			new RenderCSV(result).renderCSV(pw);
 			Filedownload.save(new FileInputStream(tempFile),
@@ -328,13 +325,6 @@ public class ResultController extends AbstractQueryController implements
 			if (pw != null)
 				pw.close();
 		}
-	}
-
-	public boolean isSpellCheckValid() {
-		synchronized (this) {
-			return getSpellCheckList() != null;
-		}
-
 	}
 
 	public void setSelectedFacet(Facet facet) {

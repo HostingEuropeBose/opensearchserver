@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -68,10 +68,11 @@ public class DeleteServlet extends AbstractServlet {
 	}
 
 	private int deleteByQuery(Client client, String q)
-			throws SearchLibException, IOException, InstantiationException,
-			IllegalAccessException, ClassNotFoundException, ParseException,
-			SyntaxError, URISyntaxException, InterruptedException {
-		SearchRequest request = client.getNewSearchRequest();
+			throws  SearchLibException, IOException,
+			InstantiationException, IllegalAccessException,
+			ClassNotFoundException, ParseException, SyntaxError,
+			URISyntaxException, InterruptedException {
+		SearchRequest request = new SearchRequest(client);
 		request.setQueryString(q);
 		return client.deleteDocuments(request);
 	}

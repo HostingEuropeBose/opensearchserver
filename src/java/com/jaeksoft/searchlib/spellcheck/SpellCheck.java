@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2009 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -24,10 +24,7 @@
 
 package com.jaeksoft.searchlib.spellcheck;
 
-import java.io.Externalizable;
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -40,40 +37,46 @@ import com.jaeksoft.searchlib.index.ReaderLocal;
 import com.jaeksoft.searchlib.index.SpellChecker;
 import com.jaeksoft.searchlib.index.term.Term;
 import com.jaeksoft.searchlib.query.ParseException;
-import com.jaeksoft.searchlib.request.SearchRequest;
-import com.jaeksoft.searchlib.result.ResultSingle;
-import com.jaeksoft.searchlib.util.External;
+import com.jaeksoft.searchlib.request.SpellCheckRequest;
 
-public class SpellCheck implements Externalizable, Iterable<SpellCheckItem>,
-		External.Collecter<SpellCheckItem> {
+public class SpellCheck implements Iterable<SpellCheckItem> {
 
 	private List<SpellCheckItem> spellCheckItems;
 
 	private String fieldName;
 
-	public SpellCheck(ResultSingle result, SpellCheckField spellCheckField)
-			throws ParseException, SyntaxError, IOException, SearchLibException {
-		SearchRequest searchRequest = result.getSearchRequest();
-		ReaderLocal reader = result.getReader();
+	public SpellCheck(ReaderLocal reader, SpellCheckRequest request,
+			SpellCheckField spellCheckField) throws ParseException,
+			SyntaxError, IOException, SearchLibException {
 		fieldName = spellCheckField.getName();
 		SpellChecker spellchecker = reader.getSpellChecker(fieldName);
-		Set<Term> set = new LinkedHashSet<Term>();
 		Set<String> wordSet = new LinkedHashSet<String>();
-		searchRequest.getQuery().extractTerms(set);
+		Set<Term> set = request.getTermSet();
 		for (Term term : set)
 			if (term.field().equals(fieldName))
 				wordSet.add(term.text());
 		int suggestionNumber = spellCheckField.getSuggestionNumber();
 		float minScore = spellCheckField.getMinScore();
-		spellchecker.setAccuracy(minScore);
-		spellCheckItems = new ArrayList<SpellCheckItem>();
-		for (String word : wordSet) {
-			String[] suggestions = spellchecker.suggestSimilar(word,
-					suggestionNumber);
-			if (suggestions != null)
-				if (suggestions.length > 0)
-					spellCheckItems.add(new SpellCheckItem(word, suggestions));
+		synchronized (spellchecker) {
+			spellchecker.setAccuracy(minScore);
+			spellchecker.setStringDistance(spellCheckField.getStringDistance()
+					.getNewInstance());
+			spellCheckItems = new ArrayList<SpellCheckItem>();
+			for (String word : wordSet) {
+				String[] suggestions = spellchecker.suggestSimilar(word,
+						suggestionNumber);
+				if (suggestions != null && suggestions.length > 0) {
+					SuggestionItem[] suggestionItems = new SuggestionItem[suggestions.length];
+					int i = 0;
+					for (String suggestion : suggestions)
+						suggestionItems[i++] = new SuggestionItem(suggestion);
+					spellCheckItems.add(new SpellCheckItem(word,
+							suggestionItems));
+				}
+			}
 		}
+		for (SpellCheckItem spellcheckItem : spellCheckItems)
+			spellcheckItem.computeFrequency(reader, fieldName);
 	}
 
 	public String getFieldName() {
@@ -85,27 +88,8 @@ public class SpellCheck implements Externalizable, Iterable<SpellCheckItem>,
 	}
 
 	@Override
-	public void readExternal(ObjectInput in) throws IOException,
-			ClassNotFoundException {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
 	public Iterator<SpellCheckItem> iterator() {
 		return spellCheckItems.iterator();
-	}
-
-	@Override
-	public void addObject(SpellCheckItem object) {
-		// TODO Auto-generated method stub
-
 	}
 
 }

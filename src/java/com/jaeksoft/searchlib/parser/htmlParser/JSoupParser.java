@@ -24,6 +24,7 @@
 package com.jaeksoft.searchlib.parser.htmlParser;
 
 import java.io.IOException;
+import java.io.InputStream;
 
 import javax.xml.parsers.ParserConfigurationException;
 
@@ -32,14 +33,14 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Node;
 import org.xml.sax.SAXException;
 
-import com.jaeksoft.searchlib.parser.LimitException;
-import com.jaeksoft.searchlib.parser.LimitInputStream;
+import com.jaeksoft.searchlib.streamlimiter.LimitException;
+import com.jaeksoft.searchlib.streamlimiter.StreamLimiter;
 
 public class JSoupParser extends HtmlDocumentProvider {
 
-	public JSoupParser(String charset, LimitInputStream inputStream)
+	public JSoupParser(String charset, StreamLimiter streamLimiter)
 			throws LimitException {
-		super(charset, inputStream);
+		super(charset, streamLimiter);
 	}
 
 	@Override
@@ -49,7 +50,7 @@ public class JSoupParser extends HtmlDocumentProvider {
 
 	@Override
 	protected HtmlNodeAbstract<?> getDocument(String charset,
-			LimitInputStream inputStream) throws SAXException, IOException,
+			InputStream inputStream) throws SAXException, IOException,
 			ParserConfigurationException {
 		Node node = Jsoup.parse(IOUtils.toString(inputStream, charset));
 		return new JSoupHtmlNode(node);

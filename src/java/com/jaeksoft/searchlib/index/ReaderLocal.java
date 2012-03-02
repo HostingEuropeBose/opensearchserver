@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -38,7 +38,7 @@ import org.apache.commons.io.FileUtils;
 import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.Analyzer;
-import com.jaeksoft.searchlib.analysis.stopwords.WordSet;
+import com.jaeksoft.searchlib.analysis.filter.stop.WordArray;
 import com.jaeksoft.searchlib.cache.FieldCache;
 import com.jaeksoft.searchlib.cache.FilterCache;
 import com.jaeksoft.searchlib.cache.SearchCache;
@@ -55,11 +55,12 @@ import com.jaeksoft.searchlib.query.MoreLikeThis;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.remote.UriWriteStream;
+import com.jaeksoft.searchlib.request.AbstractRequest;
 import com.jaeksoft.searchlib.request.DocumentRequest;
 import com.jaeksoft.searchlib.request.DocumentsRequest;
 import com.jaeksoft.searchlib.request.SearchRequest;
+import com.jaeksoft.searchlib.result.AbstractResult;
 import com.jaeksoft.searchlib.result.ResultDocument;
-import com.jaeksoft.searchlib.result.ResultSingle;
 import com.jaeksoft.searchlib.schema.Field;
 import com.jaeksoft.searchlib.schema.FieldList;
 import com.jaeksoft.searchlib.schema.FieldValue;
@@ -151,7 +152,7 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 		}
 	}
 
-	File getDatadir() {
+	protected File getDatadir() {
 		rwl.r.lock();
 		try {
 			return dataDir;
@@ -317,27 +318,7 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 	}
 
 	@Override
-	public ResultSingle search(SearchRequest searchRequest)
-			throws SearchLibException {
-		try {
-			return new ResultSingle(this, searchRequest);
-		} catch (IOException e) {
-			throw new SearchLibException(e);
-		} catch (ParseException e) {
-			throw new SearchLibException(e);
-		} catch (SyntaxError e) {
-			throw new SearchLibException(e);
-		} catch (InstantiationException e) {
-			throw new SearchLibException(e);
-		} catch (IllegalAccessException e) {
-			throw new SearchLibException(e);
-		} catch (ClassNotFoundException e) {
-			throw new SearchLibException(e);
-		}
-	}
-
-	@Override
-	public String explain(SearchRequest searchRequest, int docId)
+	public String explain(SearchRequest searchRequest, int docId, boolean bHtml)
 			throws SearchLibException {
 		rwl.r.lock();
 		try {
@@ -409,10 +390,10 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 		}
 	}
 
-	public WordSet getWordSet(String fieldName) {
+	public WordArray getWordArray(String fieldName) {
 		rwl.r.lock();
 		try {
-			return indexReader.getWordSet(fieldName);
+			return indexReader.getWordArray(fieldName);
 		} finally {
 			rwl.r.unlock();
 		}
@@ -778,6 +759,17 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 		rwl.r.lock();
 		try {
 			return fieldCache;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	@Override
+	public AbstractResult<?> request(AbstractRequest request)
+			throws SearchLibException {
+		rwl.r.lock();
+		try {
+			return request.execute(this);
 		} finally {
 			rwl.r.unlock();
 		}

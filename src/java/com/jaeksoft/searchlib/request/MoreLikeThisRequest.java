@@ -29,20 +29,20 @@ import java.io.StringReader;
 
 import javax.xml.xpath.XPathExpressionException;
 
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.queryParser.ParseException;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.similar.MoreLikeThis;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.analysis.Analyzer;
 import com.jaeksoft.searchlib.analysis.LanguageEnum;
 import com.jaeksoft.searchlib.config.Config;
 import com.jaeksoft.searchlib.index.IndexAbstract;
 import com.jaeksoft.searchlib.index.ReaderInterface;
+import com.jaeksoft.searchlib.query.MoreLikeThis;
+import com.jaeksoft.searchlib.query.ParseException;
+import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.result.AbstractResult;
 import com.jaeksoft.searchlib.result.AbstractResultSearch;
 import com.jaeksoft.searchlib.schema.Field;
@@ -122,8 +122,8 @@ public class MoreLikeThisRequest extends AbstractRequest {
 		mlt.setFieldNames(moreLikeThisFieldList.toArrayName());
 		mlt.setAnalyzer(checkAnalyzer());
 		if (moreLikeThisStopWords != null)
-			mlt.setStopWords(getConfig().getStopWordsManager()
-					.getWordArray(moreLikeThisStopWords, false).getWordSet());
+			mlt.setStopWords(getConfig().getStopWordsManager().getWordArray(
+					moreLikeThisStopWords, false));
 		return mlt.like(docId);
 	}
 

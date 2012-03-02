@@ -31,14 +31,12 @@ import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.query.ParseException;
-import com.jaeksoft.searchlib.remote.StreamReadObject;
 import com.jaeksoft.searchlib.render.Render;
-import com.jaeksoft.searchlib.render.RenderJson;
 import com.jaeksoft.searchlib.render.RenderJsp;
-import com.jaeksoft.searchlib.render.RenderObject;
-import com.jaeksoft.searchlib.render.RenderXml;
+import com.jaeksoft.searchlib.render.RenderSearchJson;
+import com.jaeksoft.searchlib.render.RenderSearchXml;
 import com.jaeksoft.searchlib.request.SearchRequest;
-import com.jaeksoft.searchlib.result.Result;
+import com.jaeksoft.searchlib.result.AbstractResultSearch;
 import com.jaeksoft.searchlib.user.Role;
 import com.jaeksoft.searchlib.user.User;
 
@@ -49,38 +47,24 @@ public class SelectServlet extends AbstractServlet {
 	 */
 	private static final long serialVersionUID = 2241064786260022955L;
 
-	private Render doObjectRequest(Client client, ServletTransaction transaction)
-			throws ServletException {
-		StreamReadObject sro = null;
-		try {
-			sro = new StreamReadObject(transaction.getInputStream());
-			SearchRequest searchRequest = (SearchRequest) sro.read();
-			Result result = client.search(searchRequest);
-			return new RenderObject(result);
-		} catch (Exception e) {
-			throw new ServletException(e);
-		} finally {
-			if (sro != null)
-				sro.close();
-		}
-	}
-
 	protected Render doQueryRequest(Client client,
 			ServletTransaction transaction, String render) throws IOException,
 			ParseException, SyntaxError, URISyntaxException,
 			ClassNotFoundException, InterruptedException, SearchLibException,
 			InstantiationException, IllegalAccessException {
 
-		SearchRequest searchRequest = client.getNewSearchRequest(transaction);
-		Result result = client.search(searchRequest);
+		SearchRequest searchRequest = (SearchRequest) client
+				.getNewRequest(transaction);
+		AbstractResultSearch result = (AbstractResultSearch) client
+				.request(searchRequest);
 		if ("jsp".equalsIgnoreCase(render)) {
 			String jsp = transaction.getParameterString("jsp");
 			return new RenderJsp(jsp, result);
 		} else if ("json".equalsIgnoreCase(render)) {
 			String jsonIndent = transaction.getParameterString("indent");
-			return new RenderJson(result, jsonIndent);
+			return new RenderSearchJson(result, jsonIndent);
 		} else
-			return new RenderXml(result);
+			return new RenderSearchXml(result);
 	}
 
 	@Override
@@ -96,15 +80,8 @@ public class SelectServlet extends AbstractServlet {
 				throw new SearchLibException("Not permitted");
 
 			Client client = transaction.getClient();
-			Render render = null;
-			String p = transaction.getParameterString("render");
-			if ("object".equalsIgnoreCase(p))
-				render = doObjectRequest(client, transaction);
-			else {
-				if (p == null || p.equalsIgnoreCase(""))
-					p = transaction.getParameterString("format");
-				render = doQueryRequest(client, transaction, p);
-			}
+			Render render = doQueryRequest(client, transaction,
+					transaction.getParameterString("format"));
 			render.render(transaction);
 
 		} catch (Exception e) {

@@ -23,11 +23,12 @@
 
 package com.jaeksoft.searchlib.index;
 
-import com.jaeksoft.searchlib.analysis.stopwords.WordSet;
+import com.jaeksoft.searchlib.analysis.filter.stop.WordArray;
+import com.jaeksoft.searchlib.spellcheck.StringDistance;
 
 public class SpellChecker {
 
-	public void indexDictionary(WordSet dict) {
+	public void indexDictionary(WordArray dict) {
 		// TODO Auto-generated method stub
 
 	}
@@ -40,6 +41,11 @@ public class SpellChecker {
 	public String[] suggestSimilar(String word, int suggestionNumber) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	public void setStringDistance(StringDistance newInstance) {
+		// TODO Auto-generated method stub
+
 	}
 
 }

@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2010 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -28,34 +28,41 @@ import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.ClassPropertyEnum;
 import com.jaeksoft.searchlib.analysis.FilterFactory;
 import com.jaeksoft.searchlib.analysis.TokenStream;
-import com.jaeksoft.searchlib.analysis.stopwords.WordSet;
+import com.jaeksoft.searchlib.analysis.filter.stop.StopWordFilter;
+import com.jaeksoft.searchlib.analysis.filter.stop.WordArray;
+import com.jaeksoft.searchlib.analysis.stopwords.StopWordsManager;
 
 public class StopFilter extends FilterFactory {
 
-	private WordSet words;
+	private String wordList = null;
+	private boolean ignoreCase = false;
+	private StopWordsManager stopWordsManager = null;
 
 	@Override
 	public void initProperties() throws SearchLibException {
 		super.initProperties();
-		String[] values = config.getStopWordsManager().getList();
+		String[] values = config.getStopWordsManager().getList(false);
 		String value = (values != null && values.length > 0) ? values[0] : null;
 		addProperty(ClassPropertyEnum.FILE_LIST, value, values);
+		addProperty(ClassPropertyEnum.IGNORE_CASE, Boolean.FALSE.toString(),
+				ClassPropertyEnum.BOOLEAN_LIST);
+		stopWordsManager = config.getStopWordsManager();
 	}
 
 	@Override
 	public void checkValue(ClassPropertyEnum prop, String value)
 			throws SearchLibException {
-		if (prop != ClassPropertyEnum.FILE_LIST)
-			return;
-		if (value == null || value.length() == 0)
-			return;
-		words = config.getStopWordsManager().getWords(value);
+		if (prop == ClassPropertyEnum.FILE_LIST)
+			wordList = value;
+		else if (prop == ClassPropertyEnum.IGNORE_CASE)
+			ignoreCase = Boolean.parseBoolean(value);
 	}
 
 	@Override
 	public TokenStream create(TokenStream tokenStream) {
-		// TODO Auto-generated method stub
-		return null;
+		WordArray wordArray = null;
+		if (wordList != null && wordList.length() > 0)
+			wordArray = stopWordsManager.getWordArray(wordList, ignoreCase);
+		return new StopWordFilter(tokenStream, wordArray, ignoreCase);
 	}
-
 }

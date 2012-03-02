@@ -38,7 +38,7 @@ import com.jaeksoft.searchlib.index.StringIndex;
 import com.jaeksoft.searchlib.index.term.Term;
 import com.jaeksoft.searchlib.index.term.TermDocs;
 import com.jaeksoft.searchlib.result.ResultScoreDoc;
-import com.jaeksoft.searchlib.result.ResultSingle;
+import com.jaeksoft.searchlib.result.ResultSearchSingle;
 import com.jaeksoft.searchlib.util.External;
 
 public class Facet implements Externalizable, Iterable<FacetItem>,
@@ -133,7 +133,7 @@ public class Facet implements Externalizable, Iterable<FacetItem>,
 	}
 
 	final static protected Facet facetMultivaluedNonCollapsed(
-			ResultSingle result, FacetField facetField) throws IOException {
+			ResultSearchSingle result, FacetField facetField) throws IOException {
 		String fieldName = facetField.getName();
 		StringIndex stringIndex = result.getReader().getStringIndex(fieldName);
 		int[] countIndex = result.getDocSetHits().facetMultivalued(fieldName);
@@ -141,14 +141,14 @@ public class Facet implements Externalizable, Iterable<FacetItem>,
 	}
 
 	final static protected Facet facetSingleValueNonCollapsed(
-			ResultSingle result, FacetField facetField) throws IOException {
+			ResultSearchSingle result, FacetField facetField) throws IOException {
 		String fieldName = facetField.getName();
 		StringIndex stringIndex = result.getReader().getStringIndex(fieldName);
 		int[] countIndex = result.getDocSetHits().facetSinglevalue(fieldName);
 		return new Facet(facetField, stringIndex.lookup, countIndex);
 	}
 
-	final static protected Facet facetMultivaluedCollapsed(ResultSingle result,
+	final static protected Facet facetMultivaluedCollapsed(ResultSearchSingle result,
 			FacetField facetField) throws IOException {
 		String fieldName = facetField.getName();
 		ReaderLocal reader = result.getReader();
@@ -160,7 +160,7 @@ public class Facet implements Externalizable, Iterable<FacetItem>,
 		return new Facet(facetField, stringIndex.lookup, countIndex);
 	}
 
-	final static protected Facet facetSingleValueCollapsed(ResultSingle result,
+	final static protected Facet facetSingleValueCollapsed(ResultSearchSingle result,
 			FacetField facetField) throws IOException {
 		String fieldName = facetField.getName();
 		ReaderLocal reader = result.getReader();

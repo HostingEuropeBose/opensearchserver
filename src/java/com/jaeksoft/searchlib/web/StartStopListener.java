@@ -95,6 +95,7 @@ public class StartStopListener implements ServletContextListener {
 
 		Logging.initLogger();
 		Logging.info("OSS IS STARTING");
+
 		ErrorParserLogger.init();
 
 		try {

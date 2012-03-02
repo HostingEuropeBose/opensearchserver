@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -22,17 +22,24 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-package com.jaeksoft.searchlib.analysis.stopwords;
+package com.jaeksoft.searchlib.result;
 
-public class WordSet {
+import javax.servlet.http.HttpServletRequest;
 
-	public WordSet(int initialSize, boolean caseSensitive) {
-		// TODO Auto-generated constructor stub
+import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.render.Render;
+import com.jaeksoft.searchlib.request.SpellCheckRequest;
+
+public class ResultMoreLikeThis extends AbstractResult<SpellCheckRequest> {
+
+	protected ResultMoreLikeThis(ReaderLocal reader, SpellCheckRequest request) {
+		super(request);
 	}
 
-	public void add(String word) {
+	@Override
+	public Render getRender(HttpServletRequest request) {
 		// TODO Auto-generated method stub
-
+		return null;
 	}
 
 }

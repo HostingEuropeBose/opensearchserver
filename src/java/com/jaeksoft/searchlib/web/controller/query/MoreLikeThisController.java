@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2009 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -31,7 +31,8 @@ import org.zkoss.zk.ui.Component;
 
 import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.request.SearchRequest;
+import com.jaeksoft.searchlib.request.MoreLikeThisRequest;
+import com.jaeksoft.searchlib.request.RequestTypeEnum;
 import com.jaeksoft.searchlib.schema.Field;
 import com.jaeksoft.searchlib.schema.FieldList;
 import com.jaeksoft.searchlib.schema.SchemaField;
@@ -60,12 +61,16 @@ public class MoreLikeThisController extends AbstractQueryController {
 		selectedField = null;
 	}
 
+	public MoreLikeThisRequest getRequest() throws SearchLibException {
+		return (MoreLikeThisRequest) getRequest(RequestTypeEnum.MoreLikeThisRequest);
+	}
+
 	public List<String> getFieldsLeft() throws SearchLibException {
 		synchronized (this) {
 			Client client = getClient();
 			if (client == null)
 				return null;
-			SearchRequest request = getRequest();
+			MoreLikeThisRequest request = getRequest();
 			if (request == null)
 				return null;
 			if (fieldsLeft != null)
@@ -98,7 +103,8 @@ public class MoreLikeThisController extends AbstractQueryController {
 	}
 
 	public void onAddField() throws SearchLibException {
-		getRequest().getMoreLikeThisFieldList().add(new Field(selectedField));
+		((MoreLikeThisRequest) getRequest()).getMoreLikeThisFieldList().add(
+				new Field(selectedField));
 		reloadPage();
 	}
 
@@ -117,7 +123,7 @@ public class MoreLikeThisController extends AbstractQueryController {
 				return stopWordsList;
 			stopWordsList = new ArrayList<String>();
 			stopWordsList.add("");
-			String[] list = client.getStopWordsManager().getList();
+			String[] list = client.getStopWordsManager().getList(false);
 			if (list != null)
 				for (String s : list)
 					stopWordsList.add(s);

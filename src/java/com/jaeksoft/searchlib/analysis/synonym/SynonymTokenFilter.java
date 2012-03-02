@@ -24,6 +24,8 @@
 
 package com.jaeksoft.searchlib.analysis.synonym;
 
+import java.io.IOException;
+
 import com.jaeksoft.searchlib.analysis.TokenStream;
 
 public class SynonymTokenFilter extends TokenStream {
@@ -62,7 +64,7 @@ public class SynonymTokenFilter extends TokenStream {
 	}
 
 	@Override
-	public final boolean incrementToken() {
+	public final boolean incrementToken() throws IOException {
 		// current = captureState();
 		for (;;) {
 			if (popToken())

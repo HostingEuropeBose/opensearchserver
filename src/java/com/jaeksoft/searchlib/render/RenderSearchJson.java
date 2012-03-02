@@ -39,25 +39,22 @@ import com.jaeksoft.searchlib.facet.FacetList;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.request.SearchRequest;
-import com.jaeksoft.searchlib.result.Result;
+import com.jaeksoft.searchlib.result.AbstractResultSearch;
 import com.jaeksoft.searchlib.result.ResultDocument;
 import com.jaeksoft.searchlib.schema.Field;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
 import com.jaeksoft.searchlib.snippet.SnippetField;
-import com.jaeksoft.searchlib.spellcheck.SpellCheck;
-import com.jaeksoft.searchlib.spellcheck.SpellCheckItem;
-import com.jaeksoft.searchlib.spellcheck.SpellCheckList;
 import com.jaeksoft.searchlib.web.ServletTransaction;
 
-public class RenderJson implements Render {
+public class RenderSearchJson implements Render {
 
-	private Result result;
+	private AbstractResultSearch result;
 	private SearchRequest searchRequest;
 	private String indent;
 
-	public RenderJson(Result result, String jsonIndent) {
+	public RenderSearchJson(AbstractResultSearch result, String jsonIndent) {
 		this.result = result;
-		this.searchRequest = result.getSearchRequest();
+		this.searchRequest = result.getRequest();
 		this.indent = jsonIndent;
 	}
 
@@ -74,7 +71,7 @@ public class RenderJson implements Render {
 	@SuppressWarnings("unchecked")
 	private void renderDocuments(JSONObject jsonResponse) throws IOException,
 			ParseException, SyntaxError {
-		SearchRequest searchRequest = result.getSearchRequest();
+		SearchRequest searchRequest = result.getRequest();
 		ArrayList<JSONObject> resultArrayList = new ArrayList<JSONObject>();
 		int start = searchRequest.getStart();
 		int end = result.getDocumentCount() + searchRequest.getStart();
@@ -183,43 +180,45 @@ public class RenderJson implements Render {
 
 	}
 
-	@SuppressWarnings("unchecked")
-	private void renderSpellCheck(SpellCheck spellCheck,
-			ArrayList<JSONObject> jsonSpellCheckList) throws Exception {
+	// @SuppressWarnings("unchecked")
+	// private void renderSpellCheck(SpellCheck spellCheck,
+	// ArrayList<JSONObject> jsonSpellCheckList) throws Exception {
+	//
+	// for (SpellCheckItem spellCheckItem : spellCheck) {
+	// JSONObject jsonSpellCheck = new JSONObject();
+	// jsonSpellCheck.put("name", spellCheckItem.getWord());
+	// ArrayList<JSONObject> jsonSpellcheckWords = new ArrayList<JSONObject>();
+	// for (SuggestionItem suggest : spellCheckItem.getSuggestions()) {
+	// JSONObject jsonSpellSuggest = new JSONObject();
+	// jsonSpellSuggest.put("suggest", suggest.getTerm());
+	// jsonSpellSuggest.put("freq", suggest.getFreq());
+	// jsonSpellcheckWords.add(jsonSpellSuggest);
+	// }
+	// jsonSpellCheck.put("suggestions", jsonSpellcheckWords);
+	// jsonSpellCheckList.add(jsonSpellCheck);
+	// }
+	//
+	// }
 
-		for (SpellCheckItem spellCheckItem : spellCheck) {
-			JSONObject jsonSpellCheck = new JSONObject();
-			jsonSpellCheck.put("name", spellCheckItem.getWord());
-			ArrayList<JSONObject> jsonSpellcheckWords = new ArrayList<JSONObject>();
-			for (String suggest : spellCheckItem.getSuggestions()) {
-				JSONObject jsonSpellSuggest = new JSONObject();
-				jsonSpellSuggest.put("suggest", suggest);
-				jsonSpellcheckWords.add(jsonSpellSuggest);
-			}
-			jsonSpellCheck.put("suggestions", jsonSpellcheckWords);
-			jsonSpellCheckList.add(jsonSpellCheck);
-		}
-
-	}
-
-	@SuppressWarnings("unchecked")
-	private void renderSpellChecks(JSONObject jsonResponse) throws Exception {
-		SpellCheckList spellChecklist = result.getSpellCheckList();
-		ArrayList<JSONObject> jsonSpellCheckArray = new ArrayList<JSONObject>();
-		if (spellChecklist == null)
-			return;
-
-		for (SpellCheck spellCheck : spellChecklist) {
-			JSONObject jsonSpellCheck = new JSONObject();
-			ArrayList<JSONObject> jsonSpellcheckList = new ArrayList<JSONObject>();
-			String fieldName = spellCheck.getFieldName();
-			jsonSpellCheck.put("fieldName", fieldName);
-			renderSpellCheck(spellCheck, jsonSpellcheckList);
-			jsonSpellCheck.put("word", jsonSpellcheckList);
-			jsonSpellCheckArray.add(jsonSpellCheck);
-		}
-		jsonResponse.put("spellcheck", jsonSpellCheckArray);
-	}
+	// @SuppressWarnings("unchecked")
+	// private void renderSpellChecks(JSONObject jsonResponse) throws Exception
+	// {
+	// List<SpellCheck> spellChecklist = result.getSpellCheckList();
+	// ArrayList<JSONObject> jsonSpellCheckArray = new ArrayList<JSONObject>();
+	// if (spellChecklist == null)
+	// return;
+	//
+	// for (SpellCheck spellCheck : spellChecklist) {
+	// JSONObject jsonSpellCheck = new JSONObject();
+	// ArrayList<JSONObject> jsonSpellcheckList = new ArrayList<JSONObject>();
+	// String fieldName = spellCheck.getFieldName();
+	// jsonSpellCheck.put("fieldName", fieldName);
+	// renderSpellCheck(spellCheck, jsonSpellcheckList);
+	// jsonSpellCheck.put("word", jsonSpellcheckList);
+	// jsonSpellCheckArray.add(jsonSpellCheck);
+	// }
+	// jsonResponse.put("spellcheck", jsonSpellCheckArray);
+	// }
 
 	@Override
 	public void render(ServletTransaction servletTransaction) throws Exception {
@@ -233,7 +232,6 @@ public class RenderJson implements Render {
 		renderPrefix(jsonResponse);
 		renderDocuments(jsonResponse);
 		renderFacets(jsonResponse);
-		renderSpellChecks(jsonResponse);
 		JSONObject json = new JSONObject();
 		json.put("response", jsonResponse);
 		if ("yes".equalsIgnoreCase(indent))

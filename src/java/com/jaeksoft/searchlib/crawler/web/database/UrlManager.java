@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -54,7 +54,7 @@ import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.IndexDocument;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.request.SearchRequest;
-import com.jaeksoft.searchlib.result.Result;
+import com.jaeksoft.searchlib.result.AbstractResultSearch;
 import com.jaeksoft.searchlib.result.ResultDocument;
 
 public class UrlManager extends UrlManagerAbstract {
@@ -210,7 +210,8 @@ public class UrlManager extends UrlManagerAbstract {
 
 	private void getFacetLimit(UrlItemField field, SearchRequest searchRequest,
 			int limit, List<NamedItem> list) throws SearchLibException {
-		Result result = urlDbClient.search(searchRequest);
+		AbstractResultSearch result = (AbstractResultSearch) urlDbClient
+				.request(searchRequest);
 		Facet facet = result.getFacetList().getByField(field.getName());
 		for (FacetItem facetItem : facet) {
 			if (limit-- == 0)
@@ -230,7 +231,7 @@ public class UrlManager extends UrlManagerAbstract {
 	}
 
 	private SearchRequest getHostFacetSearchRequest() {
-		SearchRequest searchRequest = urlDbClient.getNewSearchRequest();
+		SearchRequest searchRequest = new SearchRequest(urlDbClient);
 		searchRequest.setDefaultOperator("OR");
 		searchRequest.setRows(0);
 		searchRequest.getFacetFieldList().add(
@@ -239,7 +240,7 @@ public class UrlManager extends UrlManagerAbstract {
 	}
 
 	private SearchRequest getUrlSearchRequest() throws SearchLibException {
-		SearchRequest searchRequest = urlDbClient.getNewSearchRequest();
+		SearchRequest searchRequest = new SearchRequest(urlDbClient);
 		searchRequest.setDefaultOperator("OR");
 		searchRequest.setRows(0);
 		searchRequest.addReturnField("url");
@@ -290,8 +291,8 @@ public class UrlManager extends UrlManagerAbstract {
 			throws ParseException, IOException, SyntaxError,
 			URISyntaxException, ClassNotFoundException, InterruptedException,
 			SearchLibException, InstantiationException, IllegalAccessException {
-		SearchRequest searchRequest = urlDbClient.getNewSearchRequest(field
-				+ "Facet");
+		SearchRequest searchRequest = (SearchRequest) urlDbClient
+				.getNewRequest(field + "Facet");
 		searchRequest.setQueryString(queryString);
 		searchRequest.getFilterList().add(field + ":" + start + "*", false,
 				Source.REQUEST);
@@ -301,8 +302,8 @@ public class UrlManager extends UrlManagerAbstract {
 	@Override
 	public void getOldUrlToFetch(NamedItem host, Date fetchIntervalDate,
 			long limit, List<UrlItem> urlList) throws SearchLibException {
-		SearchRequest searchRequest = urlDbClient
-				.getNewSearchRequest("urlSearch");
+		SearchRequest searchRequest = (SearchRequest) urlDbClient
+				.getNewRequest("urlSearch");
 		try {
 			searchRequest.addFilter(
 					"host:\"" + SearchRequest.escapeQuery(host.getName())
@@ -313,15 +314,16 @@ public class UrlManager extends UrlManagerAbstract {
 			throw new SearchLibException(e);
 		}
 		searchRequest.setRows((int) limit);
-		Result result = urlDbClient.search(searchRequest);
+		AbstractResultSearch result = (AbstractResultSearch) urlDbClient
+				.request(searchRequest);
 		for (ResultDocument item : result.getDocuments())
 			urlList.add(getNewUrlItem(item));
 	}
 
 	@Override
 	public UrlItem getUrlToFetch(URL url) throws SearchLibException {
-		SearchRequest searchRequest = urlDbClient
-				.getNewSearchRequest("urlSearch");
+		SearchRequest searchRequest = (SearchRequest) urlDbClient
+				.getNewRequest("urlSearch");
 		try {
 			searchRequest.addFilter("url:\"" + url.toExternalForm() + "\"",
 					false);
@@ -329,7 +331,8 @@ public class UrlManager extends UrlManagerAbstract {
 			throw new SearchLibException(e);
 		}
 		searchRequest.setQueryString("*:*");
-		Result result = urlDbClient.search(searchRequest);
+		AbstractResultSearch result = (AbstractResultSearch) urlDbClient
+				.request(searchRequest);
 		if (result.getDocumentCount() == 0)
 			return null;
 		return getNewUrlItem(result.getDocument(0));
@@ -348,8 +351,8 @@ public class UrlManager extends UrlManagerAbstract {
 	@Override
 	public void getNewUrlToFetch(NamedItem host, Date fetchIntervalDate,
 			long limit, List<UrlItem> urlList) throws SearchLibException {
-		SearchRequest searchRequest = urlDbClient
-				.getNewSearchRequest("urlSearch");
+		SearchRequest searchRequest = (SearchRequest) urlDbClient
+				.getNewRequest("urlSearch");
 		try {
 			searchRequest.addFilter(
 					"host:\"" + SearchRequest.escapeQuery(host.getName())
@@ -360,7 +363,8 @@ public class UrlManager extends UrlManagerAbstract {
 			throw new SearchLibException(e);
 		}
 		searchRequest.setRows((int) limit);
-		Result result = urlDbClient.search(searchRequest);
+		AbstractResultSearch result = (AbstractResultSearch) urlDbClient
+				.request(searchRequest);
 		for (ResultDocument item : result.getDocuments())
 			urlList.add(getNewUrlItem(item));
 	}
@@ -376,8 +380,8 @@ public class UrlManager extends UrlManagerAbstract {
 			Date startModifiedDate, Date endModifiedDate)
 			throws SearchLibException {
 		try {
-			SearchRequest searchRequest = urlDbClient
-					.getNewSearchRequest(urlSearchTemplate.name());
+			SearchRequest searchRequest = (SearchRequest) urlDbClient
+					.getNewRequest(urlSearchTemplate.name());
 			StringBuffer query = new StringBuffer();
 			if (like != null) {
 				like = like.trim();
@@ -515,7 +519,8 @@ public class UrlManager extends UrlManagerAbstract {
 		try {
 			if (orderBy != null)
 				searchRequest.addSort(orderBy.getName(), !orderAsc);
-			Result result = urlDbClient.search(searchRequest);
+			AbstractResultSearch result = (AbstractResultSearch) urlDbClient
+					.request(searchRequest);
 			if (list != null)
 				for (ResultDocument doc : result.getDocuments())
 					list.add(getNewUrlItem(doc));

@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -24,23 +24,20 @@
 
 package com.jaeksoft.searchlib.result;
 
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import javax.servlet.http.HttpServletRequest;
 
 import com.jaeksoft.searchlib.collapse.CollapseAbstract;
 import com.jaeksoft.searchlib.facet.FacetList;
+import com.jaeksoft.searchlib.render.Render;
+import com.jaeksoft.searchlib.render.RenderJsp;
+import com.jaeksoft.searchlib.render.RenderSearchXml;
 import com.jaeksoft.searchlib.request.SearchRequest;
-import com.jaeksoft.searchlib.spellcheck.SpellCheckList;
-import com.jaeksoft.searchlib.util.External;
 
-public abstract class Result implements Externalizable {
+public abstract class AbstractResultSearch extends
+		AbstractResult<SearchRequest> {
 
-	transient protected SearchRequest searchRequest;
 	transient protected CollapseAbstract collapse;
 	protected FacetList facetList;
-	protected SpellCheckList spellCheckList;
 	private ResultScoreDoc[] docs;
 	protected int numFound;
 	protected float maxScore;
@@ -49,39 +46,20 @@ public abstract class Result implements Externalizable {
 
 	private final static ResultDocument[] noDocuments = new ResultDocument[0];
 
-	protected Result() {
-		searchRequest = null;
-		resultDocuments = noDocuments;
-	}
-
-	protected Result(SearchRequest searchRequest) {
-		this();
+	protected AbstractResultSearch(SearchRequest searchRequest) {
+		super(searchRequest);
+		this.resultDocuments = noDocuments;
 		this.numFound = 0;
 		this.maxScore = 0;
 		this.collapsedDocCount = 0;
 		this.docs = new ResultScoreDoc[0];
-		this.searchRequest = searchRequest;
 		if (searchRequest.getFacetFieldList().size() > 0)
 			this.facetList = new FacetList();
-		if (searchRequest.getSpellCheckFieldList().size() > 0)
-			this.spellCheckList = new SpellCheckList();
 		collapse = CollapseAbstract.newInstance(searchRequest);
-	}
-
-	public SearchRequest getSearchRequest() {
-		return this.searchRequest;
-	}
-
-	public void setSearchRequest(SearchRequest searchRequest) {
-		this.searchRequest = searchRequest;
 	}
 
 	public FacetList getFacetList() {
 		return this.facetList;
-	}
-
-	public SpellCheckList getSpellCheckList() {
-		return this.spellCheckList;
 	}
 
 	protected void setDocuments(ResultDocument[] resultDocuments) {
@@ -90,13 +68,13 @@ public abstract class Result implements Externalizable {
 	}
 
 	public ResultDocument getDocument(int pos) {
-		if (pos < searchRequest.getStart())
+		if (pos < request.getStart())
 			return null;
-		if (pos >= searchRequest.getEnd())
+		if (pos >= request.getEnd())
 			return null;
 		if (pos >= getDocLength())
 			return null;
-		return resultDocuments[pos - searchRequest.getStart()];
+		return resultDocuments[pos - request.getStart()];
 	}
 
 	public float getMaxScore() {
@@ -118,11 +96,11 @@ public abstract class Result implements Externalizable {
 	}
 
 	public int getDocumentCount() {
-		int end = searchRequest.getEnd();
+		int end = request.getEnd();
 		int len = getDocLength();
 		if (end > len)
 			end = len;
-		return end - searchRequest.getStart();
+		return end - request.getStart();
 	}
 
 	public ResultDocument[] getDocuments() {
@@ -154,64 +132,6 @@ public abstract class Result implements Externalizable {
 	}
 
 	@Override
-	public void readExternal(ObjectInput in) throws IOException,
-			ClassNotFoundException {
-
-		// Reading FacetList if any
-		facetList = (FacetList) External.readObject(in);
-
-		// Reading docs (from request.start to last document)
-		int length = in.readInt();
-		if (length > 0) {
-			docs = new ResultScoreDoc[length];
-			int start = in.readInt();
-			for (int i = start; i < length; i++)
-				docs[i] = (ResultScoreDoc) in.readObject();
-		} else
-			docs = null;
-
-		// Reading numFound, maxScore and collapsedDocCount
-		numFound = in.readInt();
-		maxScore = in.readFloat();
-		collapsedDocCount = in.readInt();
-
-		// Reading ResultDocument if any
-		resultDocuments = External.readObject(in);
-
-		// Reading SpellCheckList if any
-		spellCheckList = (SpellCheckList) External.readObject(in);
-	}
-
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-
-		// Writing FacetList if any
-		External.writeObject(facetList, out);
-
-		// Writing docs (from request.start to last document)
-		int length = searchRequest.getStart() + getDocumentCount();
-		out.writeInt(length);
-		if (length > 0) {
-			int start = searchRequest.getStart();
-			out.writeInt(start);
-			for (int i = start; i < length; i++)
-				out.writeObject(docs[+i]);
-		}
-
-		// Writing numFound, maxScore, collapsedDocCount
-		out.writeInt(numFound);
-		out.writeFloat(maxScore);
-		out.writeInt(collapsedDocCount);
-
-		// Writing ResultDocument if any
-		External.writeObject(resultDocuments, out);
-
-		// Writing FacetList if any
-		External.writeObject(spellCheckList, out);
-
-	}
-
-	@Override
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
 		sb.append(numFound);
@@ -228,10 +148,26 @@ public abstract class Result implements Externalizable {
 		}
 		sb.append(" MaxScore: ");
 		sb.append(maxScore);
-		if (searchRequest != null) {
+		if (request != null) {
 			sb.append(" - ");
-			sb.append(searchRequest);
+			sb.append(request);
 		}
 		return sb.toString();
+	}
+
+	public Render getRender(HttpServletRequest request) {
+
+		Render render = null;
+
+		String p;
+		if ((p = request.getParameter("render")) != null) {
+			if ("jsp".equals(p))
+				render = new RenderJsp(request.getParameter("jsp"), this);
+		}
+
+		if (render == null)
+			render = new RenderSearchXml(this);
+
+		return render;
 	}
 }

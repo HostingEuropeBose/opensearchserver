@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -30,12 +30,14 @@ import java.net.URISyntaxException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPathExpressionException;
 
 import org.apache.http.HttpException;
-import org.w3c.dom.NodeList;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -44,12 +46,15 @@ import com.jaeksoft.searchlib.crawler.web.database.CredentialItem;
 import com.jaeksoft.searchlib.crawler.web.spider.ProxyHandler;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.IndexDocument;
+import com.jaeksoft.searchlib.query.ParseException;
+import com.jaeksoft.searchlib.request.AbstractRequest;
 import com.jaeksoft.searchlib.request.DocumentsRequest;
 import com.jaeksoft.searchlib.request.SearchRequest;
-import com.jaeksoft.searchlib.result.Result;
+import com.jaeksoft.searchlib.result.AbstractResult;
 import com.jaeksoft.searchlib.result.ResultDocument;
+import com.jaeksoft.searchlib.util.DomUtils;
+import com.jaeksoft.searchlib.util.InfoCallback;
 import com.jaeksoft.searchlib.util.Timer;
-import com.jaeksoft.searchlib.util.XPathParser;
 
 public class Client extends Config {
 
@@ -93,44 +98,61 @@ public class Client extends Config {
 		}
 	}
 
-	private int updateXmlDocuments(XPathParser xpp, int bufferSize,
-			CredentialItem urlDefaultCredential, ProxyHandler proxyHandler)
-			throws XPathExpressionException, NoSuchAlgorithmException,
-			IOException, URISyntaxException, SearchLibException,
-			InstantiationException, IllegalAccessException,
+	private final int updateDocList(int totalCount, int docCount,
+			Collection<IndexDocument> docList, InfoCallback infoCallBack)
+			throws NoSuchAlgorithmException, IOException, URISyntaxException,
+			SearchLibException, InstantiationException, IllegalAccessException,
 			ClassNotFoundException {
-		NodeList nodeList = xpp.getNodeList("/index/document");
-		int l = nodeList.getLength();
+		checkMaxDocumentLimit(docList.size());
+		docCount += updateDocuments(docList);
+		StringBuffer sb = new StringBuffer();
+		sb.append(docCount);
+		sb.append(" / ");
+		sb.append(totalCount);
+		sb.append(" XML document(s) indexed.");
+		if (infoCallBack != null)
+			infoCallBack.setInfo(sb.toString());
+		else
+			Logging.info(sb.toString());
+		docList.clear();
+		return docCount;
+	}
+
+	private int updateXmlDocuments(Node document, int bufferSize,
+			CredentialItem urlDefaultCredential, ProxyHandler proxyHandler,
+			InfoCallback infoCallBack) throws XPathExpressionException,
+			NoSuchAlgorithmException, IOException, URISyntaxException,
+			SearchLibException, InstantiationException, IllegalAccessException,
+			ClassNotFoundException {
+		List<Node> nodeList = DomUtils.getNodes(document, "index", "document");
 		Collection<IndexDocument> docList = new ArrayList<IndexDocument>(
 				bufferSize);
 		int docCount = 0;
-		for (int i = 0; i < l; i++) {
-			docList.add(new IndexDocument(this, getParserSelector(), xpp,
-					nodeList.item(i), urlDefaultCredential, proxyHandler));
-			if (docList.size() == bufferSize) {
-				checkMaxDocumentLimit(docList.size());
-				docCount += updateDocuments(docList);
-				Logging.info(docCount + " / " + l + " XML document(s) indexed.");
-				docList.clear();
-			}
+		final int totalCount = nodeList.size();
+		for (Node node : nodeList) {
+			docList.add(new IndexDocument(this, getParserSelector(), node,
+					urlDefaultCredential, proxyHandler));
+			if (docList.size() == bufferSize)
+				docCount = updateDocList(totalCount, docCount, docList,
+						infoCallBack);
 		}
-		if (docList.size() > 0) {
-			checkMaxDocumentLimit(docList.size());
-			docCount += updateDocuments(docList);
-			Logging.info(docCount + " / " + l + " XML document(s) indexed.");
-		}
+		if (docList.size() > 0)
+			docCount = updateDocList(totalCount, docCount, docList,
+					infoCallBack);
 		return docCount;
 	}
 
 	public int updateXmlDocuments(InputSource inputSource, int bufferSize,
-			CredentialItem urlDefaultCredential, ProxyHandler proxyHandler)
-			throws ParserConfigurationException, SAXException, IOException,
-			XPathExpressionException, NoSuchAlgorithmException,
-			URISyntaxException, SearchLibException, InstantiationException,
-			IllegalAccessException, ClassNotFoundException {
-		XPathParser xpp = new XPathParser(inputSource);
-		return updateXmlDocuments(xpp, bufferSize, urlDefaultCredential,
-				proxyHandler);
+			CredentialItem urlDefaultCredential, ProxyHandler proxyHandler,
+			InfoCallback infoCallBack) throws ParserConfigurationException,
+			SAXException, IOException, XPathExpressionException,
+			NoSuchAlgorithmException, URISyntaxException, SearchLibException,
+			InstantiationException, IllegalAccessException,
+			ClassNotFoundException {
+		Document doc = DomUtils.getNewDocumentBuilder(false, true).parse(
+				inputSource);
+		return updateXmlDocuments(doc, bufferSize, urlDefaultCredential,
+				proxyHandler, infoCallBack);
 	}
 
 	public boolean deleteDocument(String uniqueField) throws IOException,
@@ -158,8 +180,8 @@ public class Client extends Config {
 
 	public int deleteDocuments(SearchRequest searchRequest)
 			throws SearchLibException, IOException, InstantiationException,
-			IllegalAccessException, ClassNotFoundException, SyntaxError,
-			URISyntaxException, InterruptedException {
+			IllegalAccessException, ClassNotFoundException, ParseException,
+			SyntaxError, URISyntaxException, InterruptedException {
 		Timer timer = new Timer("Delete by query documents");
 		try {
 			return getIndex().deleteDocuments(searchRequest);
@@ -202,14 +224,15 @@ public class Client extends Config {
 		reload();
 	}
 
-	public Result search(SearchRequest searchRequest) throws SearchLibException {
+	public AbstractResult<?> request(AbstractRequest request)
+			throws SearchLibException {
 		Timer timer = null;
-		Result result = null;
+		AbstractResult<?> result = null;
 		SearchLibException exception = null;
 		try {
-			searchRequest.init(this);
-			timer = searchRequest.getTimer();
-			result = getIndex().search(searchRequest);
+			request.init(this);
+			timer = request.getTimer();
+			result = getIndex().request(request);
 			return result;
 		} catch (SearchLibException e) {
 			exception = e;
@@ -222,19 +245,19 @@ public class Client extends Config {
 				if (exception != null)
 					timer.setError(exception);
 				getStatisticsList().addSearch(timer);
-				getLogReportManager().log(searchRequest, timer, result);
+				getLogReportManager().log(request, timer, result);
 			}
 		}
 	}
 
-	public String explain(SearchRequest searchRequest, int docId)
+	public String explain(SearchRequest searchRequest, int docId, boolean bHtml)
 			throws SearchLibException {
 		Timer timer = null;
 		SearchLibException exception = null;
 		try {
 			searchRequest.init(this);
 			timer = searchRequest.getTimer();
-			return getIndex().explain(searchRequest, docId);
+			return getIndex().explain(searchRequest, docId, bHtml);
 		} catch (SearchLibException e) {
 			exception = e;
 		} finally {
@@ -250,9 +273,9 @@ public class Client extends Config {
 	}
 
 	public ResultDocument[] documents(DocumentsRequest documentsRequest)
-			throws IOException, SyntaxError, URISyntaxException,
-			ClassNotFoundException, InterruptedException, SearchLibException,
-			IllegalAccessException, InstantiationException {
+			throws IOException, ParseException, SyntaxError,
+			URISyntaxException, ClassNotFoundException, InterruptedException,
+			SearchLibException, IllegalAccessException, InstantiationException {
 		return getIndex().documents(documentsRequest);
 	}
 
@@ -263,4 +286,5 @@ public class Client extends Config {
 		ClientFactory.INSTANCE.properties.checkMaxDocumentLimit(ClientCatalog
 				.countAllDocuments() + additionalCount);
 	}
+
 }

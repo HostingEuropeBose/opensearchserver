@@ -46,7 +46,6 @@ import com.jaeksoft.searchlib.analysis.DebugTokenFilter;
 import com.jaeksoft.searchlib.analysis.FilterEnum;
 import com.jaeksoft.searchlib.analysis.FilterFactory;
 import com.jaeksoft.searchlib.analysis.FilterScope;
-import com.jaeksoft.searchlib.analysis.tokenizer.TokenizerEnum;
 import com.jaeksoft.searchlib.schema.Schema;
 import com.jaeksoft.searchlib.web.SchemaServlet;
 import com.jaeksoft.searchlib.web.controller.AlertController;
@@ -245,10 +244,6 @@ public class AnalyzersController extends CommonController implements
 		editAnalyzer = null;
 		currentAnalyzer = new Analyzer(getClient());
 		reloadPage();
-	}
-
-	public String[] getTokenizerList() {
-		return TokenizerEnum.getStringArray();
 	}
 
 	public FilterEnum[] getFilterEnum() {

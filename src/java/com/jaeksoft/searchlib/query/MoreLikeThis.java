@@ -27,7 +27,7 @@ package com.jaeksoft.searchlib.query;
 import java.io.StringReader;
 
 import com.jaeksoft.searchlib.analysis.Analyzer;
-import com.jaeksoft.searchlib.analysis.stopwords.WordSet;
+import com.jaeksoft.searchlib.analysis.filter.stop.WordArray;
 import com.jaeksoft.searchlib.index.IndexReader;
 
 /*
@@ -74,7 +74,7 @@ public class MoreLikeThis {
 
 	}
 
-	public void setStopWords(WordSet words) {
+	public void setStopWords(WordArray words) {
 		// TODO Auto-generated method stub
 
 	}

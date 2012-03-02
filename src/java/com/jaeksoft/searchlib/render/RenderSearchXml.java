@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -40,27 +40,24 @@ import com.jaeksoft.searchlib.facet.FacetList;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.request.SearchRequest;
-import com.jaeksoft.searchlib.result.Result;
+import com.jaeksoft.searchlib.result.AbstractResultSearch;
 import com.jaeksoft.searchlib.result.ResultDocument;
 import com.jaeksoft.searchlib.schema.Field;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
 import com.jaeksoft.searchlib.snippet.SnippetField;
-import com.jaeksoft.searchlib.spellcheck.SpellCheck;
-import com.jaeksoft.searchlib.spellcheck.SpellCheckItem;
-import com.jaeksoft.searchlib.spellcheck.SpellCheckList;
 import com.jaeksoft.searchlib.web.ServletTransaction;
 
-public class RenderXml implements Render {
+public class RenderSearchXml implements Render {
 
 	private PrintWriter writer;
-	private Result result;
+	private AbstractResultSearch result;
 	private SearchRequest searchRequest;
 	private Matcher controlMatcher;
 	private Matcher spaceMatcher;
 
-	public RenderXml(Result result) {
+	public RenderSearchXml(AbstractResultSearch result) {
 		this.result = result;
-		this.searchRequest = result.getSearchRequest();
+		this.searchRequest = result.getRequest();
 		Pattern p = Pattern.compile("\\p{Cntrl}+");
 		controlMatcher = p.matcher("");
 		p = Pattern.compile("\\p{Space}+");
@@ -97,7 +94,7 @@ public class RenderXml implements Render {
 
 	private void renderDocuments() throws IOException, ParseException,
 			SyntaxError {
-		SearchRequest searchRequest = result.getSearchRequest();
+		SearchRequest searchRequest = result.getRequest();
 		int start = searchRequest.getStart();
 		int end = result.getDocumentCount() + searchRequest.getStart();
 		writer.print("<result name=\"response\" numFound=\"");
@@ -206,43 +203,45 @@ public class RenderXml implements Render {
 		writer.println("</faceting>");
 	}
 
-	private void renderSpellCheck(SpellCheck spellCheck) throws Exception {
-		String fieldName = spellCheck.getFieldName();
-		writer.print("\t\t<field name=\"");
-		writer.print(fieldName);
-		writer.println("\">");
-		for (SpellCheckItem spellCheckItem : spellCheck) {
-			writer.print("\t\t\t<word name=\"");
-			writer.print(StringEscapeUtils.escapeXml(spellCheckItem.getWord()));
-			writer.println("\">");
-			for (String suggest : spellCheckItem.getSuggestions()) {
-				writer.print("\t\t\t\t<suggest>");
-				writer.print(StringEscapeUtils.escapeXml(suggest));
-				writer.println("</suggest>");
-			}
-			writer.println("\t\t\t</word>");
-		}
-		writer.println("\t\t</field>");
-	}
-
-	private void renderSpellChecks() throws Exception {
-		SpellCheckList spellChecklist = result.getSpellCheckList();
-		if (spellChecklist == null)
-			return;
-		writer.println("<spellcheck>");
-		for (SpellCheck spellCheck : spellChecklist)
-			renderSpellCheck(spellCheck);
-		writer.println("</spellcheck>");
-	}
+	// private void renderSpellCheck(SpellCheck spellCheck) throws Exception {
+	// String fieldName = spellCheck.getFieldName();
+	// writer.print("\t\t<field name=\"");
+	// writer.print(fieldName);
+	// writer.println("\">");
+	// for (SpellCheckItem spellCheckItem : spellCheck) {
+	// writer.print("\t\t\t<word name=\"");
+	// writer.print(StringEscapeUtils.escapeXml(spellCheckItem.getWord()));
+	// writer.println("\">");
+	// for (SuggestionItem suggestionItem : spellCheckItem
+	// .getSuggestions()) {
+	// writer.print("\t\t\t\t<suggest freq=\"");
+	// writer.print(suggestionItem.getFreq());
+	// writer.print("\">");
+	// writer.print(StringEscapeUtils.escapeXml(suggestionItem
+	// .getTerm()));
+	// writer.println("</suggest>");
+	// }
+	// writer.println("\t\t\t</word>");
+	// }
+	// writer.println("\t\t</field>");
+	// }
+	//
+	// private void renderSpellChecks() throws Exception {
+	// List<SpellCheck> spellChecklist = result.getSpellCheckList();
+	// if (spellChecklist == null)
+	// return;
+	// writer.println("<spellcheck>");
+	// for (SpellCheck spellCheck : spellChecklist)
+	// renderSpellCheck(spellCheck);
+	// writer.println("</spellcheck>");
+	// }
 
 	public void render(PrintWriter writer) throws Exception {
 		this.writer = writer;
 		renderPrefix();
 		renderDocuments();
 		renderFacets();
-		renderSpellChecks();
 		renderSuffix();
-
 	}
 
 	@Override

@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C)2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C)2011-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -30,7 +30,7 @@ import java.util.List;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.request.SearchRequest;
-import com.jaeksoft.searchlib.result.Result;
+import com.jaeksoft.searchlib.result.AbstractResultSearch;
 import com.jaeksoft.searchlib.result.ResultDocument;
 import com.jaeksoft.searchlib.schema.Field;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
@@ -42,18 +42,18 @@ import com.jaeksoft.searchlib.snippet.SnippetField;
  */
 public class RenderCSV {
 	private PrintWriter writer;
-	private Result result;
+	private AbstractResultSearch result;
 	private SearchRequest searchRequest;
 
-	public RenderCSV(Result result) {
+	public RenderCSV(AbstractResultSearch result) {
 		this.result = result;
-		this.searchRequest = result.getSearchRequest();
+		this.searchRequest = result.getRequest();
 
 	}
 
 	private void renderDocuments() throws IOException, ParseException,
 			SyntaxError {
-		SearchRequest searchRequest = result.getSearchRequest();
+		SearchRequest searchRequest = result.getRequest();
 		int start = searchRequest.getStart();
 		int end = result.getDocumentCount() + searchRequest.getStart();
 

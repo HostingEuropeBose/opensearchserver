@@ -28,7 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 
-import com.jaeksoft.searchlib.analysis.stopwords.WordSet;
+import com.jaeksoft.searchlib.analysis.filter.stop.WordArray;
 import com.jaeksoft.searchlib.filter.Filter;
 import com.jaeksoft.searchlib.index.term.Term;
 import com.jaeksoft.searchlib.index.term.TermDocs;
@@ -144,7 +144,7 @@ public class IndexReader {
 		return null;
 	}
 
-	public WordSet getWordSet(String fieldName) {
+	public WordArray getWordArray(String fieldName) {
 		// TODO Auto-generated method stub
 		return null;
 	}

@@ -24,6 +24,8 @@
 
 package com.jaeksoft.searchlib.analysis.shingle;
 
+import java.io.IOException;
+
 import com.jaeksoft.searchlib.analysis.TokenStream;
 
 public class ShingleTokenFilter extends TokenStream {
@@ -60,7 +62,7 @@ public class ShingleTokenFilter extends TokenStream {
 	}
 
 	@Override
-	public final boolean incrementToken() {
+	public final boolean incrementToken() throws IOException {
 		// current = captureState();
 		for (;;) {
 			ShingleQueue shingle = isToken();

@@ -24,6 +24,7 @@
 
 package com.jaeksoft.searchlib.analysis;
 
+import java.io.IOException;
 import java.io.Reader;
 
 /*
@@ -42,7 +43,7 @@ public class TokenStream {
 		// TODO Auto-generated constructor stub
 	}
 
-	public boolean incrementToken() {
+	public boolean incrementToken() throws IOException {
 		// TODO Auto-generated method stub
 		return false;
 	}

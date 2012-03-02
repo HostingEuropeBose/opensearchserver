@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -225,15 +226,31 @@ public class SnippetField extends Field {
 			return null;
 		int[] termsIdx = termVector.indexesOf(searchTerms, 0,
 				searchTerms.length);
-		TreeMap<Integer, TermVectorOffsetInfo> map = new TreeMap<Integer, TermVectorOffsetInfo>();
+		TreeMap<Integer, TermVectorOffsetInfo> mapStart = new TreeMap<Integer, TermVectorOffsetInfo>();
+		TreeMap<Integer, TermVectorOffsetInfo> mapEnd = new TreeMap<Integer, TermVectorOffsetInfo>();
 		for (int termId : termsIdx) {
 			if (termId == -1)
 				continue;
 			TermVectorOffsetInfo[] offsets = termVector.getOffsets(termId);
-			for (TermVectorOffsetInfo offset : offsets)
-				map.put(offset.getStartOffset(), offset);
+			for (TermVectorOffsetInfo offset : offsets) {
+				int start = offset.getStartOffset();
+				int end = offset.getEndOffset();
+				TermVectorOffsetInfo o = mapStart.get(start);
+				if (o == null || o.getEndOffset() < offset.getEndOffset())
+					mapStart.put(start, offset);
+				o = mapEnd.get(end);
+				if (o == null || o.getStartOffset() > offset.getStartOffset())
+					mapEnd.put(end, offset);
+			}
 		}
-		return map.values().iterator();
+
+		TreeMap<Integer, TermVectorOffsetInfo> finalMap = new TreeMap<Integer, TermVectorOffsetInfo>();
+		for (Map.Entry<Integer, TermVectorOffsetInfo> entry : mapStart
+				.entrySet())
+			if (mapEnd.containsValue(entry.getValue()))
+				finalMap.put(entry.getKey(), entry.getValue());
+
+		return finalMap.values().iterator();
 	}
 
 	public void initSearchTerms(SearchRequest searchRequest)
@@ -257,7 +274,20 @@ public class SnippetField extends Field {
 		}
 	}
 
-	private TermVectorOffsetInfo checkValue(TermVectorOffsetInfo currentVector,
+	private final void appendSubString(String text, int start, int end,
+			StringBuffer sb) {
+		if (text == null)
+			return;
+		int l = text.length();
+		if (end > l)
+			end = l;
+		if (end < start)
+			return;
+		sb.append(text.substring(start, end));
+	}
+
+	private final TermVectorOffsetInfo checkValue(
+			TermVectorOffsetInfo currentVector,
 			Iterator<TermVectorOffsetInfo> vectorIterator, int startOffset,
 			Fragment fragment) {
 		if (currentVector == null)
@@ -273,11 +303,11 @@ public class SnippetField extends Field {
 				break;
 			int start = currentVector.getStartOffset() - fragment.vectorOffset;
 			if (start >= startOffset) {
-				result.append(originalText.substring(pos, start - startOffset));
+				appendSubString(originalText, pos, start - startOffset, result);
 				if (tags != null)
 					result.append(tags[0]);
-				result.append(originalText.substring(start - startOffset, end
-						- startOffset));
+				appendSubString(originalText, start - startOffset, end
+						- startOffset, result);
 				if (tags != null)
 					result.append(tags[1]);
 				pos = end - startOffset;
@@ -288,7 +318,7 @@ public class SnippetField extends Field {
 		if (result.length() == 0)
 			return currentVector;
 		if (pos < originalTextLength)
-			result.append(originalText.substring(pos, originalTextLength));
+			appendSubString(originalText, pos, originalTextLength, result);
 		fragment.setHighlightedText(result.toString());
 		return currentVector;
 	}

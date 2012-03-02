@@ -22,23 +22,31 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-package com.jaeksoft.searchlib.crawler.web.spider;
+package com.jaeksoft.searchlib.analysis.filter.stop;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
 
-public class HadoopDownloader {
+public class SuffixArray extends PrefixArray {
 
-	public HadoopDownloader() {
+	public SuffixArray(WordArray wordArray, boolean ignoreCase,
+			String tokenSeparator) throws IOException {
+		super(wordArray, ignoreCase, tokenSeparator);
 	}
 
-	public DownloadItem get(URI uri) {
-		return null;
+	@Override
+	protected String putWord(String word) {
+		StringBuffer sb = new StringBuffer();
+		if (tokenSeparator != null && tokenSeparator.length() > 0)
+			sb.append(tokenSeparator);
+		sb.append(word);
+		return sb.toString();
 	}
 
-	public InputStream getContent() throws IllegalStateException, IOException {
-		// TODO Auto-generated method stub
-		return null;
+	@Override
+	public boolean match(String term) {
+		for (String fix : fixArray)
+			if (term.endsWith(fix))
+				return true;
+		return wordSet.contains(term);
 	}
 }

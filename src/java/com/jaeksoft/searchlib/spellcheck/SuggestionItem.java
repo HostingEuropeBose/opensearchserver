@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2010 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -22,28 +22,46 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-package com.jaeksoft.searchlib.util;
+package com.jaeksoft.searchlib.spellcheck;
 
-public class ExpressionToken {
+import java.io.IOException;
 
-	protected String term;
+import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.index.term.Term;
+import com.jaeksoft.searchlib.index.term.TermDocs;
 
-	protected ExpressionToken(String term) {
+public class SuggestionItem {
+
+	private String term;
+
+	private int freq;
+
+	public SuggestionItem(String term) {
 		this.term = term;
+		this.freq = 0;
 	}
 
+	/**
+	 * @return the term
+	 */
 	public String getTerm() {
 		return term;
 	}
 
-	public static ExpressionToken[] createArray(String phrase) {
-		String[] termArray = phrase.split("\\p{Space}+");
-		ExpressionToken[] tokens = new ExpressionToken[termArray.length];
-		int i = 0;
-		for (String term : termArray)
-			tokens[i++] = new ExpressionToken(term);
-		return tokens;
+	/**
+	 * @return the freq
+	 */
+	public int getFreq() {
+		return freq;
+	}
 
+	public void computeFrequency(ReaderLocal reader, String field)
+			throws IOException {
+		TermDocs termDocs = reader.getTermDocs(new Term(field, term));
+		if (termDocs == null)
+			return;
+		while (termDocs.next())
+			freq += termDocs.freq();
 	}
 
 }

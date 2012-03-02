@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2009 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2011 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -21,24 +21,25 @@
  *  along with OpenSearchServer. 
  *  If not, see <http://www.gnu.org/licenses/>.
  **/
+package com.jaeksoft.searchlib.analysis.filter;
 
-package com.jaeksoft.searchlib.web.controller.query;
+import com.jaeksoft.searchlib.analysis.TokenStream;
 
-import com.jaeksoft.searchlib.SearchLibException;
+public abstract class AbstractTermFilter extends TokenStream {
 
-public class ScoreFunctionController extends AbstractQueryController {
-
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = -887847468104462619L;
-
-	public ScoreFunctionController() throws SearchLibException {
-		super();
+	protected AbstractTermFilter(TokenStream input) {
+		super(input);
 	}
 
-	@Override
-	protected void reset() throws SearchLibException {
+	protected final void createToken(String term, int posInc, int startOff,
+			int endOff) {
+	}
+
+	protected final void createToken(String term) {
+	}
+
+	protected final String getTerm() {
+		return null;
 	}
 
 }

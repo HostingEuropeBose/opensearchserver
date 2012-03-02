@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2010 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -25,8 +25,9 @@
 package com.jaeksoft.searchlib.web.controller.query;
 
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.request.SearchRequest;
-import com.jaeksoft.searchlib.result.Result;
+import com.jaeksoft.searchlib.request.AbstractRequest;
+import com.jaeksoft.searchlib.request.RequestTypeEnum;
+import com.jaeksoft.searchlib.result.AbstractResult;
 import com.jaeksoft.searchlib.web.controller.CommonController;
 import com.jaeksoft.searchlib.web.controller.ScopeAttribute;
 
@@ -41,25 +42,59 @@ public abstract class AbstractQueryController extends CommonController {
 		super();
 	}
 
-	public SearchRequest getRequest() throws SearchLibException {
-		return (SearchRequest) ScopeAttribute.QUERY_SEARCH_REQUEST.get(this);
+	final protected AbstractRequest getRequest(RequestTypeEnum type)
+			throws SearchLibException {
+		AbstractRequest request = getAbstractRequest();
+		if (request == null)
+			return null;
+		if (request.getType() != type)
+			return null;
+		return request;
 	}
 
-	public boolean getResultExists() {
-		return getResult() != null;
+	final public AbstractRequest getAbstractRequest() throws SearchLibException {
+		return (AbstractRequest) ScopeAttribute.QUERY_REQUEST.get(this);
 	}
 
-	public Result getResult() {
-		return (Result) ScopeAttribute.QUERY_SEARCH_RESULT.get(this);
+	protected AbstractResult<?> getAbstractResult() {
+		return (AbstractResult<?>) ScopeAttribute.QUERY_SEARCH_RESULT.get(this);
+	}
+
+	protected AbstractResult<?> getResult(RequestTypeEnum type) {
+		AbstractResult<?> result = getAbstractResult();
+		if (result == null)
+			return null;
+		if (result.getRequest().getType() != type)
+			return null;
+		return result;
+	}
+
+	private boolean isResult(RequestTypeEnum type) {
+		AbstractResult<?> result = getAbstractResult();
+		if (result == null)
+			return false;
+		return result.getRequest().getType() == type;
+	}
+
+	public boolean isResultSearch() {
+		return isResult(RequestTypeEnum.SearchRequest);
+	}
+
+	public boolean isResultSpellCheck() {
+		return isResult(RequestTypeEnum.SpellCheckRequest);
+	}
+
+	public boolean isResultMoreLikeThis() {
+		return isResult(RequestTypeEnum.MoreLikeThisRequest);
 	}
 
 	@Override
-	public void eventQueryEditResult(Result result) {
+	public void eventQueryEditResult(AbstractResult<?> result) {
 		reloadPage();
 	}
 
 	@Override
-	public void eventQueryEditRequest(SearchRequest request) {
+	public void eventQueryEditRequest(AbstractRequest request) {
 		reloadPage();
 	}
 

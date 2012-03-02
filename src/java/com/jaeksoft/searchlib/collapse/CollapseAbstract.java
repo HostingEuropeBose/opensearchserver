@@ -30,7 +30,7 @@ import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.result.ResultScoreDoc;
-import com.jaeksoft.searchlib.result.ResultSingle;
+import com.jaeksoft.searchlib.result.ResultSearchSingle;
 
 public abstract class CollapseAbstract {
 
@@ -67,7 +67,7 @@ public abstract class CollapseAbstract {
 		collapse(fetchedDocs, fetchLength);
 	}
 
-	public abstract ResultScoreDoc[] collapse(ResultSingle resultSingle)
+	public abstract ResultScoreDoc[] collapse(ResultSearchSingle resultSingle)
 			throws IOException, ParseException, SyntaxError;
 
 	public int getDocCount() {

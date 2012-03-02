@@ -34,7 +34,7 @@ import com.jaeksoft.searchlib.index.StringIndex;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.result.ResultScoreDoc;
-import com.jaeksoft.searchlib.result.ResultSingle;
+import com.jaeksoft.searchlib.result.ResultSearchSingle;
 
 public class CollapseOptimized extends CollapseAdjacent {
 
@@ -50,7 +50,7 @@ public class CollapseOptimized extends CollapseAdjacent {
 	 * @throws ParseException
 	 */
 	@Override
-	public ResultScoreDoc[] collapse(ResultSingle resultSingle)
+	public ResultScoreDoc[] collapse(ResultSearchSingle resultSingle)
 			throws IOException, ParseException, SyntaxError {
 
 		ReaderLocal reader = resultSingle.getReader();

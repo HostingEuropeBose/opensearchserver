@@ -33,9 +33,10 @@ import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.config.Config;
 import com.jaeksoft.searchlib.request.SearchRequest;
-import com.jaeksoft.searchlib.result.Result;
+import com.jaeksoft.searchlib.result.AbstractResultSearch;
 import com.jaeksoft.searchlib.schema.SchemaField;
 import com.jaeksoft.searchlib.schema.SchemaFieldList;
+import com.jaeksoft.searchlib.util.InfoCallback;
 import com.jaeksoft.searchlib.util.PropertiesUtils;
 import com.jaeksoft.searchlib.util.ReadWriteLock;
 
@@ -166,7 +167,18 @@ public class AutoCompletionManager {
 			throw new SearchLibException("The build is already running");
 	}
 
-	public void startBuild() throws SearchLibException {
+	private void builder(Long endTimeOut, InfoCallback infoCallBack)
+			throws SearchLibException {
+		checkIfRunning();
+		buildThread.init(propField, infoCallBack);
+		buildThread.execute();
+		buildThread.waitForStart(60);
+		if (endTimeOut != null)
+			buildThread.waitForEnd(600);
+	}
+
+	public void build(Long waitForEndTimeOut, InfoCallback infoCallBack)
+			throws SearchLibException {
 		rwl.r.lock();
 		try {
 			checkIfRunning();
@@ -175,30 +187,28 @@ public class AutoCompletionManager {
 		}
 		rwl.w.lock();
 		try {
-			checkIfRunning();
-			buildThread.init(propField);
-			buildThread.execute();
-			buildThread.waitForStart(60);
+			builder(waitForEndTimeOut, infoCallBack);
 		} finally {
 			rwl.w.unlock();
 		}
 	}
 
-	public Result search(String query, Integer rows) throws SearchLibException {
+	public AbstractResultSearch search(String query, Integer rows)
+			throws SearchLibException {
 		rwl.r.lock();
 		try {
 			if (query == null || query.length() == 0)
 				return null;
 			if (rows == null)
 				rows = propRows;
-			SearchRequest searchRequest = autoCompClient.getNewSearchRequest();
+			SearchRequest searchRequest = new SearchRequest(autoCompClient);
 			searchRequest.setQueryString(query);
 			searchRequest.setDefaultOperator("AND");
 			searchRequest.setRows(rows);
 			searchRequest.getSortList()
 					.add(autoCompletionSchemaFieldFreq, true);
 			searchRequest.getReturnFieldList().add(termField);
-			return autoCompClient.search(searchRequest);
+			return (AbstractResultSearch) autoCompClient.request(searchRequest);
 		} finally {
 			rwl.r.unlock();
 		}

@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -35,20 +35,13 @@ import com.jaeksoft.searchlib.index.StringIndex;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.request.DocumentsRequest;
 import com.jaeksoft.searchlib.request.SearchRequest;
-import com.jaeksoft.searchlib.spellcheck.SpellCheck;
-import com.jaeksoft.searchlib.spellcheck.SpellCheckField;
 
-public class ResultSingle extends Result {
-
-	private static final long serialVersionUID = -8289431499983379291L;
+public class ResultSearchSingle extends AbstractResultSearch {
 
 	transient private ReaderLocal reader;
 	transient private StringIndex[] sortStringIndexArray;
 	transient private StringIndex[] facetStringIndexArray;
 	transient private DocSetHits docSetHits;
-
-	public ResultSingle() {
-	}
 
 	/**
 	 * The constructor executes the request using the searcher provided and
@@ -64,7 +57,7 @@ public class ResultSingle extends Result {
 	 * @throws IllegalAccessException
 	 * @throws InstantiationException
 	 */
-	public ResultSingle(ReaderLocal reader, SearchRequest searchRequest)
+	public ResultSearchSingle(ReaderLocal reader, SearchRequest searchRequest)
 			throws IOException, ParseException, SyntaxError,
 			SearchLibException, InstantiationException, IllegalAccessException,
 			ClassNotFoundException {
@@ -74,11 +67,6 @@ public class ResultSingle extends Result {
 		docSetHits = reader.searchDocSet(searchRequest);
 		numFound = docSetHits.getDocNumFound();
 		maxScore = docSetHits.getMaxScore();
-
-		for (SpellCheckField spellCheckField : searchRequest
-				.getSpellCheckFieldList())
-			this.spellCheckList
-					.addObject(new SpellCheck(this, spellCheckField));
 
 		ResultScoreDoc[] docs;
 		// Are we doing collapsing ?
@@ -116,8 +104,8 @@ public class ResultSingle extends Result {
 
 	private ResultScoreDoc[] fetch() throws IOException, ParseException,
 			SyntaxError {
-		int end = searchRequest.getEnd();
-		String collapseField = searchRequest.getCollapseField();
+		int end = request.getEnd();
+		String collapseField = request.getCollapseField();
 		StringIndex collapseFieldStringIndex = (collapseField != null) ? reader
 				.getStringIndex(collapseField) : null;
 		return ResultScoreDoc.appendResultScoreDocArray(this, getDocs(),
