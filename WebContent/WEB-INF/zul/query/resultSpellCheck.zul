@@ -1,6 +1,6 @@
 <!--
 	License Agreement for OpenSearchServer
-	Copyright (C) 2008-2010 Emmanuel Keller / Jaeksoft
+	Copyright (C) 2012 Emmanuel Keller / Jaeksoft
 	http://www.open-search-server.com
 	This file is part of OpenSearchServer.
 	OpenSearchServer is free software: you can
@@ -14,24 +14,5 @@
 	copy of the GNU General Public License along with OpenSearchServer.
 	If not, see <http://www.gnu.org/licenses/>.
 -->
-<window id="returned"
-	use="com.jaeksoft.searchlib.web.controller.query.ReturnedController">
-	<grid model="@{returned.request.returnFieldList.list}"
-		rowRenderer="@{returned}">
-		<columns>
-			<column label="Field" />
-			<column label="Action" />
-		</columns>
-		<foot visible="@{returned.fieldLeft}">
-			<footer span="2">
-				<listbox mold="select"
-					selectedItem="@{returned.selectedReturn}"
-					model="@{returned.returnFieldLeft}">
-					<listitem self="@{each=returnField}"
-						label="@{returnField}" />
-				</listbox>
-				<button label="add field" forward="onReturnAdd" />
-			</footer>
-		</foot>
-	</grid>
+<window id="resultSpellCheck">
 </window>
