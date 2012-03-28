@@ -25,14 +25,15 @@
 package com.jaeksoft.searchlib.parser;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.TreeSet;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.commons.lang.StringUtils;
 
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.ClassPropertyEnum;
@@ -51,6 +52,7 @@ import com.jaeksoft.searchlib.streamlimiter.StreamLimiter;
 import com.jaeksoft.searchlib.util.Lang;
 import com.jaeksoft.searchlib.util.LinkUtils;
 import com.jaeksoft.searchlib.util.MimeUtils;
+import com.jaeksoft.searchlib.util.StringUtils;
 
 public class HtmlParser extends Parser {
 
@@ -63,7 +65,7 @@ public class HtmlParser extends Parser {
 			ParserFieldEnum.internal_link_nofollow,
 			ParserFieldEnum.external_link,
 			ParserFieldEnum.external_link_nofollow, ParserFieldEnum.lang,
-			ParserFieldEnum.htmlProvider };
+			ParserFieldEnum.htmlProvider, ParserFieldEnum.htmlSource };
 
 	private UrlItemFieldEnum urlItemFieldEnum = null;
 
@@ -134,7 +136,8 @@ public class HtmlParser extends Parser {
 		boolean bEnterDirectField = false;
 		String classNameAttribute = node.getAttribute("class");
 		if (classNameAttribute != null) {
-			String[] classNames = StringUtils.split(classNameAttribute);
+			String[] classNames = org.apache.commons.lang.StringUtils
+					.split(classNameAttribute);
 			if (classNames != null) {
 				for (String className : classNames) {
 					if (OPENSEARCHSERVER_IGNORE.equalsIgnoreCase(className))
@@ -153,9 +156,9 @@ public class HtmlParser extends Parser {
 
 		if (node.isTextNode()) {
 			String text = node.getNodeValue();
-			text = text.replaceAll("\\r", "");
-			text = text.replaceAll("\\n", "");
-			text = text.replaceAll("\\s+", " ");
+			text = text.replaceAll("\\r", " ");
+			text = text.replaceAll("\\n", " ");
+			text = StringUtils.replaceConsecutiveSpaces(text, " ");
 			text = text.trim();
 			if (text.length() > 0) {
 				text = StringEscapeUtils.unescapeHtml(text);
@@ -229,6 +232,11 @@ public class HtmlParser extends Parser {
 		boolean charsetWasNull = charset == null;
 		if (charsetWasNull)
 			charset = getProperty(ClassPropertyEnum.DEFAULT_CHARSET).getValue();
+
+		StringWriter writer = new StringWriter();
+		IOUtils.copy(streamLimiter.getNewInputStream(), writer, charset);
+		addField(ParserFieldEnum.htmlSource, writer.toString());
+		writer.close();
 
 		HtmlDocumentProvider htmlProvider = findBestProvider(charset,
 				streamLimiter);
