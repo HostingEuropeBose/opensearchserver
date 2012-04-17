@@ -26,6 +26,7 @@ package com.jaeksoft.searchlib.parser;
 
 import java.io.IOException;
 
+import com.jaeksoft.searchlib.analysis.LanguageEnum;
 import com.jaeksoft.searchlib.streamlimiter.StreamLimiter;
 
 public class FileSystemParser extends Parser {
@@ -37,7 +38,8 @@ public class FileSystemParser extends Parser {
 	}
 
 	@Override
-	protected void parseContent(StreamLimiter streamLimiter) throws IOException {
+	protected void parseContent(StreamLimiter streamLimiter, LanguageEnum lang)
+			throws IOException {
 
 	}
 

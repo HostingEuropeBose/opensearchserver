@@ -32,6 +32,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.pdfbox.io.RandomAccessFile;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentCatalog;
@@ -41,9 +42,12 @@ import org.apache.pdfbox.pdmodel.PDResources;
 import org.apache.pdfbox.pdmodel.graphics.xobject.PDXObjectImage;
 import org.apache.pdfbox.util.PDFTextStripper;
 
+import com.jaeksoft.searchlib.ClientCatalog;
 import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.ClassPropertyEnum;
+import com.jaeksoft.searchlib.analysis.LanguageEnum;
+import com.jaeksoft.searchlib.ocr.OcrManager;
 import com.jaeksoft.searchlib.streamlimiter.StreamLimiter;
 import com.jaeksoft.searchlib.util.StringUtils;
 
@@ -54,7 +58,7 @@ public class PdfParser extends Parser {
 			ParserFieldEnum.content, ParserFieldEnum.producer,
 			ParserFieldEnum.keywords, ParserFieldEnum.creation_date,
 			ParserFieldEnum.modification_date, ParserFieldEnum.language,
-			ParserFieldEnum.number_of_pages };
+			ParserFieldEnum.number_of_pages, ParserFieldEnum.ocr_content };
 
 	public PdfParser() {
 		super(fl);
@@ -124,7 +128,8 @@ public class PdfParser extends Parser {
 	}
 
 	@Override
-	protected void parseContent(StreamLimiter streamLimiter) throws IOException {
+	protected void parseContent(StreamLimiter streamLimiter, LanguageEnum lang)
+			throws IOException {
 		PDDocument pdf = null;
 		RandomAccessFile raf = null;
 		File tempFile = null;
@@ -135,6 +140,9 @@ public class PdfParser extends Parser {
 			if (pdf.isEncrypted())
 				throw new IOException("Encrypted PDF.");
 			extractContent(pdf);
+			extractImagesForOCR(pdf, lang);
+		} catch (SearchLibException e) {
+			throw new IOException(e);
 		} finally {
 			if (pdf != null)
 				pdf.close();
@@ -145,7 +153,13 @@ public class PdfParser extends Parser {
 		}
 	}
 
-	private void extractImages(PDDocument pdf) throws IOException {
+	private void extractImagesForOCR(PDDocument pdf, LanguageEnum lang)
+			throws IOException, SearchLibException {
+		OcrManager ocr = ClientCatalog.getOcrManager();
+		if (ocr == null || ocr.isDisabled())
+			return;
+		if (!getFieldMap().isMapped(ParserFieldEnum.ocr_content))
+			return;
 		List<?> pages = pdf.getDocumentCatalog().getAllPages();
 		Iterator<?> iter = pages.iterator();
 		while (iter.hasNext()) {
@@ -157,14 +171,17 @@ public class PdfParser extends Parser {
 				while (imageIter.hasNext()) {
 					String key = (String) imageIter.next();
 					PDXObjectImage image = (PDXObjectImage) images.get(key);
-					File file = File.createTempFile("osspdfimg",
-							image.getSuffix());
-					image.write2file(file);
-					System.out.println("Writing image:"
-							+ file.getAbsolutePath());
+					File imageFile = File.createTempFile("osspdfimg",
+							'.' + image.getSuffix());
+					File textFile = File.createTempFile("ossocr", ".txt");
+					image.write2file(imageFile);
+					ocr.ocerize(imageFile, textFile, lang);
+					addField(ParserFieldEnum.ocr_content,
+							FileUtils.readFileToString(textFile, "UTF-8"));
+					imageFile.delete();
+					textFile.delete();
 				}
 			}
 		}
 	}
-
 }
