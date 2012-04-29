@@ -36,6 +36,7 @@ New features:
 - 3469777: Scored snippets
 
 Bug fixes:
+- 3518687: URL normalization required in the Web crawler
 - 3521414: File not parsed in database crawler
 - 3516114: NPE with Web Crawler when no unique field is set
 - 3500288: Wrong facet count when using optimized collapsing
