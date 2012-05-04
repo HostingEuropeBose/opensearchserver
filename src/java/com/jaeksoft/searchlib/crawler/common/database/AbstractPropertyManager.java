@@ -22,19 +22,38 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-package com.jaeksoft.searchlib.crawler.file.database;
+package com.jaeksoft.searchlib.crawler.common.database;
 
 import java.io.File;
 import java.io.IOException;
 
-import com.jaeksoft.searchlib.crawler.common.database.AbstractPropertyManager;
+import com.jaeksoft.searchlib.util.properties.PropertyItem;
+import com.jaeksoft.searchlib.util.properties.PropertyManager;
 
-public class FilePropertyManager extends AbstractPropertyManager {
+public abstract class AbstractPropertyManager extends PropertyManager {
 
-	public FilePropertyManager(File file) throws IOException {
+	protected PropertyItem<Integer> indexDocumentBufferSize;
+	protected PropertyItem<Boolean> crawlEnabled;
+	protected PropertyItem<Integer> maxThreadNumber;
+
+	protected AbstractPropertyManager(File file) throws IOException {
 		super(file);
 		indexDocumentBufferSize = newIntegerProperty("indexDocumentBufferSize",
-				50, null, null);
+				1000, null, null);
+		maxThreadNumber = newIntegerProperty("maxThreadNumber", 10, null, null);
+		crawlEnabled = newBooleanProperty("crawlEnabled", false);
+	}
+
+	public PropertyItem<Boolean> getCrawlEnabled() {
+		return crawlEnabled;
+	}
+
+	public PropertyItem<Integer> getIndexDocumentBufferSize() {
+		return indexDocumentBufferSize;
+	}
+
+	public PropertyItem<Integer> getMaxThreadNumber() {
+		return maxThreadNumber;
 	}
 
 }
