@@ -55,6 +55,7 @@ import com.jaeksoft.searchlib.crawler.web.database.LinkItem;
 import com.jaeksoft.searchlib.crawler.web.database.LinkItem.Origin;
 import com.jaeksoft.searchlib.crawler.web.database.PatternManager;
 import com.jaeksoft.searchlib.crawler.web.database.RobotsTxtStatus;
+import com.jaeksoft.searchlib.crawler.web.database.UrlFilterList;
 import com.jaeksoft.searchlib.crawler.web.database.UrlItem;
 import com.jaeksoft.searchlib.crawler.web.database.UrlItemFieldEnum;
 import com.jaeksoft.searchlib.crawler.web.database.UrlManager;
@@ -74,21 +75,21 @@ import com.jaeksoft.searchlib.streamlimiter.StreamLimiter;
 public class Crawl {
 
 	private IndexDocument targetIndexDocument;
-	private HostUrlList hostUrlList;
-	private UrlItem urlItem;
-	private CredentialManager credentialManager;
+	private final HostUrlList hostUrlList;
+	private final UrlItem urlItem;
+	private final CredentialManager credentialManager;
 	private CredentialItem credentialItem;
-	private String userAgent;
-	private ParserSelector parserSelector;
-	private Config config;
+	private final String userAgent;
+	private final ParserSelector parserSelector;
+	private final Config config;
 	private Parser parser;
 	private String error;
 	private List<LinkItem> discoverLinks;
-	private FieldMap urlFieldMap;
+	private final FieldMap urlFieldMap;
 	private URI redirectUrlLocation;
-	private boolean inclusionEnabled;
-	private boolean exclusionEnabled;
-	private boolean robotsTxtEnabled;
+	private final boolean inclusionEnabled;
+	private final boolean exclusionEnabled;
+	private final boolean robotsTxtEnabled;
 	private final UrlItemFieldEnum urlItemFieldEnum;
 
 	public Crawl(HostUrlList hostUrlList, UrlItem urlItem, Config config,
@@ -425,8 +426,11 @@ public class Crawl {
 			String parentUrl = urlItem.getUrl();
 			discoverLinks = new ArrayList<LinkItem>();
 			if (redirectUrlLocation != null) {
-				discoverLinks.add(new LinkItem(redirectUrlLocation.toString(),
-						Origin.redirect, parentUrl));
+				String redirectedUrl = UrlFilterList.doReplace(
+						redirectUrlLocation.toString(), config
+								.getUrlFilterList().getArray());
+				discoverLinks.add(new LinkItem(redirectedUrl, Origin.redirect,
+						parentUrl));
 				return discoverLinks;
 			}
 			if (parser == null || !urlItem.isStatusFull())
