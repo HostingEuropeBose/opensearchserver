@@ -45,7 +45,7 @@ public class UrlFilterList {
 
 	final private ReadWriteLock rwl = new ReadWriteLock();
 
-	private File configFile;
+	private final File configFile;
 	private TreeSet<UrlFilterItem> filterSet;
 	private UrlFilterItem[] array;
 
@@ -193,6 +193,12 @@ public class UrlFilterList {
 		int i2 = uriString.indexOf('/', i1);
 		if (i2 == -1)
 			i2 = uriString.indexOf('?', i1);
+		if (i2 == -1)
+			i2 = uriString.indexOf('#', i1);
+		if (i2 == -1)
+			i2 = uriString.indexOf('&', i1);
+		if (i2 == -1)
+			i2 = uriString.indexOf('$', i1);
 		String part = i2 == -1 ? uriString.substring(i1) : uriString.substring(
 				i1, i2);
 		boolean bReplace = false;
