@@ -29,6 +29,7 @@ import javax.xml.xpath.XPathExpressionException;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Node;
 
+import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.config.Config;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.util.XPathParser;
@@ -70,7 +71,7 @@ public enum RequestTypeEnum {
 	public static AbstractRequest fromXmlConfig(Config config, XPathParser xpp,
 			Node node) throws InstantiationException, IllegalAccessException,
 			XPathExpressionException, DOMException, ParseException,
-			ClassNotFoundException {
+			ClassNotFoundException, SearchLibException {
 		if (node == null)
 			return null;
 		RequestTypeEnum type = findByName(XPathParser.getAttributeString(node,
@@ -81,7 +82,8 @@ public enum RequestTypeEnum {
 	}
 
 	public static AbstractRequest getNewCopy(AbstractRequest request)
-			throws InstantiationException, IllegalAccessException {
+			throws InstantiationException, IllegalAccessException,
+			SearchLibException {
 		AbstractRequest newRequest = request.getType().requestClass
 				.newInstance();
 		newRequest.copyFrom(request);

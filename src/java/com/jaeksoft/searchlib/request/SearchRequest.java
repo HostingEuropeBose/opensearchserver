@@ -142,7 +142,7 @@ public class SearchRequest extends AbstractRequest {
 	}
 
 	@Override
-	public void copyFrom(AbstractRequest request) {
+	public void copyFrom(AbstractRequest request) throws SearchLibException {
 		super.copyFrom(request);
 		SearchRequest searchRequest = (SearchRequest) request;
 		this.filterList = new FilterList(searchRequest.filterList);
@@ -458,7 +458,8 @@ public class SearchRequest extends AbstractRequest {
 		}
 	}
 
-	public void addSort(String fieldName, boolean desc) {
+	public void addSort(String fieldName, boolean desc)
+			throws SearchLibException {
 		rwl.w.lock();
 		try {
 			sortList.add(fieldName, desc);
@@ -639,7 +640,7 @@ public class SearchRequest extends AbstractRequest {
 		}
 	}
 
-	public FieldList<Field> getDocumentFieldList() {
+	public FieldList<Field> getDocumentFieldList() throws SearchLibException {
 		rwl.r.lock();
 		try {
 			if (documentFieldList != null)
@@ -782,8 +783,8 @@ public class SearchRequest extends AbstractRequest {
 	}
 
 	/**
-	 * Construit un TemplateRequest bas� sur le noeud indiqu� dans le fichier de
-	 * config XML.
+	 * Construit un TemplateRequest bas� sur le noeud indiqu� dans le
+	 * fichier de config XML.
 	 * 
 	 * @param config
 	 * @param xpp
@@ -794,12 +795,13 @@ public class SearchRequest extends AbstractRequest {
 	 * @throws ClassNotFoundException
 	 * @throws IllegalAccessException
 	 * @throws InstantiationException
+	 * @throws SearchLibException
 	 */
 	@Override
 	public void fromXmlConfig(Config config, XPathParser xpp, Node node)
 			throws XPathExpressionException, DOMException, ParseException,
 			InstantiationException, IllegalAccessException,
-			ClassNotFoundException {
+			ClassNotFoundException, SearchLibException {
 		rwl.w.lock();
 		try {
 			super.fromXmlConfig(config, xpp, node);
@@ -946,7 +948,7 @@ public class SearchRequest extends AbstractRequest {
 
 	@Override
 	public void setFromServlet(ServletTransaction transaction)
-			throws SyntaxError {
+			throws SyntaxError, SearchLibException {
 		rwl.w.lock();
 		try {
 			String p;

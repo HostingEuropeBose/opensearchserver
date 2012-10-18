@@ -31,6 +31,11 @@ import com.sun.jna.WString;
 
 public interface OsseLibrary extends Library {
 
+	final public static int OSSCLIB_FIELD_UI32FIELDTYPE_STRING = 1;
+	final public static int OSSCLIB_FIELD_UI32FIELDFLAGS_OFFSET = 0x00000002;
+	final public static int OSSCLIB_FIELD_UI32FIELDFLAGS_POSITION = 0x00000004;
+	final public static int OSSCLIB_FIELD_UI32FIELDFLAGS_VSM1 = 0x00000040;
+
 	public OsseLibrary INSTANCE = (OsseLibrary) Native.loadLibrary(
 			"OpenSearchServer_CLib", OsseLibrary.class);
 
@@ -45,6 +50,9 @@ public interface OsseLibrary extends Library {
 	void OSSCLib_ExtErrInfo_Delete(Pointer hExtErrInfo);
 
 	Pointer OSSCLib_Index_Create(WString wszIndexDirectoryName,
+			WString wszRootFileName, Pointer hExtErrInfo);
+
+	Pointer OSSCLib_Index_Open(WString wszIndexDirectoryName,
 			WString wszRootFileName, Pointer hExtErrInfo);
 
 	boolean OSSCLib_Index_Close(Pointer hIndex, Pointer hExtErrInfo);
@@ -62,4 +70,11 @@ public interface OsseLibrary extends Library {
 	boolean OSSCLib_Transact_Commit(Pointer hTransact, Pointer lphDoc,
 			long ui64NumberOfDocs, Pointer lpui64DocId, Pointer hExtErrInfo);
 
+	Pointer OSSCLib_Transact_CreateField(Pointer hTransact,
+			WString wszFieldName, int ui32FieldType, int ui32FieldFlags,
+			Pointer lpFieldParams, Pointer hExtErrInfo);
+
+	int OSSCLib_Transact_DeleteFields(Pointer hTransact,
+			WString[] lplpwszFieldName, int ui32NumberOfFields,
+			Pointer hExtErrInfo);
 }

@@ -24,24 +24,26 @@
 
 package com.jaeksoft.searchlib.index;
 
-import java.io.File;
 import java.util.Collection;
 
+import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.index.osse.OsseIndex;
 import com.jaeksoft.searchlib.index.osse.OsseLibrary;
+import com.jaeksoft.searchlib.index.osse.OsseTransaction;
 import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
 import com.jaeksoft.searchlib.schema.Schema;
+import com.jaeksoft.searchlib.schema.SchemaField;
 import com.sun.jna.Pointer;
 import com.sun.jna.WString;
 
 public class WriterNativeOSSE extends WriterAbstract {
 
-	private ReaderNativeOSSE reader;
+	private OsseIndex index;
 
-	protected WriterNativeOSSE(File configDir, IndexConfig indexConfig,
-			ReaderNativeOSSE reader) {
+	protected WriterNativeOSSE(OsseIndex index, IndexConfig indexConfig) {
 		super(indexConfig);
-		this.reader = reader;
+		this.index = index;
 	}
 
 	@Override
@@ -61,16 +63,48 @@ public class WriterNativeOSSE extends WriterAbstract {
 
 	}
 
-	@Override
-	public boolean updateDocument(Schema schema, IndexDocument document) {
-		Pointer errorPtr = null;
-		Pointer transactPtr = null;
+	public void createField(SchemaField schemaField) throws SearchLibException {
+		OsseTransaction transaction = null;
 		try {
-			errorPtr = OsseLibrary.INSTANCE.OSSCLib_ExtErrInfo_Create();
-			transactPtr = OsseLibrary.INSTANCE.OSSCLib_Transact_Begin(
-					reader.getIndex(), errorPtr);
+			transaction = new OsseTransaction(index);
+			if (OsseLibrary.INSTANCE.OSSCLib_Transact_CreateField(
+					transaction.getPointer(),
+					new WString(schemaField.getName()),
+					OsseLibrary.OSSCLIB_FIELD_UI32FIELDTYPE_STRING, 0, null,
+					transaction.getErrorPointer()) == null)
+				transaction.throwError();
+			transaction.commit();
+		} finally {
+			if (transaction != null)
+				transaction.release();
+		}
+	}
+
+	public void deleteField(String fieldName) throws SearchLibException {
+		OsseTransaction transaction = null;
+		try {
+			WString[] wTerms = new WString[] { new WString(fieldName) };
+			transaction = new OsseTransaction(index);
+			if (OsseLibrary.INSTANCE.OSSCLib_Transact_DeleteFields(
+					transaction.getPointer(), wTerms, 1,
+					transaction.getErrorPointer()) != 1)
+				transaction.throwError();
+			transaction.commit();
+		} finally {
+			if (transaction != null)
+				transaction.release();
+		}
+	}
+
+	@Override
+	public boolean updateDocument(Schema schema, IndexDocument document)
+			throws SearchLibException {
+		OsseTransaction transaction = null;
+		try {
+			transaction = new OsseTransaction(index);
 			Pointer docPtr = OsseLibrary.INSTANCE
-					.OSSCLib_Transact_Document_New(transactPtr, errorPtr);
+					.OSSCLib_Transact_Document_New(transaction.getPointer(),
+							transaction.getErrorPointer());
 			for (FieldContent fieldContent : document) {
 				WString field = new WString(fieldContent.getField());
 				for (FieldValueItem valueItem : fieldContent.getValues()) {
@@ -83,30 +117,26 @@ public class WriterNativeOSSE extends WriterAbstract {
 							wTerms[i++] = new WString(term);
 						int res = OsseLibrary.INSTANCE
 								.OSSCLib_Transact_Document_AddStringTerms(
-										transactPtr, docPtr, field, wTerms,
-										wTerms.length, errorPtr);
+										transaction.getPointer(), docPtr,
+										field, wTerms, wTerms.length,
+										transaction.getErrorPointer());
 						System.out
 								.println("OSSCLib_Transact_Document_AddStringTerms returns "
 										+ res + " / " + wTerms.length);
 					}
 				}
 			}
-			OsseLibrary.INSTANCE.OSSCLib_Transact_Commit(transactPtr, null, 0,
-					null, errorPtr);
-			transactPtr = null;
+			transaction.commit();
 		} finally {
-			if (transactPtr != null)
-				OsseLibrary.INSTANCE.OSSCLib_Transact_RollBack(transactPtr,
-						errorPtr);
-			if (errorPtr != null)
-				OsseLibrary.INSTANCE.OSSCLib_ExtErrInfo_Delete(errorPtr);
+			if (transaction != null)
+				transaction.release();
 		}
 		return true;
 	}
 
 	@Override
 	public int updateDocuments(Schema schema,
-			Collection<IndexDocument> documents) {
+			Collection<IndexDocument> documents) throws SearchLibException {
 		int i = 0;
 		for (IndexDocument document : documents)
 			if (updateDocument(schema, document))

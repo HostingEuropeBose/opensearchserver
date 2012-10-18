@@ -72,7 +72,7 @@ public class SpellCheckRequest extends AbstractRequest {
 	}
 
 	@Override
-	public void copyFrom(AbstractRequest request) {
+	public void copyFrom(AbstractRequest request) throws SearchLibException {
 		super.copyFrom(request);
 		SpellCheckRequest spellCheckrequest = (SpellCheckRequest) request;
 		this.spellCheckFieldList = new FieldList<SpellCheckField>(
@@ -93,7 +93,7 @@ public class SpellCheckRequest extends AbstractRequest {
 	public void fromXmlConfig(Config config, XPathParser xpp, Node node)
 			throws XPathExpressionException, DOMException, ParseException,
 			InstantiationException, IllegalAccessException,
-			ClassNotFoundException {
+			ClassNotFoundException, SearchLibException {
 		rwl.w.lock();
 		try {
 			super.fromXmlConfig(config, xpp, node);

@@ -36,6 +36,7 @@ import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.cache.FieldCache;
 import com.jaeksoft.searchlib.cache.FilterCache;
 import com.jaeksoft.searchlib.cache.SearchCache;
+import com.jaeksoft.searchlib.index.osse.OsseIndex;
 import com.jaeksoft.searchlib.index.term.Term;
 import com.jaeksoft.searchlib.index.term.TermEnum;
 import com.jaeksoft.searchlib.index.term.TermFreqVector;
@@ -47,6 +48,7 @@ import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.result.AbstractResult;
 import com.jaeksoft.searchlib.result.ResultDocument;
 import com.jaeksoft.searchlib.schema.Schema;
+import com.jaeksoft.searchlib.schema.SchemaField;
 import com.jaeksoft.searchlib.util.ReadWriteLock;
 import com.jaeksoft.searchlib.util.XmlWriter;
 
@@ -61,7 +63,7 @@ public class IndexSingle extends IndexAbstract {
 
 	private volatile boolean readonly;
 
-	private File indexDirectory = null;
+	private OsseIndex osseIndex = null;
 
 	public IndexSingle(File configDir, IndexConfig indexConfig,
 			boolean createIfNotExists) throws IOException, URISyntaxException,
@@ -70,13 +72,11 @@ public class IndexSingle extends IndexAbstract {
 		super(indexConfig);
 		online = true;
 		readonly = false;
-		indexDirectory = new File(configDir, "index");
-		// if (!indexDirectory.exists())
-		// indexDirectory.mkdir();
 		if (indexConfig.getNativeOSSE() || true == Boolean.TRUE) {
-			reader = new ReaderNativeOSSE(indexDirectory, indexConfig);
-			writer = new WriterNativeOSSE(indexDirectory, indexConfig,
-					(ReaderNativeOSSE) reader);
+			osseIndex = new OsseIndex(new File(configDir, "index"), null,
+					createIfNotExists);
+			reader = new ReaderNativeOSSE(osseIndex);
+			writer = new WriterNativeOSSE(osseIndex, indexConfig);
 		} else {
 			reader = ReaderLocal.fromConfig(configDir, indexConfig,
 					createIfNotExists);
@@ -90,6 +90,7 @@ public class IndexSingle extends IndexAbstract {
 		try {
 			if (reader != null)
 				reader.close();
+			osseIndex.close(null);
 		} finally {
 			rwl.w.unlock();
 		}
@@ -184,6 +185,36 @@ public class IndexSingle extends IndexAbstract {
 		try {
 			if (writer != null)
 				writer.addBeforeUpdate(beforeUpdate);
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	@Override
+	public void createField(SchemaField field) throws SearchLibException {
+		if (!online)
+			throw new SearchLibException("Index is offline");
+		if (readonly)
+			throw new SearchLibException("Index is read only");
+		rwl.r.lock();
+		try {
+			if (writer != null)
+				writer.createField(field);
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	@Override
+	public void deleteField(String fieldName) throws SearchLibException {
+		if (!online)
+			throw new SearchLibException("Index is offline");
+		if (readonly)
+			throw new SearchLibException("Index is read only");
+		rwl.r.lock();
+		try {
+			if (writer != null)
+				writer.deleteField(fieldName);
 		} finally {
 			rwl.r.unlock();
 		}

@@ -24,15 +24,13 @@
 
 package com.jaeksoft.searchlib.index;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Collection;
 
-import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.index.osse.OsseErrorHandler;
-import com.jaeksoft.searchlib.index.osse.OsseLibrary;
+import com.jaeksoft.searchlib.index.osse.OsseIndex;
 import com.jaeksoft.searchlib.index.term.Term;
 import com.jaeksoft.searchlib.index.term.TermEnum;
 import com.jaeksoft.searchlib.index.term.TermFreqVector;
@@ -43,33 +41,20 @@ import com.jaeksoft.searchlib.request.DocumentsRequest;
 import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.result.AbstractResult;
 import com.jaeksoft.searchlib.result.ResultDocument;
-import com.sun.jna.Pointer;
-import com.sun.jna.WString;
 
 public class ReaderNativeOSSE extends ReaderAbstract {
 
-	private Pointer index;
+	private OsseIndex index;
 
 	private OsseErrorHandler err;
 
-	protected ReaderNativeOSSE(File indexDirectory, IndexConfig indexConfig)
-			throws SearchLibException {
-		err = new OsseErrorHandler();
-		index = OsseLibrary.INSTANCE.OSSCLib_Index_Create(new WString(
-				indexDirectory.getPath()), null, err.getPointer());
-		if (index == null)
-			throw new SearchLibException(err.getError());
+	protected ReaderNativeOSSE(OsseIndex index) throws SearchLibException {
+		this.index = index;
 	}
 
 	@Override
 	public void close() {
-		if (!OsseLibrary.INSTANCE.OSSCLib_Index_Close(index, err.getPointer()))
-			Logging.warn(err.getError());
 		err.release();
-	}
-
-	protected Pointer getIndex() {
-		return index;
 	}
 
 	@Override

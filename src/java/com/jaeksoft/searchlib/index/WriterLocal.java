@@ -43,6 +43,7 @@ import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.schema.Field;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
 import com.jaeksoft.searchlib.schema.Schema;
+import com.jaeksoft.searchlib.schema.SchemaField;
 
 public class WriterLocal extends WriterAbstract {
 
@@ -325,6 +326,18 @@ public class WriterLocal extends WriterAbstract {
 	}
 
 	public void xmlInfo(PrintWriter writer) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void createField(SchemaField field) throws SearchLibException {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void deleteField(String fieldName) throws SearchLibException {
 		// TODO Auto-generated method stub
 
 	}

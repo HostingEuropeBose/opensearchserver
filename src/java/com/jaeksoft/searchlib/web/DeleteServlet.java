@@ -68,10 +68,9 @@ public class DeleteServlet extends AbstractServlet {
 	}
 
 	private int deleteByQuery(Client client, String q)
-			throws  SearchLibException, IOException,
-			InstantiationException, IllegalAccessException,
-			ClassNotFoundException, ParseException, SyntaxError,
-			URISyntaxException, InterruptedException {
+			throws SearchLibException, IOException, InstantiationException,
+			IllegalAccessException, ClassNotFoundException, ParseException,
+			SyntaxError, URISyntaxException, InterruptedException {
 		SearchRequest request = new SearchRequest(client);
 		request.setQueryString(q);
 		return client.deleteDocuments(request);
@@ -142,14 +141,6 @@ public class DeleteServlet extends AbstractServlet {
 		}
 	}
 
-	public static int delete(URI uri, String indexName,
-			Collection<String> uniqueFields) throws IOException,
-			URISyntaxException {
-		String msg = sendObject(buildUri(uri, "/delete", indexName, null),
-				new DeleteRequest<String>(uniqueFields));
-		return Integer.parseInt(msg.trim());
-	}
-
 	public static boolean deleteDocument(URI uri, String indexName, int docId)
 			throws SearchLibException {
 		try {
@@ -164,14 +155,6 @@ public class DeleteServlet extends AbstractServlet {
 		} catch (XPathExpressionException e) {
 			throw new SearchLibException(e);
 		}
-	}
-
-	public static int deleteDocuments(URI uri, String indexName,
-			Collection<Integer> docIds) throws IOException, URISyntaxException {
-		String msg = sendObject(
-				buildUri(uri, "/delete", indexName, "byId=yes"),
-				new DeleteRequest<Integer>(docIds));
-		return Integer.parseInt(msg.trim());
 	}
 
 }

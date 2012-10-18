@@ -31,22 +31,34 @@ public class OsseErrorHandler {
 
 	private Pointer errPtr;
 
+	private OsseErrorHandler errRef;
+
+	public OsseErrorHandler(OsseErrorHandler err) {
+		if (err == null)
+			errPtr = OsseLibrary.INSTANCE.OSSCLib_ExtErrInfo_Create();
+		else {
+			errRef = err;
+			errPtr = err.errPtr;
+		}
+	}
+
 	public OsseErrorHandler() {
-		errPtr = OsseLibrary.INSTANCE.OSSCLib_ExtErrInfo_Create();
+		this(null);
 	}
 
-	public String getError() {
+	final public String getError() {
 		WString error = OsseLibrary.INSTANCE.OSSCLib_ExtErrInfo_GetText(errPtr);
-		return error.toString();
+		return error != null ? error.toString() : null;
 	}
 
-	public Pointer getPointer() {
+	final public Pointer getPointer() {
 		return errPtr;
 	}
 
-	public void release() {
-		if (errPtr != null)
-			OsseLibrary.INSTANCE.OSSCLib_ExtErrInfo_Delete(errPtr);
+	final public void release() {
+		if (errRef != null)
+			if (errPtr != null)
+				OsseLibrary.INSTANCE.OSSCLib_ExtErrInfo_Delete(errPtr);
 		errPtr = null;
 	}
 

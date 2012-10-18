@@ -24,10 +24,6 @@
 
 package com.jaeksoft.searchlib.schema;
 
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -42,21 +38,16 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
+import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.cache.CacheKeyInterface;
 import com.jaeksoft.searchlib.index.FieldSelector;
-import com.jaeksoft.searchlib.util.External;
 import com.jaeksoft.searchlib.util.External.Collecter;
 import com.jaeksoft.searchlib.util.XPathParser;
 import com.jaeksoft.searchlib.util.XmlWriter;
 
 public class FieldList<T extends Field> implements
-		CacheKeyInterface<FieldList<T>>, FieldSelector, Externalizable,
-		Iterable<T>, Collecter<T> {
-
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = -3706856755116432969L;
+		CacheKeyInterface<FieldList<T>>, FieldSelector, Iterable<T>,
+		Collecter<T> {
 
 	private List<T> fieldList;
 	private transient Set<T> fieldSet;
@@ -74,18 +65,19 @@ public class FieldList<T extends Field> implements
 	}
 
 	/**
-	 * Ce constructeur cr�� une liste contenant les m�mes champs que la liste
-	 * pass�e en param�tres (fl).
+	 * Ce constructeur cr�� une liste contenant les m�mes champs que la
+	 * liste pass�e en param�tres (fl).
 	 * 
 	 * @param fl
+	 * @throws SearchLibException
 	 */
-	public FieldList(FieldList<T> fl) {
+	public FieldList(FieldList<T> fl) throws SearchLibException {
 		this();
 		add(fl);
 	}
 
 	@SuppressWarnings("unchecked")
-	public void add(FieldList<T> fl) {
+	public void add(FieldList<T> fl) throws SearchLibException {
 		synchronized (this) {
 			for (T field : fl)
 				add((T) field.duplicate());
@@ -94,8 +86,8 @@ public class FieldList<T extends Field> implements
 	}
 
 	/**
-	 * Retourne le champ par d�fault du fichier de config XML. <gisearch><schema
-	 * defaultField="nomchamp">...
+	 * Retourne le champ par d�fault du fichier de config XML.
+	 * <gisearch><schema defaultField="nomchamp">...
 	 * 
 	 * @param document
 	 * @param xPath
@@ -112,8 +104,10 @@ public class FieldList<T extends Field> implements
 
 	/**
 	 * Ajoute un champ � la liste
+	 * 
+	 * @throws SearchLibException
 	 */
-	public boolean add(T field) {
+	public boolean add(T field) throws SearchLibException {
 		synchronized (this) {
 			if (!fieldSet.add(field))
 				return true;
@@ -124,7 +118,7 @@ public class FieldList<T extends Field> implements
 		}
 	}
 
-	public boolean addOrSet(T field) {
+	public boolean addOrSet(T field) throws SearchLibException {
 		synchronized (this) {
 			T f = fieldsName.get(field.name);
 			if (f == null)
@@ -213,18 +207,7 @@ public class FieldList<T extends Field> implements
 	}
 
 	@Override
-	public void readExternal(ObjectInput in) throws IOException,
-			ClassNotFoundException {
-		External.readCollection(in, this);
-	}
-
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		External.writeCollection(fieldList, out);
-	}
-
-	@Override
-	public void addObject(T field) {
+	public void addObject(T field) throws SearchLibException {
 		synchronized (this) {
 			add(field);
 		}
@@ -247,7 +230,7 @@ public class FieldList<T extends Field> implements
 		return getCacheKey().compareTo(o.getCacheKey());
 	}
 
-	public void remove(Field field) {
+	public void remove(Field field) throws SearchLibException {
 		synchronized (this) {
 			fieldSet.remove(field);
 			fieldList.remove(field);

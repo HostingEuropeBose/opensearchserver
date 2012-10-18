@@ -575,7 +575,7 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 
 	public FieldList<FieldValue> getDocumentFields(int docId,
 			FieldList<Field> fieldList) throws IOException, ParseException,
-			SyntaxError {
+			SyntaxError, SearchLibException {
 		rwl.r.lock();
 		try {
 			return fieldCache.get(this, docId, fieldList);
@@ -585,7 +585,7 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 	}
 
 	public FieldList<FieldValue> getTermsVectorFields(int docId,
-			FieldList<Field> fieldList) throws IOException {
+			FieldList<Field> fieldList) throws IOException, SearchLibException {
 		rwl.r.lock();
 		try {
 			FieldList<FieldValue> fieldValueList = new FieldList<FieldValue>();
@@ -606,7 +606,7 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 	}
 
 	public FieldList<FieldValue> getTerms(int docId, FieldList<Field> fieldList)
-			throws IOException {
+			throws IOException, SearchLibException {
 		rwl.r.lock();
 		try {
 			TermPositions termPosition = indexReader.termPositions();

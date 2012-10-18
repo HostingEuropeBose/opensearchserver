@@ -179,11 +179,12 @@ public class SnippetField extends Field {
 	 * @throws ClassNotFoundException
 	 * @throws IllegalAccessException
 	 * @throws InstantiationException
+	 * @throws SearchLibException
 	 */
 	public static void copySnippetFields(Node node,
 			FieldList<SchemaField> source, FieldList<SnippetField> target)
 			throws InstantiationException, IllegalAccessException,
-			ClassNotFoundException {
+			ClassNotFoundException, SearchLibException {
 		String fieldName = XPathParser.getAttributeString(node, "name");
 		String tag = XPathParser.getAttributeString(node, "tag");
 		if (tag == null)

@@ -24,10 +24,7 @@
 
 package com.jaeksoft.searchlib.filter;
 
-import java.io.Externalizable;
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -40,17 +37,10 @@ import com.jaeksoft.searchlib.filter.Filter.Source;
 import com.jaeksoft.searchlib.index.ReaderLocal;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.schema.Field;
-import com.jaeksoft.searchlib.util.External;
 import com.jaeksoft.searchlib.util.External.Collecter;
 import com.jaeksoft.searchlib.util.XmlWriter;
 
-public class FilterList implements Externalizable, Collecter<Filter>,
-		Iterable<Filter> {
-
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 5575695644602182902L;
+public class FilterList implements Collecter<Filter>, Iterable<Filter> {
 
 	private List<Filter> filterList;
 
@@ -88,17 +78,6 @@ public class FilterList implements Externalizable, Collecter<Filter>,
 
 	public int size() {
 		return filterList.size();
-	}
-
-	@Override
-	public void readExternal(ObjectInput in) throws IOException,
-			ClassNotFoundException {
-		External.readCollection(in, this);
-	}
-
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		External.writeCollection(filterList, out);
 	}
 
 	@Override

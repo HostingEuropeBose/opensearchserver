@@ -257,7 +257,7 @@ public class UrlManager {
 
 	}
 
-	private SearchRequest getHostFacetSearchRequest() {
+	private SearchRequest getHostFacetSearchRequest() throws SearchLibException {
 		SearchRequest searchRequest = new SearchRequest(urlDbClient);
 		searchRequest.setDefaultOperator("OR");
 		searchRequest.setRows(0);

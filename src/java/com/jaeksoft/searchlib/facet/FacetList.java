@@ -24,26 +24,15 @@
 
 package com.jaeksoft.searchlib.facet;
 
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import com.jaeksoft.searchlib.util.External;
 import com.jaeksoft.searchlib.util.External.Collecter;
 
-public class FacetList implements Iterable<Facet>, Externalizable,
-		Collecter<Facet> {
-
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = -2891562911711846847L;
+public class FacetList implements Iterable<Facet>, Collecter<Facet> {
 
 	private List<Facet> facetList;
 	private transient Map<String, Facet> facetMap;
@@ -60,17 +49,6 @@ public class FacetList implements Iterable<Facet>, Externalizable,
 	@Override
 	public Iterator<Facet> iterator() {
 		return facetList.iterator();
-	}
-
-	@Override
-	public void readExternal(ObjectInput in) throws IOException,
-			ClassNotFoundException {
-		External.readCollection(in, this);
-	}
-
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		External.writeCollection(facetList, out);
 	}
 
 	@Override

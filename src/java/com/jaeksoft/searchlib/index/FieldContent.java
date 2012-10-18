@@ -24,23 +24,13 @@
 
 package com.jaeksoft.searchlib.index;
 
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.jaeksoft.searchlib.schema.FieldValueItem;
-import com.jaeksoft.searchlib.util.External;
 import com.jaeksoft.searchlib.util.External.Collecter;
 
-public class FieldContent implements Externalizable, Collecter<FieldValueItem> {
-
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = -4734981884898319100L;
+public class FieldContent implements Collecter<FieldValueItem> {
 
 	private String field;
 	private List<FieldValueItem> values;
@@ -132,19 +122,6 @@ public class FieldContent implements Externalizable, Collecter<FieldValueItem> {
 
 	public void remove(int index) {
 		values.remove(index);
-	}
-
-	@Override
-	public void readExternal(ObjectInput in) throws IOException,
-			ClassNotFoundException {
-		field = External.readObject(in);
-		External.readCollection(in, this);
-	}
-
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		External.writeObject(field, out);
-		External.writeCollection(values, out);
 	}
 
 	public boolean isEquals(FieldContent fc) {

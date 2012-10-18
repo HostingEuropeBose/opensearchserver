@@ -29,6 +29,7 @@ import java.util.StringTokenizer;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
+import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.index.FieldSelector;
 import com.jaeksoft.searchlib.util.DomUtils;
 import com.jaeksoft.searchlib.util.XmlWriter;
@@ -93,9 +94,10 @@ public class Field implements FieldSelector, Comparable<Field> {
 	 *            "Champ1,Champ2,Champ3"
 	 * @param target
 	 *            Liste de champs destinataire des champs trouvés
+	 * @throws SearchLibException
 	 */
 	public static <T extends Field> void filterCopy(FieldList<T> source,
-			String filter, FieldList<Field> target) {
+			String filter, FieldList<Field> target) throws SearchLibException {
 		if (filter == null)
 			return;
 		StringTokenizer st = new StringTokenizer(filter, ", \t\r\n");

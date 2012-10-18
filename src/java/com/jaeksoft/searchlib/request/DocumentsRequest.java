@@ -125,7 +125,7 @@ public class DocumentsRequest {
 		return returnFieldList;
 	}
 
-	public FieldList<Field> getDocumentFieldList() {
+	public FieldList<Field> getDocumentFieldList() throws SearchLibException {
 		if (documentFieldList != null)
 			return documentFieldList;
 		documentFieldList = new FieldList<Field>(returnFieldList);

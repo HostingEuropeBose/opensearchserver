@@ -34,6 +34,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.config.Config;
 import com.jaeksoft.searchlib.util.XPathParser;
 import com.jaeksoft.searchlib.util.XmlWriter;
 import com.jaeksoft.searchlib.web.ServletTransaction;
@@ -145,12 +146,14 @@ public class SchemaField extends Field {
 	 * @param xPath
 	 * @throws XPathExpressionException
 	 * @throws XPathExpressionException
+	 * @throws SearchLibException
 	 * @throws DOMException
 	 * @throws IOException
 	 */
-	public static SchemaFieldList fromXmlConfig(XPathParser xpp, Node parentNode)
-			throws XPathExpressionException {
-		SchemaFieldList fieldList = new SchemaFieldList();
+	public static SchemaFieldList fromXmlConfig(Config config, XPathParser xpp,
+			Node parentNode) throws XPathExpressionException,
+			SearchLibException {
+		SchemaFieldList fieldList = new SchemaFieldList(config);
 		if (parentNode == null)
 			return fieldList;
 		NodeList nodes = xpp.getNodeList(parentNode, "field");

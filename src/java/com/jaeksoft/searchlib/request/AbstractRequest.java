@@ -75,12 +75,12 @@ public abstract class AbstractRequest {
 	public void fromXmlConfig(Config config, XPathParser xpp, Node node)
 			throws XPathExpressionException, DOMException, ParseException,
 			InstantiationException, IllegalAccessException,
-			ClassNotFoundException {
+			ClassNotFoundException, SearchLibException {
 		this.config = config;
 		this.requestName = XPathParser.getAttributeString(node, XML_ATTR_NAME);
 	}
 
-	public void copyFrom(AbstractRequest request) {
+	public void copyFrom(AbstractRequest request) throws SearchLibException {
 		this.config = request.config;
 		this.requestName = request.requestName;
 		this.withLogReport = request.withLogReport;
@@ -218,7 +218,7 @@ public abstract class AbstractRequest {
 			throws SAXException;
 
 	public abstract void setFromServlet(ServletTransaction transaction)
-			throws SyntaxError;
+			throws SyntaxError, SearchLibException;
 
 	public abstract AbstractResult<?> execute(ReaderInterface reader)
 			throws SearchLibException;

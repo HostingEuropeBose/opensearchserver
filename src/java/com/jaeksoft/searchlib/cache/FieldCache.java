@@ -26,6 +26,7 @@ package com.jaeksoft.searchlib.cache;
 
 import java.io.IOException;
 
+import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.FieldContent;
 import com.jaeksoft.searchlib.index.FieldContentCacheKey;
@@ -51,7 +52,7 @@ public class FieldCache extends
 
 	public FieldList<FieldValue> get(ReaderLocal reader, int docId,
 			FieldList<Field> fieldList) throws IOException, ParseException,
-			SyntaxError {
+			SyntaxError, SearchLibException {
 		FieldList<FieldValue> documentFields = new FieldList<FieldValue>();
 		FieldList<Field> storeField = new FieldList<Field>();
 		FieldList<Field> vectorField = new FieldList<Field>();

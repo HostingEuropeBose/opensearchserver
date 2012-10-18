@@ -83,7 +83,7 @@ public class MoreLikeThisRequest extends AbstractRequest {
 	}
 
 	@Override
-	public void copyFrom(AbstractRequest request) {
+	public void copyFrom(AbstractRequest request) throws SearchLibException {
 		super.copyFrom(request);
 		MoreLikeThisRequest mltRequest = (MoreLikeThisRequest) request;
 		this.lang = mltRequest.lang;
@@ -103,6 +103,7 @@ public class MoreLikeThisRequest extends AbstractRequest {
 		return analyzer;
 	}
 
+	@SuppressWarnings("unused")
 	private Query getMoreLikeThisQuery() throws SearchLibException, IOException {
 		Config config = getConfig();
 		IndexAbstract index = config.getIndex();
@@ -293,7 +294,7 @@ public class MoreLikeThisRequest extends AbstractRequest {
 	public void fromXmlConfig(Config config, XPathParser xpp, Node node)
 			throws XPathExpressionException, DOMException, ParseException,
 			InstantiationException, IllegalAccessException,
-			ClassNotFoundException {
+			ClassNotFoundException, SearchLibException {
 		rwl.w.lock();
 		try {
 			super.fromXmlConfig(config, xpp, node);

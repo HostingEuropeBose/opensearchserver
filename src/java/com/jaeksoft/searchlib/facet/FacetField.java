@@ -31,6 +31,7 @@ import java.util.List;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
+import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.ReaderLocal;
 import com.jaeksoft.searchlib.index.StringIndex;
@@ -123,7 +124,8 @@ public class FacetField extends Field {
 	}
 
 	public static void copyFacetFields(Node node,
-			FieldList<SchemaField> source, FieldList<FacetField> target) {
+			FieldList<SchemaField> source, FieldList<FacetField> target)
+			throws SearchLibException {
 		String fieldName = XPathParser.getAttributeString(node, "name");
 		int minCount = XPathParser.getAttributeValue(node, "minCount");
 		boolean multivalued = "yes".equals(XPathParser.getAttributeString(node,

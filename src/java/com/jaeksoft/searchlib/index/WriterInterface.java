@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -29,6 +29,7 @@ import java.util.Collection;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.schema.Schema;
+import com.jaeksoft.searchlib.schema.SchemaField;
 
 public interface WriterInterface {
 
@@ -48,6 +49,10 @@ public interface WriterInterface {
 
 	public int updateDocuments(Schema schema,
 			Collection<IndexDocument> documents) throws SearchLibException;
+
+	public void createField(SchemaField field) throws SearchLibException;
+
+	public void deleteField(String fieldName) throws SearchLibException;
 
 	public void optimize() throws SearchLibException;
 

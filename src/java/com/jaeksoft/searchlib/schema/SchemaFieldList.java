@@ -24,21 +24,20 @@
 
 package com.jaeksoft.searchlib.schema;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-
 import org.xml.sax.SAXException;
 
-import com.jaeksoft.searchlib.util.External;
+import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.config.Config;
 import com.jaeksoft.searchlib.util.XmlWriter;
 
 public class SchemaFieldList extends FieldList<SchemaField> {
 
+	private Config config;
 	private Field defaultField;
 	private Field uniqueField;
 
-	public SchemaFieldList() {
+	public SchemaFieldList(Config config) {
+		this.config = config;
 		defaultField = null;
 		uniqueField = null;
 	}
@@ -65,19 +64,14 @@ public class SchemaFieldList extends FieldList<SchemaField> {
 		return this.uniqueField;
 	}
 
-	@Override
-	public void readExternal(ObjectInput in) throws IOException,
-			ClassNotFoundException {
-		super.readExternal(in);
-		defaultField = External.<Field> readObject(in);
-		uniqueField = External.<Field> readObject(in);
+	public boolean add(SchemaField field) throws SearchLibException {
+		config.getIndex().createField(field);
+		return super.add(field);
 	}
 
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		super.writeExternal(out);
-		External.writeObject(defaultField, out);
-		External.writeObject(uniqueField, out);
+	public void remove(Field field) throws SearchLibException {
+		config.getIndex().deleteField(field.getName());
+		super.remove(field);
 	}
 
 	@Override

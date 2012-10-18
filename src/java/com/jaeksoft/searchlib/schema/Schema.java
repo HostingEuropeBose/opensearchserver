@@ -71,7 +71,7 @@ public class Schema {
 		schema.analyzers = AnalyzerList.fromXmlConfig(config, xpp,
 				xpp.getNode(parentNode, "analyzers"));
 
-		schema.fieldList = SchemaField.fromXmlConfig(xpp,
+		schema.fieldList = SchemaField.fromXmlConfig(config, xpp,
 				xpp.getNode(parentNode, "fields"));
 
 		return schema;

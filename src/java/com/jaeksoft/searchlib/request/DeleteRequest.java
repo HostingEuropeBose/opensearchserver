@@ -24,19 +24,13 @@
 
 package com.jaeksoft.searchlib.request;
 
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 
-import com.jaeksoft.searchlib.util.External;
 import com.jaeksoft.searchlib.util.External.Collecter;
 
-public class DeleteRequest<T> implements Externalizable, Iterable<T>,
-		Collecter<T> {
+public class DeleteRequest<T> implements Iterable<T>, Collecter<T> {
 
 	private Collection<T> collection;
 
@@ -50,18 +44,6 @@ public class DeleteRequest<T> implements Externalizable, Iterable<T>,
 
 	public Collection<T> getCollection() {
 		return collection;
-	}
-
-	@Override
-	public void readExternal(ObjectInput in) throws IOException,
-			ClassNotFoundException {
-		External.readCollection(in, this);
-
-	}
-
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		External.writeCollection(collection, out);
 	}
 
 	@Override

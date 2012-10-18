@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.cache.CacheKeyInterface;
 import com.jaeksoft.searchlib.index.ReaderLocal;
 import com.jaeksoft.searchlib.index.StringIndex;
@@ -47,19 +48,19 @@ public class SortList implements Externalizable, CacheKeyInterface<SortList> {
 		sortFieldList = new FieldList<SortField>();
 	}
 
-	public SortList(SortList sortList) {
+	public SortList(SortList sortList) throws SearchLibException {
 		sortFieldList = new FieldList<SortField>(sortList.sortFieldList);
 	}
 
-	public void add(SortField sortField) {
+	public void add(SortField sortField) throws SearchLibException {
 		sortFieldList.add(sortField);
 	}
 
-	public void add(String sortString) {
+	public void add(String sortString) throws SearchLibException {
 		sortFieldList.add(SortField.newSortField(sortString));
 	}
 
-	public void add(String fieldName, boolean desc) {
+	public void add(String fieldName, boolean desc) throws SearchLibException {
 		sortFieldList.add(new SortField(fieldName, desc));
 	}
 
@@ -101,7 +102,7 @@ public class SortList implements Externalizable, CacheKeyInterface<SortList> {
 		return sortFieldList.compareTo(o.sortFieldList);
 	}
 
-	public void remove(SortField sortField) {
+	public void remove(SortField sortField) throws SearchLibException {
 		sortFieldList.remove(sortField);
 	}
 

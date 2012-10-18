@@ -27,6 +27,7 @@ package com.jaeksoft.searchlib.spellcheck;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
+import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.cache.CacheKeyInterface;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.schema.Field;
@@ -36,11 +37,6 @@ import com.jaeksoft.searchlib.util.XPathParser;
 import com.jaeksoft.searchlib.util.XmlWriter;
 
 public class SpellCheckField extends Field implements CacheKeyInterface<Field> {
-
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = -1417527967951473421L;
 
 	private float minScore;
 
@@ -100,7 +96,8 @@ public class SpellCheckField extends Field implements CacheKeyInterface<Field> {
 	}
 
 	public static void copySpellCheckFields(Node node,
-			FieldList<SchemaField> source, FieldList<SpellCheckField> target) {
+			FieldList<SchemaField> source, FieldList<SpellCheckField> target)
+			throws SearchLibException {
 		String fieldName = XPathParser.getAttributeString(node, "name");
 		String p = XPathParser.getAttributeString(node, "minScore");
 		float minScore = 0.5F;
