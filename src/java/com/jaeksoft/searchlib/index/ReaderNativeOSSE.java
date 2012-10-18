@@ -52,11 +52,11 @@ public class ReaderNativeOSSE extends ReaderAbstract {
 
 	private OsseErrorHandler err;
 
-	protected ReaderNativeOSSE(File configDir, IndexConfig indexConfig)
+	protected ReaderNativeOSSE(File indexDirectory, IndexConfig indexConfig)
 			throws SearchLibException {
 		err = new OsseErrorHandler();
-		index = OsseLibrary.INSTANCE.OSSCLib_Index_Create(
-				new WString(configDir.getPath()), err.getPointer());
+		index = OsseLibrary.INSTANCE.OSSCLib_Index_Create(new WString(
+				indexDirectory.getPath()), null, err.getPointer());
 		if (index == null)
 			throw new SearchLibException(err.getError());
 	}

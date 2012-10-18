@@ -61,6 +61,8 @@ public class IndexSingle extends IndexAbstract {
 
 	private volatile boolean readonly;
 
+	private File indexDirectory = null;
+
 	public IndexSingle(File configDir, IndexConfig indexConfig,
 			boolean createIfNotExists) throws IOException, URISyntaxException,
 			InstantiationException, IllegalAccessException,
@@ -68,9 +70,12 @@ public class IndexSingle extends IndexAbstract {
 		super(indexConfig);
 		online = true;
 		readonly = false;
+		indexDirectory = new File(configDir, "index");
+		// if (!indexDirectory.exists())
+		// indexDirectory.mkdir();
 		if (indexConfig.getNativeOSSE() || true == Boolean.TRUE) {
-			reader = new ReaderNativeOSSE(configDir, indexConfig);
-			writer = new WriterNativeOSSE(configDir, indexConfig,
+			reader = new ReaderNativeOSSE(indexDirectory, indexConfig);
+			writer = new WriterNativeOSSE(indexDirectory, indexConfig,
 					(ReaderNativeOSSE) reader);
 		} else {
 			reader = ReaderLocal.fromConfig(configDir, indexConfig,

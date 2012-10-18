@@ -44,7 +44,8 @@ public interface OsseLibrary extends Library {
 
 	void OSSCLib_ExtErrInfo_Delete(Pointer hExtErrInfo);
 
-	Pointer OSSCLib_Index_Create(WString wszIndexName, Pointer hExtErrInfo);
+	Pointer OSSCLib_Index_Create(WString wszIndexDirectoryName,
+			WString wszRootFileName, Pointer hExtErrInfo);
 
 	boolean OSSCLib_Index_Close(Pointer hIndex, Pointer hExtErrInfo);
 
