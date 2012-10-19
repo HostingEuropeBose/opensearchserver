@@ -29,7 +29,7 @@ import java.util.Collection;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.schema.Schema;
-import com.jaeksoft.searchlib.schema.SchemaField;
+import com.jaeksoft.searchlib.schema.SchemaFieldList;
 
 public interface WriterInterface {
 
@@ -50,9 +50,8 @@ public interface WriterInterface {
 	public int updateDocuments(Schema schema,
 			Collection<IndexDocument> documents) throws SearchLibException;
 
-	public void createField(SchemaField field) throws SearchLibException;
-
-	public void deleteField(String fieldName) throws SearchLibException;
+	public void checkSchemaFieldList(SchemaFieldList schemaFieldList)
+			throws SearchLibException;
 
 	public void optimize() throws SearchLibException;
 

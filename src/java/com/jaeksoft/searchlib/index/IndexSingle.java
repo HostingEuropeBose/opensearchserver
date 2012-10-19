@@ -48,7 +48,7 @@ import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.result.AbstractResult;
 import com.jaeksoft.searchlib.result.ResultDocument;
 import com.jaeksoft.searchlib.schema.Schema;
-import com.jaeksoft.searchlib.schema.SchemaField;
+import com.jaeksoft.searchlib.schema.SchemaFieldList;
 import com.jaeksoft.searchlib.util.ReadWriteLock;
 import com.jaeksoft.searchlib.util.XmlWriter;
 
@@ -191,7 +191,8 @@ public class IndexSingle extends IndexAbstract {
 	}
 
 	@Override
-	public void createField(SchemaField field) throws SearchLibException {
+	public void checkSchemaFieldList(SchemaFieldList schemaFieldList)
+			throws SearchLibException {
 		if (!online)
 			throw new SearchLibException("Index is offline");
 		if (readonly)
@@ -199,22 +200,7 @@ public class IndexSingle extends IndexAbstract {
 		rwl.r.lock();
 		try {
 			if (writer != null)
-				writer.createField(field);
-		} finally {
-			rwl.r.unlock();
-		}
-	}
-
-	@Override
-	public void deleteField(String fieldName) throws SearchLibException {
-		if (!online)
-			throw new SearchLibException("Index is offline");
-		if (readonly)
-			throw new SearchLibException("Index is read only");
-		rwl.r.lock();
-		try {
-			if (writer != null)
-				writer.deleteField(fieldName);
+				writer.checkSchemaFieldList(schemaFieldList);
 		} finally {
 			rwl.r.unlock();
 		}

@@ -43,7 +43,7 @@ import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.schema.Field;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
 import com.jaeksoft.searchlib.schema.Schema;
-import com.jaeksoft.searchlib.schema.SchemaField;
+import com.jaeksoft.searchlib.schema.SchemaFieldList;
 
 public class WriterLocal extends WriterAbstract {
 
@@ -331,15 +331,9 @@ public class WriterLocal extends WriterAbstract {
 	}
 
 	@Override
-	public void createField(SchemaField field) throws SearchLibException {
+	public void checkSchemaFieldList(SchemaFieldList schemaFieldList)
+			throws SearchLibException {
 		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void deleteField(String fieldName) throws SearchLibException {
-		// TODO Auto-generated method stub
-
 	}
 
 }

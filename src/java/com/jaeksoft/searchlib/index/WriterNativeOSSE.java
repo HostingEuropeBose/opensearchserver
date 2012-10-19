@@ -34,6 +34,7 @@ import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
 import com.jaeksoft.searchlib.schema.Schema;
 import com.jaeksoft.searchlib.schema.SchemaField;
+import com.jaeksoft.searchlib.schema.SchemaFieldList;
 import com.sun.jna.Pointer;
 import com.sun.jna.WString;
 
@@ -63,32 +64,38 @@ public class WriterNativeOSSE extends WriterAbstract {
 
 	}
 
-	public void createField(SchemaField schemaField) throws SearchLibException {
-		OsseTransaction transaction = null;
-		try {
-			transaction = new OsseTransaction(index);
-			if (OsseLibrary.INSTANCE.OSSCLib_Transact_CreateField(
-					transaction.getPointer(),
-					new WString(schemaField.getName()),
-					OsseLibrary.OSSCLIB_FIELD_UI32FIELDTYPE_STRING, 0, null,
-					transaction.getErrorPointer()) == null)
-				transaction.throwError();
-			transaction.commit();
-		} finally {
-			if (transaction != null)
-				transaction.release();
-		}
+	private void checkFieldCreation(OsseTransaction transaction,
+			SchemaField schemaField) throws SearchLibException {
+		String fieldName = schemaField.getName();
+		WString wFieldName = new WString(fieldName);
+		Pointer indexField = OsseLibrary.INSTANCE.OSSCLib_Transact_GetField(
+				transaction.getPointer(), wFieldName,
+				transaction.getErrorPointer());
+		if (indexField != null)
+			return;
+		if (OsseLibrary.INSTANCE.OSSCLib_Transact_CreateField(
+				transaction.getPointer(), new WString(fieldName),
+				OsseLibrary.OSSCLIB_FIELD_UI32FIELDTYPE_STRING, 0, null,
+				transaction.getErrorPointer()) == null)
+			transaction.throwError();
 	}
 
-	public void deleteField(String fieldName) throws SearchLibException {
+	private void checkFieldDeletion(OsseTransaction transaction,
+			String fieldName) throws SearchLibException {
+		WString[] wTerms = new WString[] { new WString(fieldName) };
+		if (OsseLibrary.INSTANCE.OSSCLib_Transact_DeleteFields(
+				transaction.getPointer(), wTerms, 1,
+				transaction.getErrorPointer()) != 1)
+			transaction.throwError();
+	}
+
+	public void checkSchemaFieldList(SchemaFieldList schemaFieldList)
+			throws SearchLibException {
 		OsseTransaction transaction = null;
 		try {
-			WString[] wTerms = new WString[] { new WString(fieldName) };
 			transaction = new OsseTransaction(index);
-			if (OsseLibrary.INSTANCE.OSSCLib_Transact_DeleteFields(
-					transaction.getPointer(), wTerms, 1,
-					transaction.getErrorPointer()) != 1)
-				transaction.throwError();
+			for (SchemaField schemaField : schemaFieldList)
+				checkFieldCreation(transaction, schemaField);
 			transaction.commit();
 		} finally {
 			if (transaction != null)
@@ -106,7 +113,10 @@ public class WriterNativeOSSE extends WriterAbstract {
 					.OSSCLib_Transact_Document_New(transaction.getPointer(),
 							transaction.getErrorPointer());
 			for (FieldContent fieldContent : document) {
-				WString field = new WString(fieldContent.getField());
+				WString wFieldName = new WString(fieldContent.getField());
+				Pointer hIndexField = OsseLibrary.INSTANCE
+						.OSSCLib_Transact_GetField(transaction.getPointer(),
+								wFieldName, transaction.getErrorPointer());
 				for (FieldValueItem valueItem : fieldContent.getValues()) {
 					String value = valueItem.getValue();
 					String[] terms = value.split("\\s");
@@ -118,7 +128,8 @@ public class WriterNativeOSSE extends WriterAbstract {
 						int res = OsseLibrary.INSTANCE
 								.OSSCLib_Transact_Document_AddStringTerms(
 										transaction.getPointer(), docPtr,
-										field, wTerms, wTerms.length,
+										hIndexField, wTerms, null, null, null,
+										wTerms.length,
 										transaction.getErrorPointer());
 						System.out
 								.println("OSSCLib_Transact_Document_AddStringTerms returns "

@@ -62,8 +62,9 @@ public interface OsseLibrary extends Library {
 	Pointer OSSCLib_Transact_Document_New(Pointer hTransact, Pointer hExtErrInfo);
 
 	int OSSCLib_Transact_Document_AddStringTerms(Pointer hTransact,
-			Pointer hDoc, WString lpwszFieldName, WString[] lplpTerm,
-			int ui32NumberOfTerms, Pointer hExtErrInfo);
+			Pointer hDoc, Pointer hField, WString[] termArray,
+			OsseTermOffset[] termOffsetArray, int[] termPosIncrArray,
+			boolean[] successArray, int numberOfTerms, Pointer hExtErrInfo);
 
 	boolean OSSCLib_Transact_RollBack(Pointer hTransact, Pointer hExtErrInfo);
 
@@ -73,6 +74,9 @@ public interface OsseLibrary extends Library {
 	Pointer OSSCLib_Transact_CreateField(Pointer hTransact,
 			WString wszFieldName, int ui32FieldType, int ui32FieldFlags,
 			Pointer lpFieldParams, Pointer hExtErrInfo);
+
+	Pointer OSSCLib_Transact_GetField(Pointer hTransact, WString wszFieldName,
+			Pointer hExtErrInfo);
 
 	int OSSCLib_Transact_DeleteFields(Pointer hTransact,
 			WString[] lplpwszFieldName, int ui32NumberOfFields,

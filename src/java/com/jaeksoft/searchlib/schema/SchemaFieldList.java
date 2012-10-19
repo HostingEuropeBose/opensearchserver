@@ -26,7 +26,6 @@ package com.jaeksoft.searchlib.schema;
 
 import org.xml.sax.SAXException;
 
-import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.config.Config;
 import com.jaeksoft.searchlib.util.XmlWriter;
 
@@ -62,16 +61,6 @@ public class SchemaFieldList extends FieldList<SchemaField> {
 
 	public Field getUniqueField() {
 		return this.uniqueField;
-	}
-
-	public boolean add(SchemaField field) throws SearchLibException {
-		config.getIndex().createField(field);
-		return super.add(field);
-	}
-
-	public void remove(Field field) throws SearchLibException {
-		config.getIndex().deleteField(field.getName());
-		super.remove(field);
 	}
 
 	@Override

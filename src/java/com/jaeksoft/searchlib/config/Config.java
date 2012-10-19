@@ -390,6 +390,7 @@ public abstract class Config {
 		try {
 			rwl.w.lock();
 			try {
+				getIndex().checkSchemaFieldList(schema.getFieldList());
 				saveConfigWithoutLock();
 			} finally {
 				rwl.w.unlock();
