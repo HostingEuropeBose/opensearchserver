@@ -24,7 +24,6 @@
 
 package com.jaeksoft.searchlib.analysis;
 
-import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -339,11 +338,6 @@ public class Analyzer {
 			rwl.w.unlock();
 		}
 
-	}
-
-	public TokenStream tokenStream(String fieldname, Reader reader) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 }

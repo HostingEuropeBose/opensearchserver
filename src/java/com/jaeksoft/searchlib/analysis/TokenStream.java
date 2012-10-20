@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2011-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -24,28 +24,73 @@
 
 package com.jaeksoft.searchlib.analysis;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+
 import java.io.IOException;
 import java.io.Reader;
 
-/*
- * TODO Full implementation
- */
 public class TokenStream {
 
 	final protected TokenStream input;
+	final private StringBuffer buffer = new StringBuffer(0);
+	final private IntArrayList positionList = new IntArrayList(0);
+	final private IntArrayList lengthList = new IntArrayList(0);
+	private int currentIncrementPosition = 0;
+	private int currentTokenPosition = 0;
+	private int currentTokenLength = 0;
 
 	public TokenStream(TokenStream input) {
 		this.input = input;
 	}
 
-	public TokenStream(Reader reader) {
+	public TokenStream(Reader reader) throws IOException {
 		input = null;
-		// TODO Auto-generated constructor stub
+		if (reader != null) {
+			char[] cbuf = new char[65536];
+			int l;
+			while ((l = reader.read(cbuf, 0, cbuf.length)) != -1)
+				buffer.append(cbuf, 0, l);
+			l = buffer.length();
+			if (l > 0) {
+				positionList.add(0);
+				positionList.add(l);
+			}
+		}
+	}
+
+	final protected void addToken(StringBuffer tokenBuffer) {
+		if (tokenBuffer == null)
+			return;
+		int len = tokenBuffer.length();
+		if (len == 0)
+			return;
+		positionList.add(buffer.length());
+		lengthList.add(len);
+		buffer.append(tokenBuffer);
+	}
+
+	final public int getCurrentTokenPosition() {
+		return currentTokenPosition;
+	}
+
+	final public int getCurrentTokenLength() {
+		return currentTokenLength;
+	}
+
+	final protected boolean isTokenAvailable() {
+		return currentIncrementPosition < positionList.size();
+	}
+
+	final public StringBuffer getBuffer() {
+		return buffer;
 	}
 
 	public boolean incrementToken() throws IOException {
-		// TODO Auto-generated method stub
-		return false;
+		if (!isTokenAvailable())
+			return false;
+		currentTokenPosition = positionList.getInt(currentIncrementPosition);
+		currentTokenLength = lengthList.getInt(currentIncrementPosition);
+		currentIncrementPosition++;
+		return true;
 	}
-
 }

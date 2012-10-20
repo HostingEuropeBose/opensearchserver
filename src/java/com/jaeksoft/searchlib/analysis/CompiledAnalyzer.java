@@ -70,8 +70,8 @@ public class CompiledAnalyzer extends Analyzer {
 		}
 	}
 
-	@Override
-	public TokenStream tokenStream(String fieldname, Reader reader) {
+	public TokenStream tokenStream(String fieldname, Reader reader)
+			throws IOException {
 		TokenStream ts = new TokenStream(reader);
 		for (FilterFactory filter : filters)
 			ts = filter.create(ts);

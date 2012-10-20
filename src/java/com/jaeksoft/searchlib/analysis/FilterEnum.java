@@ -28,6 +28,9 @@ public enum FilterEnum {
 
 	StandardFilter("Normalizes tokens extracted with StandardTokenizer."),
 
+	LetterOrDigitTokenizer(
+			"This tokenizer considers each non-digit, non-letter character to be a separator between words"),
+
 	ChineseFilter("A filter that filter Chinese words."),
 
 	DutchStemFilter("A filter that stems Dutch words."),
