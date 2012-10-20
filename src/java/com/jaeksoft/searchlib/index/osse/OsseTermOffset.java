@@ -24,11 +24,19 @@
 
 package com.jaeksoft.searchlib.index.osse;
 
+import java.util.List;
+
 import com.sun.jna.Structure;
 
 public class OsseTermOffset extends Structure {
 
 	public int ui32StartOffset;
 	public int ui32EndOffset;
+
+	@Override
+	protected List getFieldOrder() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 }

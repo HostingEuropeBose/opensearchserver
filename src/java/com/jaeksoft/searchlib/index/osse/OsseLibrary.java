@@ -28,6 +28,7 @@ import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.WString;
+import com.sun.jna.ptr.IntByReference;
 
 public interface OsseLibrary extends Library {
 
@@ -81,4 +82,14 @@ public interface OsseLibrary extends Library {
 	int OSSCLib_Transact_DeleteFields(Pointer hTransact,
 			WString[] lplpwszFieldName, int ui32NumberOfFields,
 			Pointer hExtErrInfo);
+
+	int OSSCLib_Index_GetListOfFields(Pointer hIndex, Pointer[] hFieldArray,
+			int fieldArraySize, Pointer hExtErrInfo);
+
+	Pointer OSSCLib_Index_GetFieldNameAndProperties(Pointer hIndex,
+			Pointer hIndexField, IntByReference fieldId,
+			IntByReference fieldType, IntByReference fieldFlags,
+			Pointer hExtErrInfo);
+
+	void OSSCLib_Index_GetFieldNameAndProperties_Free(Pointer hFieldName);
 }

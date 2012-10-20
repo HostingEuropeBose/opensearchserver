@@ -24,7 +24,9 @@
 
 package com.jaeksoft.searchlib.index;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.index.osse.OsseIndex;
@@ -37,6 +39,7 @@ import com.jaeksoft.searchlib.schema.SchemaField;
 import com.jaeksoft.searchlib.schema.SchemaFieldList;
 import com.sun.jna.Pointer;
 import com.sun.jna.WString;
+import com.sun.jna.ptr.IntByReference;
 
 public class WriterNativeOSSE extends WriterAbstract {
 
@@ -73,11 +76,25 @@ public class WriterNativeOSSE extends WriterAbstract {
 				transaction.getErrorPointer());
 		if (indexField != null)
 			return;
+		int flag = 0;
+		switch (schemaField.getTermVector()) {
+		case YES:
+			flag += OsseLibrary.OSSCLIB_FIELD_UI32FIELDFLAGS_VSM1;
+			break;
+		case POSITIONS_OFFSETS:
+			flag = OsseLibrary.OSSCLIB_FIELD_UI32FIELDFLAGS_VSM1
+					| OsseLibrary.OSSCLIB_FIELD_UI32FIELDFLAGS_OFFSET
+					| OsseLibrary.OSSCLIB_FIELD_UI32FIELDFLAGS_POSITION;
+			break;
+		default:
+			break;
+		}
 		if (OsseLibrary.INSTANCE.OSSCLib_Transact_CreateField(
 				transaction.getPointer(), new WString(fieldName),
-				OsseLibrary.OSSCLIB_FIELD_UI32FIELDTYPE_STRING, 0, null,
+				OsseLibrary.OSSCLIB_FIELD_UI32FIELDTYPE_STRING, flag, null,
 				transaction.getErrorPointer()) == null)
 			transaction.throwError();
+		System.out.println("FIELD CREATED: " + fieldName);
 	}
 
 	private void checkFieldDeletion(OsseTransaction transaction,
@@ -87,6 +104,7 @@ public class WriterNativeOSSE extends WriterAbstract {
 				transaction.getPointer(), wTerms, 1,
 				transaction.getErrorPointer()) != 1)
 			transaction.throwError();
+		System.out.println("FIELD DELETE: " + fieldName);
 	}
 
 	public void checkSchemaFieldList(SchemaFieldList schemaFieldList)
@@ -96,6 +114,33 @@ public class WriterNativeOSSE extends WriterAbstract {
 			transaction = new OsseTransaction(index);
 			for (SchemaField schemaField : schemaFieldList)
 				checkFieldCreation(transaction, schemaField);
+			int nField = OsseLibrary.INSTANCE.OSSCLib_Index_GetListOfFields(
+					index.getPointer(), null, 0, transaction.getErrorPointer());
+			if (nField > 0) {
+				List<String> toDelete = new ArrayList<String>(0);
+				Pointer[] hFieldArray = new Pointer[nField];
+				OsseLibrary.INSTANCE.OSSCLib_Index_GetListOfFields(
+						index.getPointer(), hFieldArray, nField,
+						transaction.getErrorPointer());
+				for (Pointer hField : hFieldArray) {
+					IntByReference fieldId = new IntByReference();
+					IntByReference fieldType = new IntByReference();
+					IntByReference fieldFlags = new IntByReference();
+					Pointer hFieldName = OsseLibrary.INSTANCE
+							.OSSCLib_Index_GetFieldNameAndProperties(
+									index.getPointer(), hField, fieldId,
+									fieldType, fieldFlags,
+									transaction.getErrorPointer());
+					String fieldName = hFieldName.getString(0, true);
+					if (schemaFieldList.get(fieldName) == null)
+						toDelete.add(fieldName);
+					OsseLibrary.INSTANCE
+							.OSSCLib_Index_GetFieldNameAndProperties_Free(hFieldName);
+
+				}
+				for (String fieldName : toDelete)
+					checkFieldDeletion(transaction, fieldName);
+			}
 			transaction.commit();
 		} finally {
 			if (transaction != null)
