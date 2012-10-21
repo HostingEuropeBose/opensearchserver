@@ -26,6 +26,7 @@ package com.jaeksoft.searchlib.analysis.filter.stop;
 
 import java.io.IOException;
 
+import com.jaeksoft.searchlib.analysis.FilterFactory;
 import com.jaeksoft.searchlib.analysis.TokenStream;
 import com.jaeksoft.searchlib.analysis.filter.AbstractTermFilter;
 
@@ -34,9 +35,9 @@ public class StopWordFilter extends AbstractTermFilter {
 	private final WordArray wordArray;
 	private final boolean ignoreCase;
 
-	public StopWordFilter(TokenStream input, WordArray wordArray,
-			boolean ignoreCase) {
-		super(input);
+	public StopWordFilter(FilterFactory filterFactory, TokenStream input,
+			WordArray wordArray, boolean ignoreCase) {
+		super(filterFactory, input);
 		this.wordArray = wordArray;
 		this.ignoreCase = ignoreCase;
 	}

@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2010 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -24,15 +24,37 @@
 
 package com.jaeksoft.searchlib.analysis.filter;
 
+import java.io.IOException;
+
+import com.ibm.icu.text.Transliterator;
 import com.jaeksoft.searchlib.analysis.FilterFactory;
 import com.jaeksoft.searchlib.analysis.TokenStream;
 
 public class ISOLatin1AccentFilter extends FilterFactory {
 
+	private class ISOLatin1AccentTokenStream extends TokenStream {
+
+		private final Transliterator accentsconverter;
+
+		public ISOLatin1AccentTokenStream(FilterFactory filterFactory,
+				TokenStream input) {
+			super(filterFactory, input);
+			accentsconverter = Transliterator
+					.getInstance("NFD; [:Nonspacing Mark:] Remove; NFC");
+		}
+
+		public boolean incrementToken() throws IOException {
+			if (!input.incrementToken())
+				return false;
+			addToken(accentsconverter.transliterate(input.getCurrentTerm()),
+					input.getAttributes());
+			return super.incrementToken();
+		}
+	}
+
 	@Override
 	public TokenStream create(TokenStream tokenStream) {
-		// TODO Auto-generated method stub
-		return null;
+		return new ISOLatin1AccentTokenStream(this, tokenStream);
 	}
 
 }

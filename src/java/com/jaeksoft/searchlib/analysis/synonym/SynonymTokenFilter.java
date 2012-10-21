@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2009-2010 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2009-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -26,6 +26,7 @@ package com.jaeksoft.searchlib.analysis.synonym;
 
 import java.io.IOException;
 
+import com.jaeksoft.searchlib.analysis.FilterFactory;
 import com.jaeksoft.searchlib.analysis.TokenStream;
 
 public class SynonymTokenFilter extends TokenStream {
@@ -38,8 +39,9 @@ public class SynonymTokenFilter extends TokenStream {
 
 	private int currentPos = 0;
 
-	public SynonymTokenFilter(TokenStream input, SynonymMap synonymMap) {
-		super(input);
+	public SynonymTokenFilter(FilterFactory filterFactory, TokenStream input,
+			SynonymMap synonymMap) {
+		super(filterFactory, input);
 		this.synonymMap = synonymMap;
 	}
 

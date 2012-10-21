@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2011-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -23,12 +23,13 @@
  **/
 package com.jaeksoft.searchlib.analysis.filter;
 
+import com.jaeksoft.searchlib.analysis.FilterFactory;
 import com.jaeksoft.searchlib.analysis.TokenStream;
 
 public abstract class AbstractTermFilter extends TokenStream {
 
-	protected AbstractTermFilter(TokenStream input) {
-		super(input);
+	protected AbstractTermFilter(FilterFactory filterFactory, TokenStream input) {
+		super(filterFactory, input);
 	}
 
 	protected final void createToken(String term, int posInc, int startOff,

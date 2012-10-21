@@ -24,11 +24,19 @@
 
 package com.jaeksoft.searchlib.index;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.commons.io.IOUtils;
+
 import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.analysis.Analyzer;
+import com.jaeksoft.searchlib.analysis.CompiledAnalyzer;
+import com.jaeksoft.searchlib.analysis.LanguageEnum;
+import com.jaeksoft.searchlib.analysis.TokenStream;
 import com.jaeksoft.searchlib.index.osse.OsseIndex;
 import com.jaeksoft.searchlib.index.osse.OsseLibrary;
 import com.jaeksoft.searchlib.index.osse.OsseTransaction;
@@ -148,41 +156,94 @@ public class WriterNativeOSSE extends WriterAbstract {
 		}
 	}
 
+	final private void updateTerms(OsseTransaction transaction,
+			Pointer documentPtr, Pointer fieldPtr, WString[] terms, int length)
+			throws SearchLibException {
+		int res = OsseLibrary.INSTANCE
+				.OSSCLib_Transact_Document_AddStringTerms(
+						transaction.getPointer(), documentPtr, fieldPtr, terms,
+						null, null, null, length, transaction.getErrorPointer());
+		System.out.println("OSSCLib_Transact_Document_AddStringTerms returns "
+				+ res + " / " + length);
+		if (res != length)
+			transaction.throwError();
+	}
+
+	final private void updateTerm(OsseTransaction transaction,
+			Pointer documentPtr, Pointer fieldPtr, String value)
+			throws SearchLibException {
+		if (value == null || value.length() == 0)
+			return;
+		WString[] terms = new WString[] { new WString(value) };
+		updateTerms(transaction, documentPtr, fieldPtr, terms, 1);
+	}
+
+	final private void updateTerms(OsseTransaction transaction,
+			Pointer documentPtr, Pointer fieldPtr,
+			CompiledAnalyzer compiledAnalyzer, String value)
+			throws IOException, SearchLibException {
+		StringReader stringReader = null;
+		try {
+			stringReader = new StringReader(value);
+			TokenStream tokenStream = compiledAnalyzer
+					.tokenStream(stringReader);
+			WString[] terms = new WString[100];
+			int length = 0;
+			while (tokenStream.incrementToken()) {
+				terms[length++] = new WString(tokenStream.getCurrentTerm());
+				if (length == terms.length) {
+					updateTerms(transaction, documentPtr, fieldPtr, terms,
+							length);
+					length = 0;
+				}
+			}
+			if (length > 0)
+				updateTerms(transaction, documentPtr, fieldPtr, terms, length);
+		} finally {
+			if (stringReader != null)
+				IOUtils.closeQuietly(stringReader);
+		}
+	}
+
 	@Override
 	public boolean updateDocument(Schema schema, IndexDocument document)
 			throws SearchLibException {
 		OsseTransaction transaction = null;
 		try {
 			transaction = new OsseTransaction(index);
-			Pointer docPtr = OsseLibrary.INSTANCE
+			Pointer documentPtr = OsseLibrary.INSTANCE
 					.OSSCLib_Transact_Document_New(transaction.getPointer(),
 							transaction.getErrorPointer());
+			LanguageEnum lang = document.getLang();
 			for (FieldContent fieldContent : document) {
-				WString wFieldName = new WString(fieldContent.getField());
-				Pointer hIndexField = OsseLibrary.INSTANCE
-						.OSSCLib_Transact_GetField(transaction.getPointer(),
-								wFieldName, transaction.getErrorPointer());
-				for (FieldValueItem valueItem : fieldContent.getValues()) {
-					String value = valueItem.getValue();
-					String[] terms = value.split("\\s");
-					if (terms.length > 0) {
-						WString[] wTerms = new WString[terms.length];
-						int i = 0;
-						for (String term : terms)
-							wTerms[i++] = new WString(term);
-						int res = OsseLibrary.INSTANCE
-								.OSSCLib_Transact_Document_AddStringTerms(
-										transaction.getPointer(), docPtr,
-										hIndexField, wTerms, null, null, null,
-										wTerms.length,
-										transaction.getErrorPointer());
-						System.out
-								.println("OSSCLib_Transact_Document_AddStringTerms returns "
-										+ res + " / " + wTerms.length);
+				SchemaField schemaField = schema.getFieldList().get(
+						fieldContent.getField());
+				if (schemaField != null) {
+					Analyzer analyzer = schema.getAnalyzer(schemaField, lang);
+					CompiledAnalyzer compiledAnalyzer = null;
+					if (analyzer != null)
+						compiledAnalyzer = analyzer.getIndexAnalyzer();
+					WString wFieldName = new WString(fieldContent.getField());
+					Pointer fieldPtr = OsseLibrary.INSTANCE
+							.OSSCLib_Transact_GetField(
+									transaction.getPointer(), wFieldName,
+									transaction.getErrorPointer());
+					if (fieldPtr == null)
+						transaction.throwError();
+					for (FieldValueItem valueItem : fieldContent.getValues()) {
+						String value = valueItem.getValue();
+						if (compiledAnalyzer != null)
+							updateTerms(transaction, documentPtr, fieldPtr,
+									compiledAnalyzer, value);
+						else
+							updateTerm(transaction, documentPtr, fieldPtr,
+									value);
 					}
 				}
 			}
 			transaction.commit();
+		} catch (IOException e) {
+			throw new SearchLibException(e);
 		} finally {
 			if (transaction != null)
 				transaction.release();

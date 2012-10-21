@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2010 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2010-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -70,31 +70,27 @@ public class CompiledAnalyzer extends Analyzer {
 		}
 	}
 
-	public TokenStream tokenStream(String fieldname, Reader reader)
-			throws IOException {
+	public TokenStream tokenStream(Reader reader) throws IOException {
 		TokenStream ts = new TokenStream(reader);
 		for (FilterFactory filter : filters)
 			ts = filter.create(ts);
 		return ts;
 	}
 
-	public boolean isAnyToken(String fieldName, String value)
-			throws IOException {
-		return tokenStream(fieldName, new StringReader(value)).incrementToken();
+	public boolean isAnyToken(String value) throws IOException {
+		return tokenStream(new StringReader(value)).incrementToken();
 	}
 
-	public List<DebugTokenFilter> test(String text) throws IOException {
-		List<DebugTokenFilter> list = new ArrayList<DebugTokenFilter>();
+	public List<TokenStream> test(String text) throws IOException {
+		List<TokenStream> list = new ArrayList<TokenStream>();
 		StringReader reader = new StringReader(text);
-		DebugTokenFilter lastDebugTokenFilter = new DebugTokenFilter(null,
-				new TokenStream(reader));
+		TokenStream lastTokenFilter = new TokenStream(reader);
 		for (FilterFactory filter : filters) {
-			DebugTokenFilter newDebugTokenFilter = new DebugTokenFilter(filter,
-					filter.create(lastDebugTokenFilter));
-			newDebugTokenFilter.incrementToken();
-			list.add(newDebugTokenFilter);
-			lastDebugTokenFilter = newDebugTokenFilter;
+			lastTokenFilter = filter.create(lastTokenFilter);
+			list.add(lastTokenFilter);
 		}
+		while (lastTokenFilter.incrementToken())
+			;
 		return list;
 	}
 }

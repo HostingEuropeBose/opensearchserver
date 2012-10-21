@@ -24,47 +24,27 @@
 
 package com.jaeksoft.searchlib.analysis.filter;
 
-import java.io.IOException;
-
 import com.jaeksoft.searchlib.analysis.FilterFactory;
 import com.jaeksoft.searchlib.analysis.TokenStream;
 
 public class LetterOrDigitTokenizerFilter extends FilterFactory {
 
-	public class LetterOrDigitTokenizer extends TokenStream {
+	public class LetterOrDigitTokenizer extends AbstractCharFilter {
 
-		public LetterOrDigitTokenizer(TokenStream input) {
-			super(input);
+		public LetterOrDigitTokenizer(FilterFactory filterFactory,
+				TokenStream input) {
+			super(filterFactory, input);
 		}
 
-		public boolean incrementToken() throws IOException {
-			if (isTokenAvailable())
-				return true;
-			while (input.incrementToken()) {
-				StringBuffer buffer = input.getBuffer();
-				StringBuffer newToken = new StringBuffer(0);
-				int start = input.getCurrentTokenPosition();
-				int end = start + input.getCurrentTokenLength();
-				for (int i = start; i < end; i++) {
-					char ch = buffer.charAt(i);
-					if (Character.isLetterOrDigit(ch)) {
-						newToken.append(ch);
-					} else {
-						addToken(newToken);
-						newToken = new StringBuffer(0);
-					}
-				}
-				addToken(newToken);
-				if (isTokenAvailable())
-					return true;
-			}
-			return false;
+		@Override
+		public boolean isTokenChar(char ch) {
+			return Character.isLetterOrDigit(ch);
 		}
 	}
 
 	@Override
 	public TokenStream create(TokenStream input) {
-		return new LetterOrDigitTokenizer(input);
+		return new LetterOrDigitTokenizer(this, input);
 	}
 
 }

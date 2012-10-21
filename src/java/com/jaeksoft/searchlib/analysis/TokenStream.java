@@ -28,22 +28,54 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.util.Iterator;
 
-public class TokenStream {
+public class TokenStream implements Iterable<String> {
 
+	public class TokenAttributes {
+
+		public Integer offsetStart;
+		public Integer offsetEnd;
+		public Integer positionIncrement;
+
+		private TokenAttributes(int currentIncrementPosition) {
+			if (offsetStartList.size() > currentIncrementPosition)
+				offsetStart = offsetStartList.get(currentIncrementPosition);
+			else
+				offsetStart = null;
+			if (offsetEndList.size() > currentIncrementPosition)
+				offsetEnd = offsetEndList.get(currentIncrementPosition);
+			else
+				offsetEnd = null;
+			if (positionIncrementList.size() > currentIncrementPosition)
+				positionIncrement = positionIncrementList
+						.get(currentIncrementPosition);
+			else
+				positionIncrement = null;
+		}
+	}
+
+	final private FilterFactory filterFactory;
 	final protected TokenStream input;
 	final private StringBuffer buffer = new StringBuffer(0);
-	final private IntArrayList positionList = new IntArrayList(0);
-	final private IntArrayList lengthList = new IntArrayList(0);
+	final private IntArrayList bufferPositionList = new IntArrayList(0);
+	final private IntArrayList bufferLengthList = new IntArrayList(0);
+	final private IntArrayList offsetStartList = new IntArrayList(0);
+	final private IntArrayList offsetEndList = new IntArrayList(0);
+	final private IntArrayList positionIncrementList = new IntArrayList(0);
 	private int currentIncrementPosition = 0;
 	private int currentTokenPosition = 0;
 	private int currentTokenLength = 0;
+	private String currentTerm = null;
+	private TokenAttributes currentAttributes;
 
-	public TokenStream(TokenStream input) {
+	public TokenStream(FilterFactory filterFactory, TokenStream input) {
+		this.filterFactory = filterFactory;
 		this.input = input;
 	}
 
 	public TokenStream(Reader reader) throws IOException {
+		filterFactory = null;
 		input = null;
 		if (reader != null) {
 			char[] cbuf = new char[65536];
@@ -52,21 +84,46 @@ public class TokenStream {
 				buffer.append(cbuf, 0, l);
 			l = buffer.length();
 			if (l > 0) {
-				positionList.add(0);
-				positionList.add(l);
+				bufferPositionList.add(0);
+				bufferLengthList.add(l);
+				offsetStartList.add(0);
+				offsetEndList.add(l);
+				positionIncrementList.add(1);
 			}
 		}
 	}
 
-	final protected void addToken(StringBuffer tokenBuffer) {
+	final private void addAttributes(int bufferPosition, int bufferLength,
+			TokenAttributes attributes) {
+		bufferPositionList.add(bufferPosition);
+		bufferLengthList.add(bufferLength);
+		if (attributes.offsetStart != null)
+			offsetStartList.add(attributes.offsetStart);
+		if (attributes.offsetEnd != null)
+			offsetEndList.add(attributes.offsetEnd);
+		if (attributes.positionIncrement != null)
+			positionIncrementList.add(attributes.positionIncrement);
+	}
+
+	final protected void addToken(StringBuffer tokenBuffer,
+			TokenAttributes attributes) {
 		if (tokenBuffer == null)
 			return;
 		int len = tokenBuffer.length();
 		if (len == 0)
 			return;
-		positionList.add(buffer.length());
-		lengthList.add(len);
+		addAttributes(buffer.length(), len, attributes);
 		buffer.append(tokenBuffer);
+	}
+
+	final protected void addToken(String token, TokenAttributes attributes) {
+		if (token == null)
+			return;
+		int len = token.length();
+		if (len == 0)
+			return;
+		addAttributes(buffer.length(), len, attributes);
+		buffer.append(token);
 	}
 
 	final public int getCurrentTokenPosition() {
@@ -77,8 +134,8 @@ public class TokenStream {
 		return currentTokenLength;
 	}
 
-	final protected boolean isTokenAvailable() {
-		return currentIncrementPosition < positionList.size();
+	final public TokenAttributes getAttributes() {
+		return currentAttributes;
 	}
 
 	final public StringBuffer getBuffer() {
@@ -86,11 +143,67 @@ public class TokenStream {
 	}
 
 	public boolean incrementToken() throws IOException {
-		if (!isTokenAvailable())
+		if (currentIncrementPosition >= bufferPositionList.size())
 			return false;
-		currentTokenPosition = positionList.getInt(currentIncrementPosition);
-		currentTokenLength = lengthList.getInt(currentIncrementPosition);
+		currentTerm = null;
+		currentTokenPosition = bufferPositionList
+				.getInt(currentIncrementPosition);
+		currentTokenLength = bufferLengthList.getInt(currentIncrementPosition);
+		currentAttributes = new TokenAttributes(currentIncrementPosition);
 		currentIncrementPosition++;
 		return true;
 	}
+
+	public String getCurrentTerm() {
+		if (currentTerm != null)
+			return currentTerm;
+		currentTerm = buffer.substring(currentTokenPosition,
+				currentTokenPosition + currentTokenLength);
+		return currentTerm;
+	}
+
+	final public FilterFactory getFilterFactory() {
+		return filterFactory;
+	}
+
+	private class TermIterator implements Iterator<String> {
+
+		private int position = 0;
+
+		@Override
+		public boolean hasNext() {
+			return position < bufferPositionList.size();
+		}
+
+		@Override
+		public String next() {
+			int start = bufferPositionList.getInt(position);
+			int end = start + bufferLengthList.getInt(position);
+			StringBuffer sb = new StringBuffer(buffer.substring(start, end));
+			TokenAttributes attributes = new TokenAttributes(position);
+			sb.append('[');
+			if (attributes.offsetStart != null)
+				sb.append(attributes.offsetStart);
+			sb.append('-');
+			if (attributes.offsetEnd != null)
+				sb.append(attributes.offsetEnd);
+			sb.append(',');
+			if (attributes.positionIncrement != null)
+				sb.append(attributes.positionIncrement);
+			sb.append(']');
+			position++;
+			return sb.toString();
+		}
+
+		@Override
+		public void remove() {
+			throw new RuntimeException("Not allowed");
+		}
+
+	}
+
+	final public Iterator<String> iterator() {
+		return new TermIterator();
+	}
+
 }

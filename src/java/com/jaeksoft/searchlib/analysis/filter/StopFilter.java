@@ -63,6 +63,6 @@ public class StopFilter extends FilterFactory {
 		WordArray wordArray = null;
 		if (wordList != null && wordList.length() > 0)
 			wordArray = stopWordsManager.getWordArray(wordList, ignoreCase);
-		return new StopWordFilter(tokenStream, wordArray, ignoreCase);
+		return new StopWordFilter(this, tokenStream, wordArray, ignoreCase);
 	}
 }

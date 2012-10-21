@@ -57,7 +57,7 @@ public class SynonymFilter extends FilterFactory {
 	public TokenStream create(TokenStream tokenStream) {
 		if (synonyms == null)
 			return tokenStream;
-		return new SynonymTokenFilter(tokenStream, synonyms);
+		return new SynonymTokenFilter(this, tokenStream, synonyms);
 	}
 
 }

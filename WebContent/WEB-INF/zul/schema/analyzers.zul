@@ -1,6 +1,6 @@
 <!--   License Agreement for OpenSearchServer -->
 <!--   -->
-<!--   Copyright (C) 2008-2010 Emmanuel Keller / Jaeksoft -->
+<!--   Copyright (C) 2008-2020 Emmanuel Keller / Jaeksoft -->
 <!--   -->
 <!--   This file is part of OpenSearchServer. -->
 <!--   http://www.open-search-server.com -->
@@ -56,38 +56,6 @@
 						<label value="Language: " />
 						<listbox model="@{anlzr.languageEnum}"
 							selectedItem="@{anlzr.currentAnalyzer.lang}" mold="select" />
-					</row>
-					<row>
-						<label value="Tokenizer: " />
-						<vbox width="100%">
-							<listbox model="@{anlzr.tokenizerList}"
-								mold="select" selectedItem="@{anlzr.currentTokenizer}" />
-							<grid
-								visible="@{anlzr.currentAnalyzer.tokenizer.property}"
-								model="@{anlzr.currentAnalyzer.tokenizer.userProperties}">
-								<columns>
-									<column width="150px" align="right" />
-									<column />
-								</columns>
-								<rows>
-									<row
-										self="@{each='tokenizerproperty'}">
-										<label
-											tooltiptext="@{tokenizerproperty.classPropertyEnum.info}"
-											value="@{tokenizerproperty.classPropertyEnum.label}" />
-										<vbox>
-											<textbox
-												visible="@{tokenizerproperty.textbox}"
-												value="@{tokenizerproperty.value}" />
-											<listbox mold="select"
-												visible="@{tokenizerproperty.valueList}"
-												model="@{tokenizerproperty.valueList}"
-												selectedItem="@{tokenizerproperty.value}" />
-										</vbox>
-									</row>
-								</rows>
-							</grid>
-						</vbox>
 					</row>
 					<row>
 						<label value="Filter list: " />

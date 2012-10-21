@@ -42,10 +42,10 @@ import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.Analyzer;
 import com.jaeksoft.searchlib.analysis.AnalyzerList;
 import com.jaeksoft.searchlib.analysis.CompiledAnalyzer;
-import com.jaeksoft.searchlib.analysis.DebugTokenFilter;
 import com.jaeksoft.searchlib.analysis.FilterEnum;
 import com.jaeksoft.searchlib.analysis.FilterFactory;
 import com.jaeksoft.searchlib.analysis.FilterScope;
+import com.jaeksoft.searchlib.analysis.TokenStream;
 import com.jaeksoft.searchlib.schema.Schema;
 import com.jaeksoft.searchlib.web.SchemaServlet;
 import com.jaeksoft.searchlib.web.controller.AlertController;
@@ -75,7 +75,7 @@ public class AnalyzersController extends CommonController implements
 
 	private transient String testType;
 
-	private transient List<DebugTokenFilter> testList;
+	private transient List<TokenStream> testList;
 
 	private class DeleteAlert extends AlertController {
 
@@ -345,19 +345,19 @@ public class AnalyzersController extends CommonController implements
 		reloadPage();
 	}
 
-	public List<DebugTokenFilter> getTestList() {
+	public List<TokenStream> getTestList() {
 		return testList;
 	}
 
 	@Override
 	public void render(Listitem item, Object data) throws Exception {
-		DebugTokenFilter debugFilter = (DebugTokenFilter) data;
-		Listcell listcell = new Listcell(debugFilter.getClassFactory()
+		TokenStream tokenStream = (TokenStream) data;
+		Listcell listcell = new Listcell(tokenStream.getFilterFactory()
 				.getClassName());
 		listcell.setParent(item);
 		listcell = new Listcell();
 		Hbox hbox = new Hbox();
-		for (String term : debugFilter.getTokenList()) {
+		for (String term : tokenStream) {
 			Window window = new Window();
 			window.setBorder("normal");
 			new Label(term).setParent(window);

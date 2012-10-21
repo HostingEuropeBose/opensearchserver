@@ -26,6 +26,7 @@ package com.jaeksoft.searchlib.analysis.filter.stop;
 
 import java.io.IOException;
 
+import com.jaeksoft.searchlib.analysis.FilterFactory;
 import com.jaeksoft.searchlib.analysis.TokenStream;
 import com.jaeksoft.searchlib.analysis.filter.AbstractTermFilter;
 
@@ -35,9 +36,9 @@ public class PrefixSuffixFilter extends AbstractTermFilter {
 	private final SuffixArray suffixArray;
 	private final boolean ignoreCase;
 
-	public PrefixSuffixFilter(TokenStream input, PrefixArray prefixArray,
-			SuffixArray suffixArray, boolean ignoreCase) {
-		super(input);
+	public PrefixSuffixFilter(FilterFactory filterFactory, TokenStream input,
+			PrefixArray prefixArray, SuffixArray suffixArray, boolean ignoreCase) {
+		super(filterFactory, input);
 		this.prefixArray = prefixArray;
 		this.suffixArray = suffixArray;
 		this.ignoreCase = ignoreCase;

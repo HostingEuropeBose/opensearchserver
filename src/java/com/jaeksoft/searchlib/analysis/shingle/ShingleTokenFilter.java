@@ -26,15 +26,17 @@ package com.jaeksoft.searchlib.analysis.shingle;
 
 import java.io.IOException;
 
+import com.jaeksoft.searchlib.analysis.FilterFactory;
 import com.jaeksoft.searchlib.analysis.TokenStream;
 
 public class ShingleTokenFilter extends TokenStream {
 
 	private ShingleQueue[] shingles;
 
-	public ShingleTokenFilter(TokenStream tokenStream, String tokenSeparator,
-			int minShingleSize, int maxShingleSize) {
-		super(tokenStream);
+	public ShingleTokenFilter(FilterFactory filterFactory,
+			TokenStream tokenStream, String tokenSeparator, int minShingleSize,
+			int maxShingleSize) {
+		super(filterFactory, tokenStream);
 		shingles = new ShingleQueue[maxShingleSize - minShingleSize + 1];
 		for (int i = 0; i < shingles.length; i++)
 			shingles[i] = new ShingleQueue(tokenSeparator, maxShingleSize - i);
