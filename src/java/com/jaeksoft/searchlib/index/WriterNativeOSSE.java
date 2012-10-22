@@ -37,8 +37,10 @@ import com.jaeksoft.searchlib.analysis.Analyzer;
 import com.jaeksoft.searchlib.analysis.CompiledAnalyzer;
 import com.jaeksoft.searchlib.analysis.LanguageEnum;
 import com.jaeksoft.searchlib.analysis.TokenStream;
+import com.jaeksoft.searchlib.analysis.TokenStream.TokenAttributes;
 import com.jaeksoft.searchlib.index.osse.OsseIndex;
 import com.jaeksoft.searchlib.index.osse.OsseLibrary;
+import com.jaeksoft.searchlib.index.osse.OsseTermOffset;
 import com.jaeksoft.searchlib.index.osse.OsseTransaction;
 import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
@@ -157,26 +159,40 @@ public class WriterNativeOSSE extends WriterAbstract {
 	}
 
 	final private void updateTerms(OsseTransaction transaction,
-			Pointer documentPtr, Pointer fieldPtr, WString[] terms, int length)
+			Pointer documentPtr, Pointer fieldPtr, WString[] terms,
+			OsseTermOffset[] offsets, int[] positionIncrements, int length)
 			throws SearchLibException {
 		int res = OsseLibrary.INSTANCE
 				.OSSCLib_Transact_Document_AddStringTerms(
 						transaction.getPointer(), documentPtr, fieldPtr, terms,
-						null, null, null, length, transaction.getErrorPointer());
+						offsets, positionIncrements, null, length,
+						transaction.getErrorPointer());
 		System.out.println("OSSCLib_Transact_Document_AddStringTerms returns "
 				+ res + " / " + length);
 		if (res != length)
 			transaction.throwError();
 	}
 
+	/**
+	 * Should be replaced by updateTerms with keywordAnalyzer (to embed offset
+	 * and posincr)
+	 * 
+	 * @param transaction
+	 * @param documentPtr
+	 * @param fieldPtr
+	 * @param value
+	 * @throws SearchLibException
+	 */
 	final private void updateTerm(OsseTransaction transaction,
 			Pointer documentPtr, Pointer fieldPtr, String value)
 			throws SearchLibException {
 		if (value == null || value.length() == 0)
 			return;
 		WString[] terms = new WString[] { new WString(value) };
-		updateTerms(transaction, documentPtr, fieldPtr, terms, 1);
+		updateTerms(transaction, documentPtr, fieldPtr, terms, null, null, 1);
 	}
+
+	final private static int TERM_BUFFER_SIZE = 100;
 
 	final private void updateTerms(OsseTransaction transaction,
 			Pointer documentPtr, Pointer fieldPtr,
@@ -187,18 +203,28 @@ public class WriterNativeOSSE extends WriterAbstract {
 			stringReader = new StringReader(value);
 			TokenStream tokenStream = compiledAnalyzer
 					.tokenStream(stringReader);
-			WString[] terms = new WString[100];
+			WString[] terms = new WString[TERM_BUFFER_SIZE];
+			OsseTermOffset[] offsets = OsseTermOffset
+					.getNewArray(TERM_BUFFER_SIZE);
+			int[] positionIncrements = new int[TERM_BUFFER_SIZE];
 			int length = 0;
 			while (tokenStream.incrementToken()) {
-				terms[length++] = new WString(tokenStream.getCurrentTerm());
-				if (length == terms.length) {
+				terms[length] = new WString(tokenStream.getCurrentTerm());
+				TokenAttributes attr = tokenStream.getAttributes();
+				if (attr.positionIncrement != null)
+					positionIncrements[length] = attr.positionIncrement;
+				if (attr.offsetStart != null)
+					offsets[length].set(attr);
+				length++;
+				if (length == TERM_BUFFER_SIZE) {
 					updateTerms(transaction, documentPtr, fieldPtr, terms,
-							length);
+							offsets, positionIncrements, length);
 					length = 0;
 				}
 			}
 			if (length > 0)
-				updateTerms(transaction, documentPtr, fieldPtr, terms, length);
+				updateTerms(transaction, documentPtr, fieldPtr, terms, offsets,
+						positionIncrements, length);
 		} finally {
 			if (stringReader != null)
 				IOUtils.closeQuietly(stringReader);

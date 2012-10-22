@@ -24,8 +24,10 @@
 
 package com.jaeksoft.searchlib.index.osse;
 
+import java.util.Arrays;
 import java.util.List;
 
+import com.jaeksoft.searchlib.analysis.TokenStream.TokenAttributes;
 import com.sun.jna.Structure;
 
 public class OsseTermOffset extends Structure {
@@ -33,10 +35,21 @@ public class OsseTermOffset extends Structure {
 	public int ui32StartOffset;
 	public int ui32EndOffset;
 
+	private final static List<?> fieldOrderList = Arrays.asList(new String[] {
+			"ui32StartOffset", "ui32EndOffset" });
+
 	@Override
-	protected List getFieldOrder() {
-		// TODO Auto-generated method stub
-		return null;
+	protected List<?> getFieldOrder() {
+		return fieldOrderList;
+	}
+
+	public final void set(TokenAttributes attr) {
+		ui32StartOffset = attr.offsetStart;
+		ui32EndOffset = attr.offsetEnd;
+	}
+
+	public static final OsseTermOffset[] getNewArray(int size) {
+		return (OsseTermOffset[]) new OsseTermOffset().toArray(size);
 	}
 
 }
