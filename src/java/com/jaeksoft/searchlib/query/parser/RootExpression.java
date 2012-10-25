@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -22,48 +22,14 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-package com.jaeksoft.searchlib.query;
+package com.jaeksoft.searchlib.query.parser;
 
-import com.jaeksoft.searchlib.analysis.Analyzer;
+import com.jaeksoft.searchlib.function.expression.SyntaxError;
 
-/*
- * TODO Full implementation
- */
-public class QueryParser {
+public class RootExpression extends GroupExpression {
 
-	public enum Operator {
-		AND, OR
-	}
-
-	public QueryParser(String defaultField, Analyzer analyzer) {
-		// TODO Auto-generated constructor stub
-	}
-
-	public Query parse(String query) {
-
-		// get field name
-
-		return null;
-	}
-
-	public void setAllowLeadingWildcard(boolean allowLeadingWildcard) {
-		// TODO Auto-generated method stub
-
-	}
-
-	public void setPhraseSlop(int phraseSlop) {
-		// TODO Auto-generated method stub
-
-	}
-
-	public void setDefaultOperator(Operator defaultOperator) {
-		// TODO Auto-generated method stub
-
-	}
-
-	public void setLowercaseExpandedTerms(boolean b) {
-		// TODO Auto-generated method stub
-
+	protected RootExpression(char[] chars, int pos) throws SyntaxError {
+		super(null, chars, pos);
 	}
 
 }
