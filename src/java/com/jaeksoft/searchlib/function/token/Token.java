@@ -34,10 +34,17 @@ public abstract class Token {
 		this.additionalChars = additionalChars;
 		StringBuffer token = new StringBuffer();
 		size = 0;
+		boolean escaped = false;
 		while (pos < chars.length) {
 			char ch = chars[pos++];
-			if (!charIsValid(ch))
-				break;
+			if (!escaped) {
+				if (ch == '\\') {
+					escaped = true;
+					continue;
+				}
+				if (!charIsValid(ch))
+					break;
+			}
 			token.append(ch);
 			size++;
 		}

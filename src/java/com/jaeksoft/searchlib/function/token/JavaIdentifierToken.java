@@ -22,20 +22,26 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-package com.jaeksoft.searchlib.query.parser;
+package com.jaeksoft.searchlib.function.token;
 
-public abstract class Expression {
+public class JavaIdentifierToken extends Token {
 
-	protected RootExpression root;
+	public String word;
 
-	protected int nextPos;
+	public JavaIdentifierToken(char[] chars, int pos, char[] additionalChars) {
+		super(chars, pos, additionalChars);
+	}
 
-	protected Expression(RootExpression root) {
-		if (root == null && this instanceof RootExpression)
-			this.root = (RootExpression) this;
-		else
-			this.root = root;
-		this.nextPos = 0;
+	@Override
+	protected boolean charIsValid(char ch) {
+		if (super.charIsValid(ch))
+			return true;
+		return Character.isJavaIdentifierPart(ch);
+	}
+
+	@Override
+	protected void set(StringBuffer token) {
+		word = token.toString();
 	}
 
 }
