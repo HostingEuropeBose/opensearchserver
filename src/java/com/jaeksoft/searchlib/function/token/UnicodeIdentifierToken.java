@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -24,19 +24,21 @@
 
 package com.jaeksoft.searchlib.function.token;
 
-public class QuoteToken extends Token {
+public class UnicodeIdentifierToken extends Token {
 
 	public String word;
 
-	public QuoteToken(char[] chars, int pos, char[] additionalChars) {
-		super(chars, pos, additionalChars);
+	public UnicodeIdentifierToken(char[] chars, int pos,
+			char[] additionalChars, char[] forbiddenChars) {
+		super(chars, pos, additionalChars, forbiddenChars);
 	}
 
 	@Override
-	protected boolean charIsValid(char ch) {
-		if (super.charIsValid(ch))
-			return true;
-		return ch != '"';
+	protected Boolean charIsValid(char ch) {
+		Boolean b = super.charIsValid(ch);
+		if (b != null)
+			return b;
+		return Character.isUnicodeIdentifierPart(ch);
 	}
 
 	@Override

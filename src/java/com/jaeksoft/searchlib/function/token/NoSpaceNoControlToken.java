@@ -22,25 +22,31 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-package com.jaeksoft.searchlib.query.parser;
+package com.jaeksoft.searchlib.function.token;
 
-import com.jaeksoft.searchlib.function.expression.SyntaxError;
-import com.jaeksoft.searchlib.function.token.DigitToken;
+public class NoSpaceNoControlToken extends Token {
 
-public class BoostExpression extends Expression {
+	public String word;
 
-	private float boostValue = 1.0F;
-
-	protected BoostExpression(RootExpression root, char[] chars, int pos)
-			throws SyntaxError {
-		super(root);
-		DigitToken token = new DigitToken(chars, pos, null);
-		boostValue = token.value;
-		nextPos = pos + token.size + 1;
+	public NoSpaceNoControlToken(char[] chars, int pos, char[] additionalChars,
+			char[] forbiddenChars) {
+		super(chars, pos, additionalChars, forbiddenChars);
 	}
 
-	public float getBoostValue() {
-		return boostValue;
+	@Override
+	protected Boolean charIsValid(char ch) {
+		Boolean b = super.charIsValid(ch);
+		if (b != null)
+			return b;
+		if (Character.isWhitespace(ch))
+			return false;
+		if (Character.isISOControl(ch))
+			return false;
+		return Character.isUnicodeIdentifierPart(ch);
 	}
 
+	@Override
+	protected void set(StringBuffer token) {
+		word = token.toString();
+	}
 }

@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -30,18 +30,20 @@ public class FunctionExpression extends Expression {
 
 	private FunctionValueSource functionValueSource;
 
+	private final static char[] addchars = { '.', '_', '-' };
+
 	protected FunctionExpression(RootExpression root, char[] chars, int pos)
 			throws SyntaxError {
 		super(root);
-		char[] addchars = { '.', '_', '-' };
-		LetterOrDigitToken token = new LetterOrDigitToken(chars, pos, addchars);
+		LetterOrDigitToken token = new LetterOrDigitToken(chars, pos, addchars,
+				null);
 		String func = token.word;
 		pos += token.size;
 		if (pos >= chars.length)
 			throw new SyntaxError("Parenthesis missing", chars, pos);
 		if (chars[pos++] != '(')
 			throw new SyntaxError("Parenthesis missing", chars, pos);
-		token = new LetterOrDigitToken(chars, pos, addchars);
+		token = new LetterOrDigitToken(chars, pos, addchars, null);
 		String field = token.word;
 		functionValueSource = root.functionValueSource(func, field);
 		pos += token.size;

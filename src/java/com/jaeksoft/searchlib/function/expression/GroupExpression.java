@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -78,7 +78,8 @@ public class GroupExpression extends Expression {
 
 	private Expression nextLetterExpression(char[] chars, int pos)
 			throws SyntaxError {
-		LetterOrDigitToken token = new LetterOrDigitToken(chars, pos, null);
+		LetterOrDigitToken token = new LetterOrDigitToken(chars, pos, null,
+				null);
 		if ("score".equalsIgnoreCase(token.word))
 			return new ScoreExpression(root, pos);
 		return new FunctionExpression(root, chars, pos);
@@ -93,8 +94,8 @@ public class GroupExpression extends Expression {
 			if (expression instanceof OperatorExpression)
 				operator = (OperatorExpression) expression;
 			else {
-				value = operator.newValue(value, expression.getValue(
-						subQueryScore, valSrcScore));
+				value = operator.newValue(value,
+						expression.getValue(subQueryScore, valSrcScore));
 			}
 		}
 		return value;
@@ -108,8 +109,8 @@ public class GroupExpression extends Expression {
 			if (expression instanceof OperatorExpression)
 				operator = (OperatorExpression) expression;
 			else {
-				value = operator.newValue(value, expression.getValue(
-						subQueryScore, valSrcScores));
+				value = operator.newValue(value,
+						expression.getValue(subQueryScore, valSrcScores));
 			}
 		}
 		return value;

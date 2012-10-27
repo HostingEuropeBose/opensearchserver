@@ -24,36 +24,42 @@
 
 package com.jaeksoft.searchlib.query.parser;
 
-import com.jaeksoft.searchlib.function.expression.SyntaxError;
+import java.util.ArrayList;
+import java.util.List;
 
-public class RootExpression extends Expression {
+import org.apache.commons.lang.StringUtils;
 
-	private GroupExpression group;
+import com.jaeksoft.searchlib.function.token.NoSpaceNoControlToken;
 
-	protected RootExpression(String field, QueryOperator queryOp, String query)
-			throws SyntaxError {
-		super(null);
-		group = new GroupExpression(this, query.toCharArray(), 0, queryOp,
-				TermOperator.ORUNDEFINED, field);
-	}
+public class PhraseExpression extends AbstractTermExpression {
 
-	@Override
-	public void setBoost(float value) {
-	}
+	private List<String> terms;
 
-	public static void main(String[] argv) {
-		String query = "title:(this is -a test)^10 OR title:(\"this is a test\")^10 NOT noindex";
-		try {
-			System.out.println(new RootExpression("content", QueryOperator.AND,
-					query));
-		} catch (SyntaxError e) {
-			System.err.println(e.getMessage());
+	private char[] forbiddenCharacters = { '"' };
+
+	protected PhraseExpression(Expression parent, char[] chars, int pos,
+			TermOperator termOp, String field) {
+		super(parent, termOp, field);
+		terms = new ArrayList<String>(0);
+		for (;;) {
+			NoSpaceNoControlToken token = new NoSpaceNoControlToken(chars, pos,
+					null, forbiddenCharacters);
+			if (token.size == 0) {
+				nextPos = pos + 1;
+				return;
+			}
+			terms.add(token.word);
+			pos += token.size + 1;
 		}
 	}
 
 	@Override
-	protected void toString(StringBuffer sb) {
-		group.toString(sb);
+	public void toString(StringBuffer sb) {
+		sb.append(operator);
+		sb.append(field);
+		sb.append(":\"");
+		sb.append(StringUtils.join(terms, ' '));
+		sb.append("\"^");
+		sb.append(boost);
 	}
-
 }

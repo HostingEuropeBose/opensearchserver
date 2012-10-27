@@ -30,8 +30,12 @@ public abstract class Token {
 
 	private char[] additionalChars;
 
-	protected Token(char[] chars, int pos, char[] additionalChars) {
+	private char[] forbiddenChars;
+
+	protected Token(char[] chars, int pos, char[] additionalChars,
+			char[] forbiddenChars) {
 		this.additionalChars = additionalChars;
+		this.forbiddenChars = forbiddenChars;
 		StringBuffer token = new StringBuffer();
 		size = 0;
 		boolean escaped = false;
@@ -51,13 +55,18 @@ public abstract class Token {
 		set(token);
 	}
 
-	protected boolean charIsValid(char ch) {
-		if (additionalChars == null)
-			return false;
-		for (char c : additionalChars)
-			if (c == ch)
-				return true;
-		return false;
+	protected Boolean charIsValid(char ch) {
+		if (additionalChars != null) {
+			for (char c : additionalChars)
+				if (c == ch)
+					return true;
+		}
+		if (forbiddenChars != null) {
+			for (char c : forbiddenChars)
+				if (c == ch)
+					return false;
+		}
+		return null;
 	}
 
 	protected abstract void set(StringBuffer token);

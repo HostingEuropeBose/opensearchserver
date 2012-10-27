@@ -25,28 +25,35 @@
 package com.jaeksoft.searchlib.query.parser;
 
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
-import com.jaeksoft.searchlib.function.token.JavaIdentifierToken;
+import com.jaeksoft.searchlib.function.token.NoSpaceNoControlToken;
 
-public class FieldExpression extends Expression {
+public class TermExpression extends AbstractTermExpression {
 
-	private String field;
+	private String term = null;
 
-	protected FieldExpression(RootExpression root, char[] chars, int pos)
+	public final static char[] forbiddenChars = { '(', ')', '+', '-', '"', '^',
+			':' };
+
+	protected TermExpression(Expression parent, char[] chars, int pos,
+			QueryOperator queryOp, TermOperator termOp, String field)
 			throws SyntaxError {
-		super(root);
-		JavaIdentifierToken token = new JavaIdentifierToken(chars, pos, null);
-		field = token.word;
-		pos += token.size;
-		if (pos >= chars.length)
-			throw new SyntaxError("Colon missing", chars, pos);
-		if (chars[pos++] != ':')
-			throw new SyntaxError("Colon missing", chars, pos);
-		pos++;
-		nextPos = pos;
+		super(parent, ResolveOp(termOp, queryOp), field);
+		NoSpaceNoControlToken token = new NoSpaceNoControlToken(chars, pos,
+				null, forbiddenChars);
+		if (token.size == 0)
+			throw new SyntaxError("Term expression expected");
+		term = token.word;
+		nextPos = pos + token.size;
 	}
 
-	public String getField() {
-		return field;
+	@Override
+	public void toString(StringBuffer sb) {
+		sb.append(operator);
+		sb.append(field);
+		sb.append(':');
+		sb.append(term);
+		sb.append('^');
+		sb.append(boost);
 	}
 
 }

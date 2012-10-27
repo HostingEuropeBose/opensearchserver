@@ -26,16 +26,61 @@ package com.jaeksoft.searchlib.query.parser;
 
 public abstract class Expression {
 
-	protected RootExpression root;
+	public static enum TermOperator {
+
+		ORUNDEFINED(""), REQUIRED("+"), FORBIDDEN("-");
+
+		private String chars;
+
+		private TermOperator(String chars) {
+			this.chars = chars;
+		}
+
+		@Override
+		public String toString() {
+			return chars;
+		}
+	}
+
+	public static enum QueryOperator {
+		AND, OR;
+	}
+
+	public final static TermOperator ResolveOp(TermOperator termOp,
+			QueryOperator queryOp) {
+		switch (queryOp) {
+		case AND:
+			switch (termOp) {
+			case ORUNDEFINED:
+				return TermOperator.REQUIRED;
+			case REQUIRED:
+				return TermOperator.REQUIRED;
+			case FORBIDDEN:
+				return TermOperator.FORBIDDEN;
+			}
+		case OR:
+		default:
+			return termOp;
+		}
+	}
+
+	protected Expression parent;
 
 	protected int nextPos;
 
-	protected Expression(RootExpression root) {
-		if (root == null && this instanceof RootExpression)
-			this.root = (RootExpression) this;
-		else
-			this.root = root;
+	protected Expression(Expression parent) {
+		this.parent = parent;
 		this.nextPos = 0;
 	}
 
+	protected abstract void toString(StringBuffer sb);
+
+	@Override
+	public final String toString() {
+		StringBuffer sb = new StringBuffer();
+		toString(sb);
+		return sb.toString();
+	}
+
+	public abstract void setBoost(float value);
 }

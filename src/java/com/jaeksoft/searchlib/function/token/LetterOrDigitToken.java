@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -28,15 +28,17 @@ public class LetterOrDigitToken extends Token {
 
 	public String word;
 
-	public LetterOrDigitToken(char[] chars, int pos, char[] additionalChars) {
-		super(chars, pos, additionalChars);
+	public LetterOrDigitToken(char[] chars, int pos, char[] additionalChars,
+			char[] forbiddenChars) {
+		super(chars, pos, additionalChars, forbiddenChars);
 	}
 
 	@Override
-	protected boolean charIsValid(char ch) {
-		if (super.charIsValid(ch))
-			return true;
-		return Character.isLetterOrDigit(ch) || ch == '_' || ch == '-';
+	protected Boolean charIsValid(char ch) {
+		Boolean b = super.charIsValid(ch);
+		if (b != null)
+			return b;
+		return Character.isLetterOrDigit(ch);
 	}
 
 	@Override

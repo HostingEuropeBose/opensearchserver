@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -30,9 +30,10 @@ public class FloatExpression extends Expression {
 
 	private float value;
 
+	private final static char[] addchars = { '.' };
+
 	protected FloatExpression(char[] chars, int pos) {
 		super(null);
-		char[] addchars = { '.' };
 		DigitToken token = new DigitToken(chars, pos, addchars);
 		nextPos = pos + token.size;
 		value = token.value;

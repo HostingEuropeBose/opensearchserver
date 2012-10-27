@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -28,14 +28,15 @@ public class DigitToken extends Token {
 
 	public float value;
 
-	public DigitToken(char[] chars, int pos, char[] additionalChars) {
-		super(chars, pos, additionalChars);
+	public DigitToken(char[] chars, int pos, char... additionalChars) {
+		super(chars, pos, additionalChars, null);
 	}
 
 	@Override
-	protected boolean charIsValid(char ch) {
-		if (super.charIsValid(ch))
-			return true;
+	protected Boolean charIsValid(char ch) {
+		Boolean b = super.charIsValid(ch);
+		if (b != null)
+			return b;
 		return Character.isDigit(ch);
 	}
 
