@@ -37,8 +37,7 @@ public class GroupExpression extends Expression {
 	protected ArrayList<Expression> expressions;
 
 	protected GroupExpression(Expression parent, char[] chars, int pos,
-			QueryOperator queryOp, TermOperator termOp, String field)
-			throws SyntaxError {
+			ExpressionContext context) throws SyntaxError {
 		super(parent);
 		expressions = new ArrayList<Expression>();
 		Expression previous = null;
@@ -47,8 +46,7 @@ public class GroupExpression extends Expression {
 				pos++;
 				continue;
 			}
-			Expression exp = nextExpression(previous, chars, pos, queryOp,
-					termOp, field);
+			Expression exp = nextExpression(previous, chars, pos, context);
 			if (exp == null) {
 				pos++;
 				break;
@@ -61,30 +59,33 @@ public class GroupExpression extends Expression {
 	}
 
 	private Expression nextExpression(Expression previous, char[] chars,
-			int pos, QueryOperator queryOp, TermOperator termOp, String field)
-			throws SyntaxError {
+			int pos, ExpressionContext context) throws SyntaxError {
 		if (pos >= chars.length)
 			return null;
 		char ch = chars[pos];
 		if (ch == '(')
-			return new GroupExpression(this, chars, pos + 1, queryOp, termOp,
-					field);
+			return new GroupExpression(this, chars, pos + 1, context);
 		if (ch == ')')
 			return null;
 		if (ch == '+')
-			return nextExpression(this, chars, pos + 1, queryOp,
-					TermOperator.REQUIRED, field);
+			return nextExpression(this, chars, pos + 1,
+					context.setTermOperator(TermOperator.REQUIRED));
 		if (ch == '-')
-			return nextExpression(this, chars, pos + 1, queryOp,
-					TermOperator.FORBIDDEN, field);
+			return nextExpression(this, chars, pos + 1,
+					context.setTermOperator(TermOperator.FORBIDDEN));
 		if (ch == '"')
-			return new PhraseExpression(this, chars, pos + 1, termOp, field);
+			return new PhraseExpression(this, chars, pos + 1, context);
 		if (ch == '^') {
 			DigitToken token = new DigitToken(chars, pos + 1, '.');
 			if (previous != null)
 				previous.setBoost(token.value);
-			return nextExpression(this, chars, pos + token.size + 2, queryOp,
-					termOp, field);
+			return nextExpression(this, chars, pos + token.size + 2, context);
+		}
+		if (ch == '~') {
+			DigitToken token = new DigitToken(chars, pos + 1, null);
+			if (previous != null)
+				previous.setPhraseSlop((int) token.value);
+			return nextExpression(this, chars, pos + token.size + 2, context);
 		}
 		NoSpaceNoControlToken token = new NoSpaceNoControlToken(chars, pos,
 				null, TermExpression.forbiddenChars);
@@ -93,21 +94,21 @@ public class GroupExpression extends Expression {
 		int newPos = pos + token.size;
 		if (newPos < chars.length) {
 			if (chars[newPos] == ':')
-				return nextExpression(this, chars, newPos + 1, queryOp, termOp,
-						token.word);
+				return nextExpression(this, chars, newPos + 1,
+						context.setField(token.word));
 			if (chars[newPos] == ' ') {
 				if ("NOT".equals(token.word))
-					return nextExpression(this, chars, newPos + 1, queryOp,
-							TermOperator.FORBIDDEN, field);
+					return nextExpression(this, chars, newPos + 1,
+							context.setTermOperator(TermOperator.FORBIDDEN));
 				if ("OR".equals(token.word))
 					return nextExpression(this, chars, newPos + 1,
-							QueryOperator.OR, termOp, field);
+							context.setQueryOperator(QueryOperator.OR));
 				if ("AND".equals(token.word))
 					return nextExpression(this, chars, newPos + 1,
-							QueryOperator.AND, termOp, field);
+							context.setQueryOperator(QueryOperator.AND));
 			}
 		}
-		return new TermExpression(this, chars, pos, queryOp, termOp, field);
+		return new TermExpression(this, chars, pos, context);
 	}
 
 	@Override
@@ -121,6 +122,12 @@ public class GroupExpression extends Expression {
 	public void setBoost(float value) {
 		for (Expression expression : expressions)
 			expression.setBoost(value);
+	}
+
+	@Override
+	public void setPhraseSlop(int value) {
+		for (Expression expression : expressions)
+			expression.setPhraseSlop(value);
 	}
 
 }

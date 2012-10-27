@@ -35,9 +35,8 @@ public class TermExpression extends AbstractTermExpression {
 			':' };
 
 	protected TermExpression(Expression parent, char[] chars, int pos,
-			QueryOperator queryOp, TermOperator termOp, String field)
-			throws SyntaxError {
-		super(parent, ResolveOp(termOp, queryOp), field);
+			ExpressionContext context) throws SyntaxError {
+		super(parent, context);
 		NoSpaceNoControlToken token = new NoSpaceNoControlToken(chars, pos,
 				null, forbiddenChars);
 		if (token.size == 0)
@@ -54,6 +53,10 @@ public class TermExpression extends AbstractTermExpression {
 		sb.append(term);
 		sb.append('^');
 		sb.append(boost);
+	}
+
+	@Override
+	public void setPhraseSlop(int phraseSlop) {
 	}
 
 }

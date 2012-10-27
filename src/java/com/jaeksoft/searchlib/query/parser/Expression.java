@@ -83,4 +83,6 @@ public abstract class Expression {
 	}
 
 	public abstract void setBoost(float value);
+
+	public abstract void setPhraseSlop(int value);
 }

@@ -35,11 +35,14 @@ public class PhraseExpression extends AbstractTermExpression {
 
 	private List<String> terms;
 
+	private int phraseSlop;
+
 	private char[] forbiddenCharacters = { '"' };
 
 	protected PhraseExpression(Expression parent, char[] chars, int pos,
-			TermOperator termOp, String field) {
-		super(parent, termOp, field);
+			ExpressionContext context) {
+		super(parent, context);
+		this.phraseSlop = context.phraseSlop;
 		terms = new ArrayList<String>(0);
 		for (;;) {
 			NoSpaceNoControlToken token = new NoSpaceNoControlToken(chars, pos,
@@ -59,7 +62,14 @@ public class PhraseExpression extends AbstractTermExpression {
 		sb.append(field);
 		sb.append(":\"");
 		sb.append(StringUtils.join(terms, ' '));
-		sb.append("\"^");
+		sb.append("\"~");
+		sb.append(phraseSlop);
+		sb.append('^');
 		sb.append(boost);
+	}
+
+	@Override
+	public void setPhraseSlop(int phraseSlop) {
+		this.phraseSlop = phraseSlop;
 	}
 }

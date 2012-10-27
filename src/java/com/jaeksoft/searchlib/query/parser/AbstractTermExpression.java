@@ -32,15 +32,15 @@ public abstract class AbstractTermExpression extends Expression {
 
 	protected float boost = 1.0F;
 
-	public AbstractTermExpression(Expression parent, TermOperator termOp,
-			String field) {
+	public AbstractTermExpression(Expression parent, ExpressionContext context) {
 		super(parent);
-		this.operator = termOp;
-		this.field = field;
+		this.operator = ResolveOp(context.termOp, context.queryOp);
+		this.field = context.field;
 	}
 
 	@Override
 	public void setBoost(float boost) {
 		this.boost = boost;
 	}
+
 }
