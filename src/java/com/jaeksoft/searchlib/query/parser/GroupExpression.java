@@ -42,10 +42,6 @@ public class GroupExpression extends Expression {
 		expressions = new ArrayList<Expression>();
 		Expression previous = null;
 		while (pos < chars.length) {
-			if (Character.isWhitespace(chars[pos])) {
-				pos++;
-				continue;
-			}
 			Expression exp = nextExpression(previous, chars, pos, context);
 			if (exp == null) {
 				pos++;
@@ -63,6 +59,8 @@ public class GroupExpression extends Expression {
 		if (pos >= chars.length)
 			return null;
 		char ch = chars[pos];
+		if (Character.isWhitespace(ch))
+			return nextExpression(previous, chars, pos + 1, context);
 		if (ch == '(')
 			return new GroupExpression(this, chars, pos + 1, context);
 		if (ch == ')')
@@ -79,13 +77,13 @@ public class GroupExpression extends Expression {
 			DigitToken token = new DigitToken(chars, pos + 1, '.');
 			if (previous != null)
 				previous.setBoost(token.value);
-			return nextExpression(this, chars, pos + token.size + 2, context);
+			return nextExpression(this, chars, pos + token.size + 1, context);
 		}
 		if (ch == '~') {
 			DigitToken token = new DigitToken(chars, pos + 1, null);
 			if (previous != null)
 				previous.setPhraseSlop((int) token.value);
-			return nextExpression(this, chars, pos + token.size + 2, context);
+			return nextExpression(this, chars, pos + token.size + 1, context);
 		}
 		NoSpaceNoControlToken token = new NoSpaceNoControlToken(chars, pos,
 				null, TermExpression.forbiddenChars);

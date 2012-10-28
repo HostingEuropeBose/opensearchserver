@@ -48,7 +48,7 @@ public class PhraseExpression extends AbstractTermExpression {
 			NoSpaceNoControlToken token = new NoSpaceNoControlToken(chars, pos,
 					null, forbiddenCharacters);
 			if (token.size == 0) {
-				nextPos = pos + 1;
+				nextPos = pos;
 				return;
 			}
 			terms.add(token.word);

@@ -40,7 +40,7 @@ public class RootExpression extends GroupExpression {
 	}
 
 	public static void main(String[] argv) {
-		String query = "title:(this is -a test)^10 OR title:(\"this is a test\"~5)^10 NOT noindex";
+		String query = "title:(this is -a test)^10 OR title:(\"this is a test\")^10~5 NOT noindex";
 		try {
 			System.out.println(new RootExpression("content", QueryOperator.AND,
 					2, query));
