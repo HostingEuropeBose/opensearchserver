@@ -97,7 +97,7 @@
 					<tabpanel>
 						<grid>
 							<columns sizable="false">
-								<column align="right" width="100px" />
+								<column align="right" hflex="min" />
 								<column align="left" />
 								<column align="left" width="300px" />
 							</columns>
@@ -126,6 +126,14 @@
 										value="Enter the URL used to connect to the database" />
 								</row>
 								<row>
+									<label value="Isolation level: " />
+									<listbox mold="select"
+										selectedItem="@{dbCrawlList.currentCrawl.isolationLevel}"
+										model="@{dbCrawlList.isolationLevels}" />
+									<label
+										value="Select the isolation level" />
+								</row>
+								<row>
 									<label value="User: " />
 									<textbox
 										value="@{dbCrawlList.currentCrawl.user}" width="50%" />
@@ -152,6 +160,13 @@
 										value="Enter the language of the indexed documents" />
 								</row>
 								<row>
+									<label value="Buffer size: " />
+									<intbox cols="5"
+										value="@{dbCrawlList.currentCrawl.bufferSize}" />
+									<label
+										value="Enter the size of the buffer" />
+								</row>
+								<row>
 									<label value="Primary key: " />
 									<textbox
 										value="@{dbCrawlList.currentCrawl.primaryKey}" width="50%" />
@@ -159,11 +174,33 @@
 										value="Enter the primary key to identify unique document" />
 								</row>
 								<row>
-									<label value="SQL: " />
+									<label
+										value="Unique key (for deletion): " />
+									<textbox
+										value="@{dbCrawlList.currentCrawl.uniqueKeyDeleteField}"
+										width="50%" />
+									<label
+										value="Enter the name of the column containing the unique key for documents to delete" />
+								</row>
+								<row>
+									<label value="SQL Select: " />
 									<textbox rows="10"
-										value="@{dbCrawlList.currentCrawl.sql}" width="95%" />
+										value="@{dbCrawlList.currentCrawl.sqlSelect}" width="95%" />
 									<label
 										value="Enter the SQL query to retrieve data" />
+								</row>
+								<row>
+									<label value="SQL Update: " />
+									<vlayout>
+										<textbox rows="5"
+											value="@{dbCrawlList.currentCrawl.sqlUpdate}" width="95%" />
+
+										<listbox mold="select"
+											selectedItem="@{dbCrawlList.currentCrawl.sqlUpdateMode}"
+											model="@{dbCrawlList.sqlUpdateModes}" />
+									</vlayout>
+									<label
+										value="Enter any SQL query which be called for each indexed item ($PK) " />
 								</row>
 							</rows>
 						</grid>
@@ -259,7 +296,8 @@
 								</auxheader>
 							</auxhead>
 							<listitem self="@{each='fieldlink'}">
-								<listcell label="@{fieldlink.source}" />
+								<listcell
+									label="@{fieldlink.source.uniqueName}" />
 								<listcell label="@{fieldlink.target}" />
 								<listcell>
 									<checkbox disabled="true"

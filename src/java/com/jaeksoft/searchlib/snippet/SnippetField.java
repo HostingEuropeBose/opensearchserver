@@ -33,18 +33,18 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.index.TermPositionVector;
-import org.apache.lucene.index.TermVectorOffsetInfo;
-import org.apache.lucene.search.Query;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.analysis.Analyzer;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.index.term.Term;
+import com.jaeksoft.searchlib.index.term.TermPositionVector;
+import com.jaeksoft.searchlib.index.term.TermVectorOffsetInfo;
 import com.jaeksoft.searchlib.query.ParseException;
+import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.schema.AbstractField;
 import com.jaeksoft.searchlib.schema.FieldValueItem;

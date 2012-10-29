@@ -30,14 +30,13 @@ import java.security.NoSuchAlgorithmException;
 
 import javax.naming.NamingException;
 
-import org.apache.lucene.index.Term;
-import org.apache.lucene.index.TermEnum;
-
 import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.config.Config;
 import com.jaeksoft.searchlib.index.IndexDocument;
+import com.jaeksoft.searchlib.index.term.Term;
+import com.jaeksoft.searchlib.index.term.TermEnum;
 import com.jaeksoft.searchlib.scheduler.TaskLog;
 import com.jaeksoft.searchlib.scheduler.TaskProperties;
 import com.jaeksoft.searchlib.scheduler.TaskPropertyDef;

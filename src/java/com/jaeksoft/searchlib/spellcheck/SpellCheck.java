@@ -51,7 +51,7 @@ public class SpellCheck implements Iterable<SpellCheckItem> {
 		fieldName = spellCheckField.getName();
 		SpellChecker spellchecker = reader.getSpellChecker(fieldName);
 		Set<String> wordSet = new LinkedHashSet<String>();
-		Set<Term> set = request.getTermSet();
+		Set<Term> set = request.getTermSet(fieldName);
 		for (Term term : set)
 			if (term.field().equals(fieldName))
 				wordSet.add(term.text());

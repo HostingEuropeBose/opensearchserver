@@ -29,8 +29,10 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.index.FieldContent;
 
 public class CompiledAnalyzer extends Analyzer {
 
@@ -93,4 +95,21 @@ public class CompiledAnalyzer extends Analyzer {
 			;
 		return list;
 	}
+
+	public void extractTerms(String text, Set<String> termSet)
+			throws IOException {
+		StringReader reader = new StringReader(text);
+		TokenStream ts = tokenStream(reader);
+		ts = new TermSetTokenFilter(termSet, ts);
+		ts.incrementToken();
+	}
+
+	public void populate(String text, FieldContent fieldContent)
+			throws IOException {
+		StringReader reader = new StringReader(text);
+		TokenStream ts = tokenStream(reader);
+		ts = new FieldContentPopulateFilter(fieldContent, ts);
+		ts.incrementToken();
+	}
+
 }

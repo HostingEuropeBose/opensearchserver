@@ -1,6 +1,6 @@
 <!--
 	License Agreement for OpenSearchServer
-	Copyright (C) 2011 Emmanuel Keller / Jaeksoft
+	Copyright (C) 2012 Emmanuel Keller / Jaeksoft
 	http://www.open-search-server.com
 	This file is part of OpenSearchServer.
 	OpenSearchServer is free software: you can
@@ -14,16 +14,23 @@
 	copy of the GNU General Public License along with OpenSearchServer.
 	If not, see <http://www.gnu.org/licenses/>.
 -->
-<window border="none">
-	<tabbox>
-		<tabs>
-			<tab id="tabCrawlerIndexList" label="List"
-				selected="true" />
-		</tabs>
-		<tabpanels>
-			<tabpanel>
-				<include src="WEB-INF/zul/crawler/index/list.zul" />
-			</tabpanel>
-		</tabpanels>
-	</tabbox>
-</window>
+<panel title="Testing the iframe" border="normal">
+	<caption>
+		<hbox align="center">
+			<label value="IFrame pixel size (width x height): " />
+			<intbox value="@{renderer.iframeWidth}" />
+			<label value=" x " />
+			<intbox value="@{renderer.iframeHeight}" />
+			<space />
+			<button label="Test" onClick="renderer.onTest(self)" />
+			<textbox cols="100" rows="3" readonly="true"
+				value="@{renderer.iFrameHtmlCode}" />
+		</hbox>
+	</caption>
+	<panelchildren>
+		<iframe visible="@{renderer.testable}"
+			style="border: 1px solid gray" scrolling="auto" id="iframetest"
+			width="@{renderer.iframeWidthPx}"
+			height="@{renderer.iframeHeightPx}" />
+	</panelchildren>
+</panel>

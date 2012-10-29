@@ -14,10 +14,10 @@
 	copy of the GNU General Public License along with OpenSearchServer.
 	If not, see <http://www.gnu.org/licenses/>.
 -->
-<window id="parser"
-	use="com.jaeksoft.searchlib.web.controller.schema.ParserController">	
-	<include visible="@{parser.isNotEditing}"
-		src="WEB-INF/zul/schema/parser/list.zul" />
-	<include visible="@{parser.isEditing}"
-		src="WEB-INF/zul/schema/parser/edit.zul" />
+<window id="classifier"
+	use="com.jaeksoft.searchlib.web.controller.ClassifierController">
+	<include visible="@{classifier.isNotEditing}"
+		src="WEB-INF/zul/classifier/list.zul" />
+	<include visible="@{classifier.isEditing}"
+		src="WEB-INF/zul/classifier/edit.zul" />
 </window>

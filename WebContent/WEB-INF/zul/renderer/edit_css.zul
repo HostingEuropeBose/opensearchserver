@@ -1,6 +1,6 @@
 <!--
 	License Agreement for OpenSearchServer
-	Copyright (C) 2011 Emmanuel Keller / Jaeksoft
+	Copyright (C) 2012 Emmanuel Keller / Jaeksoft
 	http://www.open-search-server.com
 	This file is part of OpenSearchServer.
 	OpenSearchServer is free software: you can
@@ -14,20 +14,9 @@
 	copy of the GNU General Public License along with OpenSearchServer.
 	If not, see <http://www.gnu.org/licenses/>.
 -->
-<window id="indexCrawler"
-	use="com.jaeksoft.searchlib.web.controller.crawler.IndexCrawlerController">
-	<panel title="List of existing index crawls and their settings"
-		border="normal">
-		<panelchildren>
-			<listbox model="@{indexCrawler.list}"
-				selectedItem="@{indexCrawler.selectedCrawl}">
-				<listhead>
-					<listheader label="Name" />
-				</listhead>
-				<listitem self="@{each=crawl}">
-					<listcell label="@{crawl.name}" />
-				</listitem>
-			</listbox>
-		</panelchildren>
-	</panel>
-</window>
+<vbox width="100%">
+	<textbox value="@{renderer.currentRenderer.css}" width="100%"
+		multiline="true" rows="40" />
+	<button label="Restore default values"
+		onClick="renderer.onCssDefault()" />
+</vbox>

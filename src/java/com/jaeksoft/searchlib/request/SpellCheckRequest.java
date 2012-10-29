@@ -41,7 +41,9 @@ import com.jaeksoft.searchlib.config.Config;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.ReaderInterface;
 import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.index.term.Term;
 import com.jaeksoft.searchlib.query.ParseException;
+import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.query.QueryParser;
 import com.jaeksoft.searchlib.result.AbstractResult;
 import com.jaeksoft.searchlib.result.ResultSpellCheck;
@@ -187,13 +189,9 @@ public class SpellCheckRequest extends AbstractRequest {
 		Schema schema = config.getSchema();
 		SchemaFieldList schemaFieldList = schema.getFieldList();
 		SchemaField schemaField = schemaFieldList.get(fieldName);
-		QueryParser queryParser = new QueryParser(Version.LUCENE_29, fieldName,
-				schema.getAnalyzer(schemaField, lang).getQueryAnalyzer());
-		try {
-			queryParser.parse(queryString).extractTerms(set);
-		} catch (org.apache.lucene.queryParser.ParseException e) {
-			throw new ParseException(e);
-		}
+		QueryParser queryParser = new QueryParser(fieldName, schema
+				.getAnalyzer(schemaField, lang).getQueryAnalyzer());
+		queryParser.parse(queryString).extractTerms(set);
 		return set;
 	}
 
