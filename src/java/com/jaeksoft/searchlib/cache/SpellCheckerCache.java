@@ -26,7 +26,6 @@ package com.jaeksoft.searchlib.cache;
 
 import java.io.IOException;
 
-import com.jaeksoft.searchlib.analysis.filter.stop.WordArray;
 import com.jaeksoft.searchlib.index.ReaderLocal;
 import com.jaeksoft.searchlib.index.SpellChecker;
 
@@ -44,9 +43,7 @@ public class SpellCheckerCache extends LRUCache<FieldNameKey, SpellChecker> {
 			SpellChecker spellChecker = getAndPromote(key);
 			if (spellChecker != null)
 				return spellChecker;
-			WordArray dict = reader.getWordArray(key.getFieldName());
 			SpellChecker spellchecker = new SpellChecker();
-			spellchecker.indexDictionary(dict);
 
 			put(key, spellchecker);
 			return spellchecker;

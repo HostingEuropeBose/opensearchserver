@@ -32,26 +32,20 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPathExpressionException;
 
-import org.apache.http.HttpException;
-import org.w3c.dom.Document;
 import org.w3c.dom.Node;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.config.Config;
 import com.jaeksoft.searchlib.crawler.web.database.CredentialItem;
 import com.jaeksoft.searchlib.crawler.web.spider.ProxyHandler;
-import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.IndexDocument;
-import com.jaeksoft.searchlib.query.ParseException;
+import com.jaeksoft.searchlib.index.IndexMode;
+import com.jaeksoft.searchlib.index.IndexStatistics;
+import com.jaeksoft.searchlib.index.term.TermEnum;
 import com.jaeksoft.searchlib.request.AbstractRequest;
-import com.jaeksoft.searchlib.request.DocumentsRequest;
 import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.result.AbstractResult;
-import com.jaeksoft.searchlib.result.ResultDocument;
 import com.jaeksoft.searchlib.util.DomUtils;
 import com.jaeksoft.searchlib.util.InfoCallback;
 import com.jaeksoft.searchlib.util.Timer;
@@ -78,8 +72,9 @@ public class Client extends Config {
 			ClassNotFoundException {
 		Timer timer = new Timer("Update document " + document.toString());
 		try {
-			checkMaxDocumentLimit(1);
-			return getIndex().updateDocument(getSchema(), document);
+			checkMaxStorageLimit();
+			checkMaxDocumentLimit();
+			return getIndexAbstract().updateDocument(getSchema(), document);
 		} finally {
 			getStatisticsList().addUpdate(timer);
 		}
@@ -91,8 +86,9 @@ public class Client extends Config {
 			ClassNotFoundException {
 		Timer timer = new Timer("Update " + documents.size() + " documents");
 		try {
-			checkMaxDocumentLimit(documents.size());
-			return getIndex().updateDocuments(getSchema(), documents);
+			checkMaxStorageLimit();
+			checkMaxDocumentLimit();
+			return getIndexAbstract().updateDocuments(getSchema(), documents);
 		} finally {
 			getStatisticsList().addUpdate(timer);
 		}
@@ -103,13 +99,14 @@ public class Client extends Config {
 			throws NoSuchAlgorithmException, IOException, URISyntaxException,
 			SearchLibException, InstantiationException, IllegalAccessException,
 			ClassNotFoundException {
-		checkMaxDocumentLimit(docList.size());
+		checkMaxStorageLimit();
+		checkMaxDocumentLimit();
 		docCount += updateDocuments(docList);
 		StringBuffer sb = new StringBuffer();
 		sb.append(docCount);
 		sb.append(" / ");
 		sb.append(totalCount);
-		sb.append(" XML document(s) indexed.");
+		sb.append(" XML document(s) updated.");
 		if (infoCallBack != null)
 			infoCallBack.setInfo(sb.toString());
 		else
@@ -118,7 +115,7 @@ public class Client extends Config {
 		return docCount;
 	}
 
-	private int updateXmlDocuments(Node document, int bufferSize,
+	public int updateXmlDocuments(Node document, int bufferSize,
 			CredentialItem urlDefaultCredential, ProxyHandler proxyHandler,
 			InfoCallback infoCallBack) throws XPathExpressionException,
 			NoSuchAlgorithmException, IOException, URISyntaxException,
@@ -142,86 +139,141 @@ public class Client extends Config {
 		return docCount;
 	}
 
-	public int updateXmlDocuments(InputSource inputSource, int bufferSize,
-			CredentialItem urlDefaultCredential, ProxyHandler proxyHandler,
-			InfoCallback infoCallBack) throws ParserConfigurationException,
-			SAXException, IOException, XPathExpressionException,
-			NoSuchAlgorithmException, URISyntaxException, SearchLibException,
-			InstantiationException, IllegalAccessException,
-			ClassNotFoundException {
-		Document doc = DomUtils.getNewDocumentBuilder(false, true).parse(
-				inputSource);
-		return updateXmlDocuments(doc, bufferSize, urlDefaultCredential,
-				proxyHandler, infoCallBack);
+	private final int deleteUniqueKeyList(int totalCount, int docCount,
+			Collection<String> deleteList, InfoCallback infoCallBack)
+			throws SearchLibException {
+		docCount += deleteDocuments(deleteList);
+		StringBuffer sb = new StringBuffer();
+		sb.append(docCount);
+		sb.append(" / ");
+		sb.append(totalCount);
+		sb.append(" XML document(s) deleted.");
+		if (infoCallBack != null)
+			infoCallBack.setInfo(sb.toString());
+		else
+			Logging.info(sb.toString());
+		deleteList.clear();
+		return docCount;
 	}
 
-	public boolean deleteDocument(String uniqueField) throws IOException,
-			URISyntaxException, SearchLibException, InstantiationException,
-			IllegalAccessException, ClassNotFoundException, HttpException {
+	public int deleteXmlDocuments(Node xmlDoc, int bufferSize,
+			InfoCallback infoCallBack) throws XPathExpressionException,
+			NoSuchAlgorithmException, IOException, URISyntaxException,
+			SearchLibException, InstantiationException, IllegalAccessException,
+			ClassNotFoundException {
+		List<Node> deleteNodeList = DomUtils
+				.getNodes(xmlDoc, "index", "delete");
+		Collection<String> deleteList = new ArrayList<String>(bufferSize);
+		int deleteCount = 0;
+		final int totalCount = deleteNodeList.size();
+		for (Node deleteNode : deleteNodeList) {
+			List<Node> uniqueKeyNodeList = DomUtils.getNodes(deleteNode,
+					"uniquekey");
+			for (Node uniqueKeyNode : uniqueKeyNodeList) {
+				deleteList.add(uniqueKeyNode.getTextContent());
+				if (deleteList.size() == bufferSize)
+					deleteCount = deleteUniqueKeyList(totalCount, deleteCount,
+							deleteList, infoCallBack);
+			}
+		}
+		if (deleteList.size() > 0)
+			deleteCount = deleteUniqueKeyList(totalCount, deleteCount,
+					deleteList, infoCallBack);
+		return deleteCount;
+	}
+
+	public int deleteDocument(String uniqueField) throws SearchLibException {
 		Timer timer = new Timer("Delete document " + uniqueField);
 		try {
-			return getIndex().deleteDocument(getSchema(), uniqueField);
+			return getIndexAbstract().deleteDocument(getSchema(), uniqueField);
 		} finally {
 			getStatisticsList().addDelete(timer);
 		}
 	}
 
 	public int deleteDocuments(Collection<String> uniqueFields)
-			throws IOException, URISyntaxException, SearchLibException,
-			InstantiationException, IllegalAccessException,
-			ClassNotFoundException {
+			throws SearchLibException {
 		Timer timer = new Timer("Delete " + uniqueFields.size() + " documents");
 		try {
-			return getIndex().deleteDocuments(getSchema(), uniqueFields);
+			return getIndexAbstract()
+					.deleteDocuments(getSchema(), uniqueFields);
 		} finally {
 			getStatisticsList().addDelete(timer);
 		}
 	}
 
 	public int deleteDocuments(SearchRequest searchRequest)
-			throws SearchLibException, IOException, InstantiationException,
-			IllegalAccessException, ClassNotFoundException, ParseException,
-			SyntaxError, URISyntaxException, InterruptedException {
+			throws SearchLibException {
 		Timer timer = new Timer("Delete by query documents");
 		try {
-			return getIndex().deleteDocuments(searchRequest);
+			return getIndexAbstract().deleteDocuments(searchRequest);
 		} finally {
 			getStatisticsList().addDelete(timer);
 		}
 	}
 
-	public void optimize() throws IOException, URISyntaxException,
-			SearchLibException, InstantiationException, IllegalAccessException,
-			ClassNotFoundException, HttpException {
+	public void optimize() throws SearchLibException {
 		Timer timer = new Timer("Optimize");
 		try {
-			getIndex().optimize();
+			getIndexAbstract().optimize();
 		} finally {
 			getStatisticsList().addOptimize(timer);
 		}
 	}
 
 	public boolean isOptimizing() {
-		return getIndex().isOptimizing();
+		return getIndexAbstract().isOptimizing();
+	}
+
+	public String getOptimizationStatus() throws IOException,
+			SearchLibException {
+		if (!isOnline())
+			return "Unknown";
+		if (isOptimizing())
+			return "Running";
+		return Boolean.toString(getIndexAbstract().getStatistics()
+				.isOptimized());
+	}
+
+	public void deleteAll() throws SearchLibException {
+		Timer timer = new Timer("DeleteAll");
+		try {
+			getIndexAbstract().deleteAll();
+		} finally {
+			getStatisticsList().addDelete(timer);
+		}
 	}
 
 	public void reload() throws SearchLibException {
 		Timer timer = new Timer("Reload");
 		try {
-			getIndex().reload();
+			getIndexAbstract().reload();
 		} finally {
 			getStatisticsList().addReload(timer);
 		}
 	}
 
-	/*
-	 * Older version compatibility
-	 */
-	@Deprecated
-	public void reload(boolean deleteOld) throws IOException,
-			URISyntaxException, SearchLibException, InstantiationException,
-			IllegalAccessException, ClassNotFoundException, HttpException {
-		reload();
+	public void setReadWriteMode(IndexMode mode) throws SearchLibException {
+		if (mode == getIndexAbstract().getReadWriteMode())
+			return;
+		getIndexAbstract().setReadWriteMode(mode);
+		saveConfig();
+		if (mode == IndexMode.READ_WRITE)
+			removeReplCheck();
+	}
+
+	public IndexMode getReadWriteMode() {
+		return getIndexAbstract().getReadWriteMode();
+	}
+
+	public void setOnline(boolean online) {
+		if (online == getIndexAbstract().isOnline())
+			return;
+		getIndexAbstract().setOnline(online);
+	}
+
+	public boolean isOnline() {
+		return getIndexAbstract().isOnline();
 	}
 
 	public AbstractResult<?> request(AbstractRequest request)
@@ -231,8 +283,8 @@ public class Client extends Config {
 		SearchLibException exception = null;
 		try {
 			request.init(this);
-			timer = request.getTimer();
-			result = getIndex().request(request);
+			timer = new Timer(request.getNameType());
+			result = getIndexAbstract().request(request);
 			return result;
 		} catch (SearchLibException e) {
 			exception = e;
@@ -242,6 +294,7 @@ public class Client extends Config {
 			throw exception;
 		} finally {
 			if (timer != null) {
+				timer.duration();
 				if (exception != null)
 					timer.setError(exception);
 				getStatisticsList().addSearch(timer);
@@ -250,41 +303,41 @@ public class Client extends Config {
 		}
 	}
 
-	public String explain(SearchRequest searchRequest, int docId, boolean bHtml)
+	public String explain(AbstractRequest request, int docId, boolean bHtml)
 			throws SearchLibException {
-		Timer timer = null;
-		SearchLibException exception = null;
-		try {
-			searchRequest.init(this);
-			timer = searchRequest.getTimer();
-			return getIndex().explain(searchRequest, docId, bHtml);
-		} catch (SearchLibException e) {
-			exception = e;
-		} finally {
-			if (timer != null) {
-				if (exception != null)
-					timer.setError(exception);
-				getStatisticsList().addSearch(timer);
-			}
-			if (exception != null)
-				throw exception;
-		}
-		return null;
+		return getIndexAbstract().explain(request, docId, bHtml);
 	}
 
-	public ResultDocument[] documents(DocumentsRequest documentsRequest)
-			throws IOException, ParseException, SyntaxError,
-			URISyntaxException, ClassNotFoundException, InterruptedException,
-			SearchLibException, IllegalAccessException, InstantiationException {
-		return getIndex().documents(documentsRequest);
+	protected final void checkMaxDocumentLimit() throws SearchLibException,
+			IOException {
+		ClientFactory.INSTANCE.properties.checkMaxDocumentLimit();
 	}
 
-	protected final void checkMaxDocumentLimit(int additionalCount)
-			throws SearchLibException, IOException {
-		if (ClientFactory.INSTANCE.properties.getMaxDocumentLimit() == 0)
-			return;
-		ClientFactory.INSTANCE.properties.checkMaxDocumentLimit(ClientCatalog
-				.countAllDocuments() + additionalCount);
+	protected void checkMaxStorageLimit() throws SearchLibException {
+		ClientFactory.INSTANCE.properties.checkMaxStorageLimit();
 	}
 
+	public IndexStatistics getStatistics() throws IOException,
+			SearchLibException {
+		return getIndexAbstract().getStatistics();
+	}
+
+	public TermEnum getTermEnum(String field, String term)
+			throws SearchLibException {
+		return getIndexAbstract().getTermEnum(field, term);
+	}
+
+	private final static String REPL_CHECK_FILENAME = "repl.check";
+
+	public boolean isTrueReplicate() {
+		return new File(this.getDirectory(), REPL_CHECK_FILENAME).exists();
+	}
+
+	public void writeReplCheck() throws IOException {
+		new File(this.getDirectory(), REPL_CHECK_FILENAME).createNewFile();
+	}
+
+	public void removeReplCheck() {
+		new File(this.getDirectory(), REPL_CHECK_FILENAME).delete();
+	}
 }

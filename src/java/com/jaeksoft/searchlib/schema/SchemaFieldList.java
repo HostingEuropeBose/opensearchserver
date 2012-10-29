@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2009 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -24,19 +24,18 @@
 
 package com.jaeksoft.searchlib.schema;
 
+import java.util.List;
+
 import org.xml.sax.SAXException;
 
-import com.jaeksoft.searchlib.config.Config;
 import com.jaeksoft.searchlib.util.XmlWriter;
 
-public class SchemaFieldList extends FieldList<SchemaField> {
+public class SchemaFieldList extends AbstractFieldList<SchemaField> {
 
-	private Config config;
-	private Field defaultField;
-	private Field uniqueField;
+	private SchemaField defaultField;
+	private SchemaField uniqueField;
 
-	public SchemaFieldList(Config config) {
-		this.config = config;
+	public SchemaFieldList() {
 		defaultField = null;
 		uniqueField = null;
 	}
@@ -55,12 +54,18 @@ public class SchemaFieldList extends FieldList<SchemaField> {
 			this.uniqueField = null;
 	}
 
-	public Field getDefaultField() {
+	public SchemaField getDefaultField() {
 		return this.defaultField;
 	}
 
-	public Field getUniqueField() {
+	public SchemaField getUniqueField() {
 		return this.uniqueField;
+	}
+
+	public void getIndexedFields(List<String> fieldList) {
+		for (SchemaField field : getList())
+			if (field.isIndexed())
+				fieldList.add(field.getName());
 	}
 
 	@Override

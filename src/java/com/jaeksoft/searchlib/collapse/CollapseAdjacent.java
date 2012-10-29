@@ -26,25 +26,31 @@ package com.jaeksoft.searchlib.collapse;
 
 import java.util.BitSet;
 
+import com.jaeksoft.searchlib.index.StringIndex;
 import com.jaeksoft.searchlib.request.SearchRequest;
-import com.jaeksoft.searchlib.result.ResultScoreDoc;
+import com.jaeksoft.searchlib.result.collector.CollapseDocInterface;
+import com.jaeksoft.searchlib.result.collector.DocIdInterface;
+import com.jaeksoft.searchlib.util.Timer;
 
-public abstract class CollapseAdjacent extends CollapseAbstract {
+public class CollapseAdjacent extends CollapseAbstract {
 
 	protected CollapseAdjacent(SearchRequest searchRequest) {
 		super(searchRequest);
 	}
 
 	@Override
-	protected void collapse(ResultScoreDoc[] fetchedDocs, int fetchLength) {
+	protected CollapseDocInterface collapse(DocIdInterface collector,
+			int fetchLength, StringIndex collapseStringIndex, Timer timer) {
+
+		Timer t = new Timer(timer, "adjacent collapse");
 
 		BitSet collapsedSet = new BitSet(fetchLength);
 
+		int[] ids = collector.getIds();
 		String lastTerm = null;
 		int adjacent = 0;
-		setCollapsedDocCount(0);
 		for (int i = 0; i < fetchLength; i++) {
-			String term = fetchedDocs[i].collapseTerm;
+			String term = collapseStringIndex.lookup[collapseStringIndex.order[ids[i]]];
 			if (term != null && term.equals(lastTerm)) {
 				if (++adjacent >= getCollapseMax())
 					collapsedSet.set(i);
@@ -55,24 +61,20 @@ public abstract class CollapseAdjacent extends CollapseAbstract {
 		}
 
 		int collapsedDocCount = (int) collapsedSet.cardinality();
-
-		ResultScoreDoc[] collapsedDoc = new ResultScoreDoc[fetchLength
-				- collapsedDocCount];
-
-		int currentPos = 0;
-		ResultScoreDoc collapseDoc = null;
+		CollapseDocInterface collapseCollector = getNewCollapseInterfaceInstance(
+				collector, fetchLength - collapsedDocCount, getCollapseMax());
+		int collapsePos = -1;
 		for (int i = 0; i < fetchLength; i++) {
-			if (!collapsedSet.get(i)) {
-				collapseDoc = fetchedDocs[i];
-				collapseDoc.collapseCount = 0;
-				collapsedDoc[currentPos++] = collapseDoc;
-			} else {
-				collapseDoc.collapseCount++;
-			}
+			if (!collapsedSet.get(i))
+				collapsePos = collapseCollector.collectDoc(i);
+			else
+				collapseCollector.collectCollapsedDoc(i, collapsePos);
+
 		}
 
-		setCollapsedDocCount(collapsedDocCount);
-		setCollapsedDoc(collapsedDoc);
+		t.duration();
+
+		return collapseCollector;
 
 	}
 

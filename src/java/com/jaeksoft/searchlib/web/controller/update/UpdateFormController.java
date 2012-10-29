@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -46,6 +46,7 @@ import com.jaeksoft.searchlib.analysis.LanguageEnum;
 import com.jaeksoft.searchlib.index.FieldContent;
 import com.jaeksoft.searchlib.index.IndexDocument;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
+import com.jaeksoft.searchlib.schema.FieldValueOriginEnum;
 import com.jaeksoft.searchlib.schema.SchemaField;
 import com.jaeksoft.searchlib.web.controller.AlertController;
 import com.jaeksoft.searchlib.web.controller.CommonController;
@@ -101,12 +102,13 @@ public class UpdateFormController extends CommonController implements
 		}
 	}
 
-	public void onAdd() {
+	public void onAdd() throws SearchLibException {
 		synchronized (this) {
 			if (selectedField == null)
 				return;
 			IndexDocument idxDoc = getIndexDocument();
-			idxDoc.add(selectedField.getName(), new FieldValueItem(""));
+			idxDoc.add(selectedField.getName(), new FieldValueItem(
+					FieldValueOriginEnum.EXTERNAL, ""));
 			reloadPage();
 		}
 	}
@@ -153,8 +155,8 @@ public class UpdateFormController extends CommonController implements
 		private FieldDocument(FieldContent fieldContent) {
 			fieldName = fieldContent.getField();
 
-			fieldValueList = new ArrayList<FieldValue>(fieldContent.getValues()
-					.size());
+			fieldValueList = new ArrayList<FieldValue>(
+					fieldContent.getValues().length);
 			int i = 0;
 			for (@SuppressWarnings("unused")
 			FieldValueItem valueItem : fieldContent.getValues())
@@ -186,7 +188,8 @@ public class UpdateFormController extends CommonController implements
 		}
 
 		public void setValue(String value) {
-			fieldContent.setValue(index, new FieldValueItem(value, getBoost()));
+			fieldContent.setValue(index, new FieldValueItem(
+					FieldValueOriginEnum.EXTERNAL, value, getBoost()));
 		}
 
 		public float getBoost() {
@@ -196,7 +199,8 @@ public class UpdateFormController extends CommonController implements
 
 		public void setBoost(Double boost) {
 			Float b = boost == null ? null : boost.floatValue();
-			fieldContent.setValue(index, new FieldValueItem(getValue(), b));
+			fieldContent.setValue(index, new FieldValueItem(
+					FieldValueOriginEnum.EXTERNAL, getValue(), b));
 		}
 
 		public void remove() {
@@ -241,7 +245,7 @@ public class UpdateFormController extends CommonController implements
 		listcell.setParent(item);
 	}
 
-	public void onValueRemove(Event event) {
+	public void onValueRemove(Event event) throws SearchLibException {
 		FieldValue fieldValue = (FieldValue) event.getData();
 		fieldValue.remove();
 		reloadPage();
@@ -263,7 +267,7 @@ public class UpdateFormController extends CommonController implements
 	 * @see com.jaeksoft.searchlib.web.controller.CommonController#reloadPage()
 	 */
 	@Override
-	public void reloadPage() {
+	public void reloadPage() throws SearchLibException {
 		synchronized (this) {
 			fieldDocumentList = null;
 			super.reloadPage();

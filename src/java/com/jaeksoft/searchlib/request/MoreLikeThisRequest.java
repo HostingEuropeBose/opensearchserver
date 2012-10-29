@@ -26,6 +26,7 @@ package com.jaeksoft.searchlib.request;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.Set;
 
 import javax.xml.xpath.XPathExpressionException;
 
@@ -37,31 +38,47 @@ import org.xml.sax.SAXException;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.Analyzer;
 import com.jaeksoft.searchlib.analysis.LanguageEnum;
+import com.jaeksoft.searchlib.analysis.filter.stop.WordArray;
 import com.jaeksoft.searchlib.config.Config;
+import com.jaeksoft.searchlib.filter.FilterAbstract;
+import com.jaeksoft.searchlib.filter.FilterList;
+import com.jaeksoft.searchlib.filter.QueryFilter;
+import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.IndexAbstract;
 import com.jaeksoft.searchlib.index.ReaderInterface;
+import com.jaeksoft.searchlib.index.ReaderLocal;
 import com.jaeksoft.searchlib.query.MoreLikeThis;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.result.AbstractResult;
 import com.jaeksoft.searchlib.result.AbstractResultSearch;
-import com.jaeksoft.searchlib.schema.Field;
-import com.jaeksoft.searchlib.schema.FieldList;
+import com.jaeksoft.searchlib.result.ResultMoreLikeThis;
+import com.jaeksoft.searchlib.schema.SchemaFieldList;
 import com.jaeksoft.searchlib.util.XPathParser;
 import com.jaeksoft.searchlib.util.XmlWriter;
 import com.jaeksoft.searchlib.web.ServletTransaction;
 
-public class MoreLikeThisRequest extends AbstractRequest {
+public class MoreLikeThisRequest extends AbstractRequest implements
+		RequestInterfaces.FilterListInterface,
+		RequestInterfaces.ReturnedFieldInterface {
 
+	private String docQuery;
+	private String likeText;
 	private LanguageEnum lang;
-	private Analyzer analyzer;
-	private String moreLikeThisDocQuery;
-	private FieldList<Field> moreLikeThisFieldList;
-	private int moreLikeThisMinWordLen;
-	private int moreLikeThisMaxWordLen;
-	private int moreLikeThisMinDocFreq;
-	private int moreLikeThisMinTermFreq;
-	private String moreLikeThisStopWords;
+	private String analyzerName;
+	private ReturnFieldList fieldList;
+	private int minWordLen;
+	private int maxWordLen;
+	private int minDocFreq;
+	private int minTermFreq;
+	private int maxNumTokensParsed;
+	private int maxQueryTerms;
+	private String stopWords;
+	private ReturnFieldList returnFieldList;
+	private FilterList filterList;
+	private int start;
+	private int rows;
+	private Query mltQuery;
 
 	public MoreLikeThisRequest() {
 	}
@@ -73,218 +90,393 @@ public class MoreLikeThisRequest extends AbstractRequest {
 	@Override
 	protected void setDefaultValues() {
 		super.setDefaultValues();
-		this.lang = null;
-		this.moreLikeThisFieldList = new FieldList<Field>();
-		this.moreLikeThisMinWordLen = 0;
-		this.moreLikeThisMaxWordLen = 0;
-		this.moreLikeThisMinDocFreq = 0;
-		this.moreLikeThisMinTermFreq = 0;
-		this.moreLikeThisStopWords = null;
+		this.filterList = new FilterList(this.config);
+		this.returnFieldList = new ReturnFieldList();
+		this.docQuery = null;
+		this.likeText = null;
+		this.lang = LanguageEnum.UNDEFINED;
+		this.analyzerName = null;
+		this.fieldList = new ReturnFieldList();
+		this.minWordLen = MoreLikeThis.DEFAULT_MIN_WORD_LENGTH;
+		this.maxWordLen = MoreLikeThis.DEFAULT_MAX_WORD_LENGTH;
+		this.minDocFreq = MoreLikeThis.DEFAULT_MIN_DOC_FREQ;
+		this.minTermFreq = MoreLikeThis.DEFAULT_MIN_TERM_FREQ;
+		this.maxNumTokensParsed = MoreLikeThis.DEFAULT_MAX_NUM_TOKENS_PARSED;
+		this.maxQueryTerms = MoreLikeThis.DEFAULT_MAX_QUERY_TERMS;
+		this.stopWords = null;
+		this.start = 0;
+		this.rows = 10;
+		this.mltQuery = null;
 	}
 
 	@Override
-	public void copyFrom(AbstractRequest request) throws SearchLibException {
+	public void copyFrom(AbstractRequest request) {
 		super.copyFrom(request);
 		MoreLikeThisRequest mltRequest = (MoreLikeThisRequest) request;
+		this.analyzerName = mltRequest.analyzerName;
 		this.lang = mltRequest.lang;
-		this.moreLikeThisFieldList = new FieldList<Field>(
-				mltRequest.moreLikeThisFieldList);
-		this.moreLikeThisMinWordLen = mltRequest.moreLikeThisMinWordLen;
-		this.moreLikeThisMaxWordLen = mltRequest.moreLikeThisMaxWordLen;
-		this.moreLikeThisMinDocFreq = mltRequest.moreLikeThisMinDocFreq;
-		this.moreLikeThisMinTermFreq = mltRequest.moreLikeThisMinTermFreq;
-		this.moreLikeThisStopWords = mltRequest.moreLikeThisStopWords;
-		this.moreLikeThisDocQuery = mltRequest.moreLikeThisDocQuery;
+		this.fieldList = new ReturnFieldList(mltRequest.fieldList);
+		this.minWordLen = mltRequest.minWordLen;
+		this.maxWordLen = mltRequest.maxWordLen;
+		this.minDocFreq = mltRequest.minDocFreq;
+		this.minTermFreq = mltRequest.minTermFreq;
+		this.stopWords = mltRequest.stopWords;
+		this.docQuery = mltRequest.docQuery;
+		this.likeText = mltRequest.likeText;
+		this.maxNumTokensParsed = mltRequest.maxNumTokensParsed;
+		this.maxQueryTerms = mltRequest.maxQueryTerms;
+		this.filterList = new FilterList(mltRequest.filterList);
+		this.returnFieldList = new ReturnFieldList(mltRequest.returnFieldList);
+		this.mltQuery = mltRequest.mltQuery;
 	}
 
-	private Analyzer checkAnalyzer() throws SearchLibException {
-		if (analyzer == null)
-			analyzer = config.getSchema().getQueryPerFieldAnalyzer(lang);
-		return analyzer;
-	}
-
-	@SuppressWarnings("unused")
-	private Query getMoreLikeThisQuery() throws SearchLibException, IOException {
-		Config config = getConfig();
-		IndexAbstract index = config.getIndex();
-		MoreLikeThis mlt = index.getMoreLikeThis();
-		SearchRequest searchRequest = new SearchRequest(config);
-		searchRequest.setRows(1);
-		searchRequest.setQueryString(moreLikeThisDocQuery);
-		AbstractResultSearch result = (AbstractResultSearch) index
-				.request(searchRequest);
-		if (result.getNumFound() == 0)
-			return mlt.like(new StringReader(""));
-		int docId = result.getDocs()[0].doc;
-		mlt.setMinWordLen(moreLikeThisMinWordLen);
-		mlt.setMaxWordLen(moreLikeThisMaxWordLen);
-		mlt.setMinDocFreq(moreLikeThisMinDocFreq);
-		mlt.setMinTermFreq(moreLikeThisMinTermFreq);
-		mlt.setFieldNames(moreLikeThisFieldList.toArrayName());
-		mlt.setAnalyzer(checkAnalyzer());
-		if (moreLikeThisStopWords != null)
-			mlt.setStopWords(getConfig().getStopWordsManager().getWordArray(
-					moreLikeThisStopWords, false));
-		return mlt.like(docId);
-	}
-
-	/**
-	 * @return the moreLikeThisDocQuery
-	 */
-	public String getMoreLikeThisDocQuery() {
+	@Override
+	public Query getQuery() throws SearchLibException, IOException {
 		rwl.r.lock();
 		try {
-			return moreLikeThisDocQuery;
+			if (mltQuery != null)
+				return mltQuery;
 		} finally {
 			rwl.r.unlock();
 		}
-	}
-
-	/**
-	 * @param moreLikeThisDocQuery
-	 *            the moreLikeThisDocQuery to set
-	 */
-	public void setMoreLikeThisDocQuery(String moreLikeThisDocQuery) {
 		rwl.w.lock();
 		try {
-			this.moreLikeThisDocQuery = moreLikeThisDocQuery;
+			if (mltQuery != null)
+				return mltQuery;
+			Config config = getConfig();
+			IndexAbstract index = config.getIndexAbstract();
+
+			MoreLikeThis mlt = index.getMoreLikeThis();
+			mlt.setMinWordLen(minWordLen);
+			mlt.setMaxWordLen(maxWordLen);
+			mlt.setMinDocFreq(minDocFreq);
+			mlt.setMinTermFreq(minTermFreq);
+			mlt.setMaxNumTokensParsed(maxNumTokensParsed);
+			mlt.setMaxQueryTerms(maxQueryTerms);
+			mlt.setFieldNames(fieldList.toArrayName());
+
+			if (analyzerName != null) {
+				Analyzer analyzer = config.getSchema().getAnalyzerList()
+						.get(analyzerName, lang);
+				if (analyzer != null)
+					mlt.setAnalyzer(analyzer.getQueryAnalyzer());
+			}
+			if (stopWords != null && stopWords.length() > 0) {
+				WordArray wordArray = getConfig().getStopWordsManager()
+						.getWordArray(stopWords, false);
+				if (wordArray != null) {
+					Set<String> stopWords = wordArray.getWordSet();
+					if (stopWords != null)
+						mlt.setStopWords(stopWords);
+				}
+			}
+
+			if (docQuery != null && docQuery.length() > 0) {
+				SearchRequest searchRequest = new SearchRequest(config);
+				searchRequest.setRows(1);
+				searchRequest.setQueryString(docQuery);
+				AbstractResultSearch result = (AbstractResultSearch) index
+						.request(searchRequest);
+				if (result.getNumFound() == 0)
+					return mlt.like(new StringReader(""));
+				int docId = result.getDocs().getIds()[0];
+				mltQuery = mlt.like(docId);
+			} else if (likeText != null & likeText.length() > 0) {
+				mltQuery = mlt.like(new StringReader(likeText));
+			}
+			return mltQuery;
 		} finally {
 			rwl.w.unlock();
 		}
 	}
 
 	/**
-	 * @return the moreLikeThisFieldList
+	 * @return the docQuery
 	 */
-	public FieldList<Field> getMoreLikeThisFieldList() {
+	public String getDocQuery() {
 		rwl.r.lock();
 		try {
-			return moreLikeThisFieldList;
+			return docQuery;
 		} finally {
 			rwl.r.unlock();
 		}
 	}
 
 	/**
-	 * @return the moreLikeThisMinWordLen
+	 * @param docQuery
+	 *            the docQuery to set
 	 */
-	public int getMoreLikeThisMinWordLen() {
-		rwl.r.lock();
-		try {
-			return moreLikeThisMinWordLen;
-		} finally {
-			rwl.r.unlock();
-		}
-	}
-
-	/**
-	 * @param moreLikeThisMinWordLen
-	 *            the moreLikeThisMinWordLen to set
-	 */
-	public void setMoreLikeThisMinWordLen(int moreLikeThisMinWordLen) {
+	public void setDocQuery(String docQuery) {
 		rwl.w.lock();
 		try {
-			this.moreLikeThisMinWordLen = moreLikeThisMinWordLen;
+			this.docQuery = docQuery;
+			mltQuery = null;
 		} finally {
 			rwl.w.unlock();
 		}
 	}
 
 	/**
-	 * @return the moreLikeThisMaxWordLen
+	 * @return the likeText
 	 */
-	public int getMoreLikeThisMaxWordLen() {
+	public String getLikeText() {
 		rwl.r.lock();
 		try {
-			return moreLikeThisMaxWordLen;
+			return likeText;
 		} finally {
 			rwl.r.unlock();
 		}
 	}
 
 	/**
-	 * @param moreLikeThisMaxWordLen
-	 *            the moreLikeThisMaxWordLen to set
+	 * @param likeText
+	 *            the likeText to set
 	 */
-	public void setMoreLikeThisMaxWordLen(int moreLikeThisMaxWordLen) {
+	public void setLikeText(String likeText) {
 		rwl.w.lock();
 		try {
-			this.moreLikeThisMaxWordLen = moreLikeThisMaxWordLen;
+			this.likeText = likeText;
+			mltQuery = null;
 		} finally {
 			rwl.w.unlock();
 		}
 	}
 
 	/**
-	 * @return the moreLikeThisMinDocFreq
+	 * 
+	 * @return the LanguageEnum
 	 */
-	public int getMoreLikeThisMinDocFreq() {
+	public LanguageEnum getLang() {
 		rwl.r.lock();
 		try {
-			return moreLikeThisMinDocFreq;
+			return this.lang;
 		} finally {
 			rwl.r.unlock();
 		}
 	}
 
 	/**
-	 * @param moreLikeThisMinDocFreq
-	 *            the moreLikeThisMinDocFreq to set
+	 * 
+	 * @param lang
+	 *            The language to set
 	 */
-	public void setMoreLikeThisMinDocFreq(int moreLikeThisMinDocFreq) {
+	public void setLang(LanguageEnum lang) {
 		rwl.w.lock();
 		try {
-			this.moreLikeThisMinDocFreq = moreLikeThisMinDocFreq;
+			this.lang = lang;
 		} finally {
 			rwl.w.unlock();
 		}
 	}
 
 	/**
-	 * @return the moreLikeThisMinTermFreq
+	 * 
+	 * @return the AnalyzerName
 	 */
-	public int getMoreLikeThisMinTermFreq() {
+	public String getAnalyzerName() {
 		rwl.r.lock();
 		try {
-			return moreLikeThisMinTermFreq;
+			return this.analyzerName;
 		} finally {
 			rwl.r.unlock();
 		}
 	}
 
 	/**
-	 * @param moreLikeThisMinTermFreq
-	 *            the moreLikeThisMinTermFreq to set
+	 * 
+	 * @param lang
+	 *            The language to set
 	 */
-	public void setMoreLikeThisMinTermFreq(int moreLikeThisMinTermFreq) {
+	public void setAnalyzerName(String analyzerName) {
 		rwl.w.lock();
 		try {
-			this.moreLikeThisMinTermFreq = moreLikeThisMinTermFreq;
+			this.analyzerName = analyzerName;
 		} finally {
 			rwl.w.unlock();
 		}
 	}
 
 	/**
-	 * @return the moreLikeThisStopWords
+	 * @return the fieldList
 	 */
-	public String getMoreLikeThisStopWords() {
+	public ReturnFieldList getFieldList() {
 		rwl.r.lock();
 		try {
-			return moreLikeThisStopWords;
+			return fieldList;
 		} finally {
 			rwl.r.unlock();
 		}
 	}
 
 	/**
-	 * @param moreLikeThisStopWords
-	 *            the moreLikeThisStopWords to set
+	 * @return the minWordLen
 	 */
-	public void setMoreLikeThisStopWords(String moreLikeThisStopWords) {
+	public int getMinWordLen() {
+		rwl.r.lock();
+		try {
+			return minWordLen;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	/**
+	 * @param minWordLen
+	 *            the minWordLen to set
+	 */
+	public void setMinWordLen(int minWordLen) {
 		rwl.w.lock();
 		try {
-			this.moreLikeThisStopWords = moreLikeThisStopWords;
+			this.minWordLen = minWordLen;
+			mltQuery = null;
+		} finally {
+			rwl.w.unlock();
+		}
+	}
+
+	/**
+	 * @return the maxWordLen
+	 */
+	public int getMaxWordLen() {
+		rwl.r.lock();
+		try {
+			return maxWordLen;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	/**
+	 * @param maxWordLen
+	 *            the maxWordLen to set
+	 */
+	public void setMaxWordLen(int maxWordLen) {
+		rwl.w.lock();
+		try {
+			this.maxWordLen = maxWordLen;
+			mltQuery = null;
+		} finally {
+			rwl.w.unlock();
+		}
+	}
+
+	/**
+	 * @return the minDocFreq
+	 */
+	public int getMinDocFreq() {
+		rwl.r.lock();
+		try {
+			return minDocFreq;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	/**
+	 * @param minDocFreq
+	 *            the minDocFreq to set
+	 */
+	public void setMinDocFreq(int minDocFreq) {
+		rwl.w.lock();
+		try {
+			this.minDocFreq = minDocFreq;
+			mltQuery = null;
+		} finally {
+			rwl.w.unlock();
+		}
+	}
+
+	/**
+	 * @return the minTermFreq
+	 */
+	public int getMinTermFreq() {
+		rwl.r.lock();
+		try {
+			return minTermFreq;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	/**
+	 * @param minTermFreq
+	 *            the minTermFreq to set
+	 */
+	public void setMinTermFreq(int minTermFreq) {
+		rwl.w.lock();
+		try {
+			this.minTermFreq = minTermFreq;
+			mltQuery = null;
+		} finally {
+			rwl.w.unlock();
+		}
+	}
+
+	/**
+	 * @return the stopWords
+	 */
+	public String getStopWords() {
+		rwl.r.lock();
+		try {
+			return stopWords;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	/**
+	 * @param stopWords
+	 *            the stopWords to set
+	 */
+	public void setStopWords(String stopWords) {
+		rwl.w.lock();
+		try {
+			this.stopWords = stopWords;
+			mltQuery = null;
+		} finally {
+			rwl.w.unlock();
+		}
+	}
+
+	@Override
+	public FilterList getFilterList() {
+		rwl.r.lock();
+		try {
+			return this.filterList;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	@Override
+	public void addFilter(String req, boolean negative) throws ParseException {
+		rwl.w.lock();
+		try {
+			this.filterList.add(new QueryFilter(req, negative,
+					FilterAbstract.Source.REQUEST, null));
+			mltQuery = null;
+		} finally {
+			rwl.w.unlock();
+		}
+	}
+
+	@Override
+	public ReturnFieldList getReturnFieldList() {
+		rwl.r.lock();
+		try {
+			return this.returnFieldList;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	@Override
+	public void addReturnField(String fieldName) {
+		rwl.w.lock();
+		try {
+			returnFieldList.put(new ReturnField(config.getSchema()
+					.getFieldList().get(fieldName).getName()));
+			mltQuery = null;
 		} finally {
 			rwl.w.unlock();
 		}
@@ -294,33 +486,63 @@ public class MoreLikeThisRequest extends AbstractRequest {
 	public void fromXmlConfig(Config config, XPathParser xpp, Node node)
 			throws XPathExpressionException, DOMException, ParseException,
 			InstantiationException, IllegalAccessException,
-			ClassNotFoundException, SearchLibException {
+			ClassNotFoundException {
 		rwl.w.lock();
 		try {
 			super.fromXmlConfig(config, xpp, node);
-			setMoreLikeThisMinWordLen(XPathParser.getAttributeValue(node,
-					"minWordLen"));
-			setMoreLikeThisMaxWordLen(XPathParser.getAttributeValue(node,
-					"maxWordLen"));
-			setMoreLikeThisMinTermFreq(XPathParser.getAttributeValue(node,
-					"minTermFreq"));
-			setMoreLikeThisMinDocFreq(XPathParser.getAttributeValue(node,
-					"minDocFreq"));
-			setMoreLikeThisStopWords(XPathParser.getAttributeString(node,
-					"stopWords"));
+			setLang(LanguageEnum.findByCode(XPathParser.getAttributeString(
+					node, "lang")));
+			setAnalyzerName(XPathParser.getAttributeString(node, "analyzer"));
+			setMinWordLen(XPathParser.getAttributeValue(node, "minWordLen"));
+			setMaxWordLen(XPathParser.getAttributeValue(node, "maxWordLen"));
+			setMinTermFreq(XPathParser.getAttributeValue(node, "minTermFreq"));
+			setMinDocFreq(XPathParser.getAttributeValue(node, "minDocFreq"));
+			setMaxNumTokensParsed(XPathParser.getAttributeValue(node,
+					"maxNumTokensParsed"));
+			setMaxQueryTerms(XPathParser.getAttributeValue(node,
+					"maxQueryTerms"));
+			setStopWords(XPathParser.getAttributeString(node, "stopWords"));
+			setStart(XPathParser.getAttributeValue(node, "start"));
+			setRows(XPathParser.getAttributeValue(node, "rows"));
 
 			NodeList mltFieldsNodes = xpp.getNodeList(node, "fields/field");
 			if (mltFieldsNodes != null) {
-				FieldList<Field> moreLikeThisFields = getMoreLikeThisFieldList();
+				ReturnFieldList moreLikeThisFields = getFieldList();
 				for (int i = 0; i < mltFieldsNodes.getLength(); i++) {
-					Field field = Field.fromXmlConfig(mltFieldsNodes.item(i));
+					ReturnField field = ReturnField
+							.fromXmlConfig(mltFieldsNodes.item(i));
 					if (field != null)
-						moreLikeThisFields.add(field);
+						moreLikeThisFields.put(field);
 				}
 			}
+
 			Node mltDocQueryNode = xpp.getNode(node, "docQuery");
 			if (mltDocQueryNode != null)
-				setMoreLikeThisDocQuery(xpp.getNodeString(mltDocQueryNode));
+				setDocQuery(xpp.getNodeString(mltDocQueryNode, false));
+
+			Node mltDocLikeText = xpp.getNode(node, "likeText");
+			if (mltDocLikeText != null)
+				setLikeText(xpp.getNodeString(mltDocLikeText, false));
+
+			NodeList nodes = xpp.getNodeList(node, "filters/filter");
+			for (int i = 0; i < nodes.getLength(); i++) {
+				Node n = nodes.item(i);
+				filterList.add(new QueryFilter(xpp.getNodeString(n, false),
+						"yes".equals(XPathParser.getAttributeString(n,
+								"negative")), FilterAbstract.Source.CONFIGXML,
+						null));
+			}
+
+			SchemaFieldList fieldList = config.getSchema().getFieldList();
+			returnFieldList.filterCopy(fieldList,
+					xpp.getNodeString(node, "returnFields"));
+			nodes = xpp.getNodeList(node, "returnFields/field");
+			for (int i = 0; i < nodes.getLength(); i++) {
+				ReturnField field = ReturnField.fromXmlConfig(nodes.item(i));
+				if (field != null)
+					returnFieldList.put(field);
+			}
+
 		} finally {
 			rwl.w.unlock();
 		}
@@ -330,21 +552,42 @@ public class MoreLikeThisRequest extends AbstractRequest {
 	public void writeXmlConfig(XmlWriter xmlWriter) throws SAXException {
 		rwl.r.lock();
 		try {
-			xmlWriter.startElement("moreLikeThis", "minWordLen",
-					Integer.toString(moreLikeThisMinWordLen), "maxWordLen",
-					Integer.toString(moreLikeThisMaxWordLen), "minDocFreq",
-					Integer.toString(moreLikeThisMinDocFreq), "minTermFreq",
-					Integer.toString(moreLikeThisMinTermFreq), "stopWords");
+			xmlWriter.startElement(XML_NODE_REQUEST, XML_ATTR_NAME,
+					getRequestName(), XML_ATTR_TYPE, getType().name(),
+					"minWordLen", Integer.toString(minWordLen), "maxWordLen",
+					Integer.toString(maxWordLen), "minDocFreq",
+					Integer.toString(minDocFreq), "minTermFreq",
+					Integer.toString(minTermFreq), "maxNumTokensParsed",
+					Integer.toString(maxNumTokensParsed), "maxQueryTerms",
+					Integer.toString(maxQueryTerms), "stopWords", stopWords,
+					"start", Integer.toString(start), "rows",
+					Integer.toString(rows), "lang",
+					lang != null ? lang.getCode() : null, "analyzer",
+					analyzerName);
 
-			if (moreLikeThisFieldList.size() > 0) {
+			if (fieldList.size() > 0) {
 				xmlWriter.startElement("fields");
-				moreLikeThisFieldList.writeXmlConfig(xmlWriter);
+				fieldList.writeXmlConfig(xmlWriter);
 				xmlWriter.endElement();
 			}
-			if (moreLikeThisDocQuery != null
-					&& moreLikeThisDocQuery.length() > 0) {
+			if (docQuery != null && docQuery.length() > 0) {
 				xmlWriter.startElement("docQuery");
-				xmlWriter.textNode(moreLikeThisDocQuery);
+				xmlWriter.textNode(docQuery);
+				xmlWriter.endElement();
+			}
+			if (likeText != null && likeText.length() > 0) {
+				xmlWriter.startElement("likeText");
+				xmlWriter.textNode(likeText);
+				xmlWriter.endElement();
+			}
+			if (returnFieldList.size() > 0) {
+				xmlWriter.startElement("returnFields");
+				returnFieldList.writeXmlConfig(xmlWriter);
+				xmlWriter.endElement();
+			}
+			if (filterList.size() > 0) {
+				xmlWriter.startElement("filters");
+				filterList.writeXmlConfig(xmlWriter);
 				xmlWriter.endElement();
 			}
 			xmlWriter.endElement();
@@ -366,22 +609,39 @@ public class MoreLikeThisRequest extends AbstractRequest {
 			Integer i;
 
 			if ((p = transaction.getParameterString("mlt.docquery")) != null)
-				setMoreLikeThisDocQuery(p);
+				setDocQuery(p);
+
+			if ((p = transaction.getParameterString("mlt.liketext")) != null)
+				setLikeText(p);
 
 			if ((i = transaction.getParameterInteger("mlt.minwordlen")) != null)
-				setMoreLikeThisMinWordLen(i);
+				setMinWordLen(i);
 
 			if ((i = transaction.getParameterInteger("mlt.maxwordlen")) != null)
-				setMoreLikeThisMaxWordLen(i);
+				setMaxWordLen(i);
 
 			if ((i = transaction.getParameterInteger("mlt.mindocfreq")) != null)
-				setMoreLikeThisMinDocFreq(i);
+				setMinDocFreq(i);
 
 			if ((i = transaction.getParameterInteger("mlt.mintermfreq")) != null)
-				setMoreLikeThisMinTermFreq(i);
+				setMinTermFreq(i);
 
 			if ((p = transaction.getParameterString("mlt.stopwords")) != null)
-				setMoreLikeThisStopWords(p);
+				setStopWords(p);
+
+			if ((p = transaction.getParameterString("lang")) != null)
+				setLang(LanguageEnum.findByCode(p));
+			else if ((p = transaction.getParameterString("mlt.lang")) != null)
+				setLang(LanguageEnum.findByCode(p));
+
+			if ((p = transaction.getParameterString("mlt.analyzer")) != null)
+				setAnalyzerName(p);
+
+			if ((i = transaction.getParameterInteger("start")) != null)
+				setStart(i);
+
+			if ((i = transaction.getParameterInteger("rows")) != null)
+				setRows(i);
 		} finally {
 			rwl.w.unlock();
 		}
@@ -390,18 +650,164 @@ public class MoreLikeThisRequest extends AbstractRequest {
 
 	@Override
 	public void reset() {
+		rwl.w.lock();
+		try {
+			mltQuery = null;
+		} finally {
+			rwl.w.unlock();
+		}
 	}
 
 	@Override
 	public AbstractResult<MoreLikeThisRequest> execute(ReaderInterface reader)
 			throws SearchLibException {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			return new ResultMoreLikeThis((ReaderLocal) reader, this);
+		} catch (IOException e) {
+			throw new SearchLibException(e);
+		} catch (ParseException e) {
+			throw new SearchLibException(e);
+		} catch (SyntaxError e) {
+			throw new SearchLibException(e);
+		} catch (InstantiationException e) {
+			throw new SearchLibException(e);
+		} catch (IllegalAccessException e) {
+			throw new SearchLibException(e);
+		} catch (ClassNotFoundException e) {
+			throw new SearchLibException(e);
+		}
 	}
 
 	@Override
 	public String getInfo() {
-		// TODO Auto-generated method stub
-		return null;
+		rwl.r.lock();
+		try {
+			StringBuffer sb = new StringBuffer();
+			if (docQuery != null) {
+				sb.append(docQuery);
+				sb.append(' ');
+			}
+			if (likeText != null) {
+				sb.append(likeText);
+				sb.append(' ');
+			}
+			if (fieldList != null)
+				sb.append(fieldList.toString());
+			return sb.toString();
+		} finally {
+			rwl.r.unlock();
+		}
 	}
+
+	/**
+	 * @return the start
+	 */
+	public int getStart() {
+		rwl.r.lock();
+		try {
+			return start;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	public int getEnd() {
+		rwl.r.lock();
+		try {
+			return start + rows;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	/**
+	 * @param start
+	 *            the start to set
+	 */
+	public void setStart(int start) {
+		rwl.w.lock();
+		try {
+			this.start = start;
+		} finally {
+			rwl.w.unlock();
+		}
+	}
+
+	/**
+	 * @return the rows
+	 */
+	public int getRows() {
+		rwl.r.lock();
+		try {
+			return rows;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	/**
+	 * @param rows
+	 *            the rows to set
+	 */
+	public void setRows(int rows) {
+		rwl.w.lock();
+		try {
+			this.rows = rows;
+		} finally {
+			rwl.w.unlock();
+		}
+	}
+
+	/**
+	 * @return the maxNumTokensParsed
+	 */
+	public int getMaxNumTokensParsed() {
+		rwl.r.lock();
+		try {
+			return maxNumTokensParsed;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	/**
+	 * @param maxNumTokensParsed
+	 *            the maxNumTokensParsed to set
+	 */
+	public void setMaxNumTokensParsed(int maxNumTokensParsed) {
+		rwl.w.lock();
+		try {
+			this.maxNumTokensParsed = maxNumTokensParsed;
+			mltQuery = null;
+		} finally {
+			rwl.w.unlock();
+		}
+	}
+
+	/**
+	 * @return the maxQueryTerms
+	 */
+	public int getMaxQueryTerms() {
+		rwl.r.lock();
+		try {
+			return maxQueryTerms;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	/**
+	 * @param maxQueryTerms
+	 *            the maxQueryTerms to set
+	 */
+	public void setMaxQueryTerms(int maxQueryTerms) {
+		rwl.w.lock();
+		try {
+			this.maxQueryTerms = maxQueryTerms;
+			mltQuery = null;
+		} finally {
+			rwl.w.unlock();
+		}
+	}
+
 }

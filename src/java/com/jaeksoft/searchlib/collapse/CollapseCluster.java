@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2010 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2010-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -24,19 +24,14 @@
 
 package com.jaeksoft.searchlib.collapse;
 
-import java.io.IOException;
-import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
-import com.jaeksoft.searchlib.function.expression.SyntaxError;
-import com.jaeksoft.searchlib.index.DocSetHits;
-import com.jaeksoft.searchlib.index.ReaderLocal;
-import com.jaeksoft.searchlib.index.ScoreDoc;
 import com.jaeksoft.searchlib.index.StringIndex;
-import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.request.SearchRequest;
-import com.jaeksoft.searchlib.result.ResultScoreDoc;
-import com.jaeksoft.searchlib.result.ResultSearchSingle;
+import com.jaeksoft.searchlib.result.collector.CollapseDocInterface;
+import com.jaeksoft.searchlib.result.collector.DocIdInterface;
+import com.jaeksoft.searchlib.util.Timer;
 
 public class CollapseCluster extends CollapseAbstract {
 
@@ -45,45 +40,30 @@ public class CollapseCluster extends CollapseAbstract {
 	}
 
 	@Override
-	protected void collapse(ResultScoreDoc[] fetchedDocs, int fetchLength) {
-		// TODO Auto-generated method stub
+	protected CollapseDocInterface collapse(DocIdInterface collector,
+			int fetchLength, StringIndex collapseStringIndex, Timer timer) {
 
-		Map<String, ResultScoreDoc> collapsedDocMap = new LinkedHashMap<String, ResultScoreDoc>();
-		ResultScoreDoc collapseDoc;
+		Timer t = new Timer(timer, "Build collapse map");
+		Map<String, Integer> collapsedDocMap = new TreeMap<String, Integer>();
+		int[] ids = collector.getIds();
+
+		CollapseDocInterface collapseInterface = getNewCollapseInterfaceInstance(
+				collector, fetchLength, getCollapseMax());
+		Integer collapsePos;
+
 		for (int i = 0; i < fetchLength; i++) {
-			ResultScoreDoc fetchedDoc = fetchedDocs[i];
-			String term = fetchedDoc.collapseTerm;
+			String term = collapseStringIndex.lookup[collapseStringIndex.order[ids[i]]];
 			if (term != null
-					&& ((collapseDoc = collapsedDocMap.get(term)) != null)) {
-				collapseDoc.collapseCount++;
+					&& ((collapsePos = collapsedDocMap.get(term)) != null)) {
+				collapseInterface.collectCollapsedDoc(i, collapsePos);
 			} else {
-				collapsedDocMap.put(term, fetchedDoc);
+				collapsePos = collapseInterface.collectDoc(i);
+				if (term != null)
+					collapsedDocMap.put(term, collapsePos);
 			}
 		}
+		t.duration();
 
-		ResultScoreDoc[] collapsedDocs = new ResultScoreDoc[collapsedDocMap
-				.size()];
-		collapsedDocMap.values().toArray(collapsedDocs);
-
-		setCollapsedDocCount(fetchLength - collapsedDocs.length);
-		setCollapsedDoc(collapsedDocs);
-
+		return collapseInterface;
 	}
-
-	@Override
-	public ResultScoreDoc[] collapse(ResultSearchSingle resultSingle)
-			throws IOException, ParseException, SyntaxError {
-		ReaderLocal reader = resultSingle.getReader();
-		DocSetHits docSetHits = resultSingle.getDocSetHits();
-		int allRows = docSetHits.getDocNumFound();
-		ScoreDoc[] scoreDocs = docSetHits.getScoreDocs(allRows);
-		StringIndex collapseFieldStringIndex = reader
-				.getStringIndex(searchRequest.getCollapseField());
-		ResultScoreDoc[] resultScoreDocs = ResultScoreDoc
-				.appendResultScoreDocArray(resultSingle, null, scoreDocs,
-						allRows, collapseFieldStringIndex);
-		run(resultScoreDocs, allRows);
-		return getCollapsedDoc();
-	}
-
 }

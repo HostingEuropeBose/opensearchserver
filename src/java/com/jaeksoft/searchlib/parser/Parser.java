@@ -32,11 +32,13 @@ import java.util.Locale;
 
 import org.knallgrau.utils.textcat.TextCategorizer;
 
+import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.LanguageEnum;
 import com.jaeksoft.searchlib.crawler.file.process.FileInstanceAbstract;
 import com.jaeksoft.searchlib.index.FieldContent;
 import com.jaeksoft.searchlib.index.IndexDocument;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
+import com.jaeksoft.searchlib.schema.FieldValueOriginEnum;
 import com.jaeksoft.searchlib.streamlimiter.LimitException;
 import com.jaeksoft.searchlib.streamlimiter.StreamLimiter;
 import com.jaeksoft.searchlib.streamlimiter.StreamLimiterBase64;
@@ -73,7 +75,7 @@ public abstract class Parser extends ParserFactory {
 		return sourceDocument;
 	}
 
-	public void setSourceDocument(IndexDocument sourceDocument) {
+	private void setSourceDocument(IndexDocument sourceDocument) {
 		this.sourceDocument = sourceDocument;
 	}
 
@@ -81,12 +83,24 @@ public abstract class Parser extends ParserFactory {
 		return parserDocument;
 	}
 
+	public void resetParserFieldList() {
+		ParserFieldEnum[] parserFieldList = getFieldList();
+		if (parserFieldList == null)
+			return;
+		for (ParserFieldEnum parserField : parserFieldList) {
+			FieldContent fc = parserDocument.getField(parserField.name());
+			if (fc != null)
+				fc.clear();
+		}
+	}
+
 	public void addField(ParserFieldEnum field, String value) {
 		if (value == null)
 			return;
 		if (value.length() == 0)
 			return;
-		parserDocument.add(field.name(), new FieldValueItem(value));
+		parserDocument.add(field.name(), new FieldValueItem(
+				FieldValueOriginEnum.EXTERNAL, value));
 	}
 
 	public void addField(ParserFieldEnum field, String value, Float boost) {
@@ -94,21 +108,24 @@ public abstract class Parser extends ParserFactory {
 			return;
 		if (value.length() == 0)
 			return;
-		parserDocument.add(field.name(), new FieldValueItem(value, boost));
+		parserDocument.add(field.name(), new FieldValueItem(
+				FieldValueOriginEnum.EXTERNAL, value, boost));
 	}
 
 	public void addDirectFields(String[] fields, String value) {
 		if (directDocument == null)
 			directDocument = new IndexDocument();
 		for (String field : fields)
-			directDocument.add(field, new FieldValueItem(value));
+			directDocument.add(field, new FieldValueItem(
+					FieldValueOriginEnum.EXTERNAL, value));
 	}
 
 	public void addDirectFields(String[] fields, String value, Float boost) {
 		if (directDocument == null)
 			directDocument = new IndexDocument();
 		for (String field : fields)
-			directDocument.add(field, new FieldValueItem(value, boost));
+			directDocument.add(field, new FieldValueItem(
+					FieldValueOriginEnum.EXTERNAL, value, boost));
 	}
 
 	protected void addField(ParserFieldEnum field, Object object) {
@@ -118,7 +135,7 @@ public abstract class Parser extends ParserFactory {
 	}
 
 	public FieldContent getFieldContent(ParserFieldEnum field) {
-		return parserDocument.getField(field.name());
+		return parserDocument.getFieldContent(field.name());
 	}
 
 	public String getFieldValue(ParserFieldEnum field, int pos) {
@@ -161,35 +178,46 @@ public abstract class Parser extends ParserFactory {
 	final private void doParserContent(StreamLimiter streamLimiter,
 			LanguageEnum lang) throws IOException {
 		try {
+			addField(ParserFieldEnum.parser_name, getParserName());
 			parseContent(streamLimiter, lang);
 		} finally {
 			streamLimiter.close();
 		}
 	}
 
-	final public void parseContent(InputStream inputStream, LanguageEnum lang)
+	final void parseStream(IndexDocument sourceDocument,
+			String originalFileName, InputStream inputStream, LanguageEnum lang)
 			throws IOException {
+		if (sourceDocument != null)
+			setSourceDocument(sourceDocument);
 		StreamLimiter streamLimiter = new StreamLimiterInputStream(
-				getSizeLimit(), inputStream);
+				getSizeLimit(), inputStream, originalFileName);
 		doParserContent(streamLimiter, lang);
 	}
 
-	final public void parseContent(File file, LanguageEnum lang)
-			throws IOException {
+	final void parseFile(IndexDocument sourceDocument, File file,
+			LanguageEnum lang) throws IOException {
+		if (sourceDocument != null)
+			setSourceDocument(sourceDocument);
 		StreamLimiter streamLimiter = new StreamLimiterFile(getSizeLimit(),
 				file);
 		doParserContent(streamLimiter, lang);
 	}
 
-	final public void parseContentBase64(String base64text, String fileName,
-			LanguageEnum lang) throws IOException {
+	final void parseBase64(IndexDocument sourceDocument, String base64text,
+			String fileName, LanguageEnum lang) throws IOException {
+		if (sourceDocument != null)
+			setSourceDocument(sourceDocument);
 		StreamLimiter streamLimiter = new StreamLimiterBase64(base64text,
 				getSizeLimit(), fileName);
 		doParserContent(streamLimiter, lang);
 	}
 
-	final public void parseContent(FileInstanceAbstract fileInstance,
-			LanguageEnum lang) throws IOException {
+	final void parseFileInstance(IndexDocument sourceDocument,
+			FileInstanceAbstract fileInstance, LanguageEnum lang)
+			throws IOException, SearchLibException {
+		if (sourceDocument != null)
+			setSourceDocument(sourceDocument);
 		StreamLimiter streamLimiter = new StreamLimiterFileInstance(
 				fileInstance, getSizeLimit());
 		doParserContent(streamLimiter, lang);

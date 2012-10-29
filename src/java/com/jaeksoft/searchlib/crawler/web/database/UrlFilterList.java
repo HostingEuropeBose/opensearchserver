@@ -45,7 +45,7 @@ public class UrlFilterList {
 
 	final private ReadWriteLock rwl = new ReadWriteLock();
 
-	private final File configFile;
+	private File configFile;
 	private TreeSet<UrlFilterItem> filterSet;
 	private UrlFilterItem[] array;
 

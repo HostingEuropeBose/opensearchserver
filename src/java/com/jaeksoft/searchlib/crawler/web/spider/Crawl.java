@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 
 import com.jaeksoft.searchlib.Client;
@@ -75,21 +76,21 @@ import com.jaeksoft.searchlib.streamlimiter.StreamLimiter;
 public class Crawl {
 
 	private IndexDocument targetIndexDocument;
-	private final HostUrlList hostUrlList;
-	private final UrlItem urlItem;
-	private final CredentialManager credentialManager;
+	private HostUrlList hostUrlList;
+	private UrlItem urlItem;
+	private CredentialManager credentialManager;
 	private CredentialItem credentialItem;
-	private final String userAgent;
-	private final ParserSelector parserSelector;
-	private final Config config;
+	private String userAgent;
+	private ParserSelector parserSelector;
+	private Config config;
 	private Parser parser;
 	private String error;
 	private List<LinkItem> discoverLinks;
-	private final FieldMap urlFieldMap;
+	private FieldMap urlFieldMap;
 	private URI redirectUrlLocation;
-	private final boolean inclusionEnabled;
-	private final boolean exclusionEnabled;
-	private final boolean robotsTxtEnabled;
+	private boolean inclusionEnabled;
+	private boolean exclusionEnabled;
+	private boolean robotsTxtEnabled;
 	private final UrlItemFieldEnum urlItemFieldEnum;
 
 	public Crawl(HostUrlList hostUrlList, UrlItem urlItem, Config config,
@@ -135,21 +136,18 @@ public class Crawl {
 		}
 		String fileName = urlItem.getContentDispositionFilename();
 		if (fileName == null)
-			fileName = urlItem.getURL().getFile();
-		Parser parser = parserSelector.getParser(fileName,
-				urlItem.getContentBaseType());
-		if (parser == null)
-			parser = parserSelector.getWebCrawlerDefaultParser();
+			fileName = FilenameUtils.getName(urlItem.getURL().getFile());
+		IndexDocument sourceDocument = new IndexDocument();
+		urlItem.populate(sourceDocument, urlItemFieldEnum);
+		Date parserStartDate = new Date();
+		// TODO Which language for OCR ?
+		parser = parserSelector.parseStream(sourceDocument, fileName,
+				urlItem.getContentBaseType(), urlItem.getUrl(), inputStream,
+				null, parserSelector.getWebCrawlerDefaultParser());
 		if (parser == null) {
 			urlItem.setParserStatus(ParserStatus.NOPARSER);
 			return;
 		}
-		IndexDocument sourceDocument = new IndexDocument();
-		urlItem.populate(sourceDocument, urlItemFieldEnum);
-		parser.setSourceDocument(sourceDocument);
-		Date parserStartDate = new Date();
-		// TODO Which language for OCR ?
-		parser.parseContent(inputStream, null);
 
 		urlItem.clearInLinks();
 		urlItem.addInLinks(parser
@@ -185,7 +183,7 @@ public class Crawl {
 		FieldContent fieldContent = parser
 				.getFieldContent(ParserFieldEnum.meta_robots);
 		if (fieldContent != null) {
-			List<FieldValueItem> fieldValues = fieldContent.getValues();
+			FieldValueItem[] fieldValues = fieldContent.getValues();
 			if (fieldValues != null) {
 				for (FieldValueItem item : parser.getFieldContent(
 						ParserFieldEnum.meta_robots).getValues())
@@ -195,8 +193,6 @@ public class Crawl {
 					}
 			}
 		}
-
-		this.parser = parser;
 	}
 
 	public boolean checkRobotTxtAllow(HttpDownloader httpDownloader)
@@ -223,22 +219,25 @@ public class Crawl {
 	 * 
 	 * @param httpDownloader
 	 */
-	public void download(HttpDownloader httpDownloader) {
+	public DownloadItem download(HttpDownloader httpDownloader) {
 		synchronized (this) {
 			InputStream is = null;
+			DownloadItem downloadItem = null;
 			try {
 				URI uri = urlItem.getCheckedURI();
 
 				credentialItem = credentialManager == null ? null
 						: credentialManager.matchCredential(uri.toURL());
 
-				DownloadItem downloadItem = ClientCatalog
-						.getCrawlCacheManager().loadCache(uri);
+				downloadItem = ClientCatalog.getCrawlCacheManager().loadCache(
+						uri);
 
 				boolean fromCache = (downloadItem != null);
 
 				if (!fromCache)
 					downloadItem = httpDownloader.get(uri, credentialItem);
+				else if (Logging.isDebug)
+					Logging.debug("Crawl cache deliver: " + uri);
 
 				urlItem.setContentDispositionFilename(downloadItem
 						.getContentDispositionFilename());
@@ -316,6 +315,7 @@ public class Crawl {
 			}
 			if (is != null)
 				IOUtils.closeQuietly(is);
+			return downloadItem;
 		}
 	}
 
@@ -397,7 +397,7 @@ public class Crawl {
 			IOException, SearchLibException {
 		if (urlFieldContent == null)
 			return;
-		List<FieldValueItem> links = urlFieldContent.getValues();
+		FieldValueItem[] links = urlFieldContent.getValues();
 		if (links == null)
 			return;
 		for (FieldValueItem linkItem : links) {
@@ -433,7 +433,7 @@ public class Crawl {
 						parentUrl));
 				return discoverLinks;
 			}
-			if (parser == null || !urlItem.isStatusFull())
+			if (parser == null || !urlItem.isLinkDiscoverable())
 				return discoverLinks;
 			UrlManager urlManager = config.getUrlManager();
 			PatternManager inclusionManager = inclusionEnabled ? config

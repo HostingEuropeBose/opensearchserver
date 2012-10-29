@@ -26,14 +26,15 @@ package com.jaeksoft.searchlib.crawler.file.spider;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 
+import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.config.Config;
 import com.jaeksoft.searchlib.crawler.FieldMap;
 import com.jaeksoft.searchlib.crawler.common.database.FetchStatus;
+import com.jaeksoft.searchlib.crawler.common.database.IndexStatus;
 import com.jaeksoft.searchlib.crawler.common.database.ParserStatus;
 import com.jaeksoft.searchlib.crawler.common.process.CrawlStatistics;
 import com.jaeksoft.searchlib.crawler.file.database.FileItem;
@@ -43,7 +44,9 @@ import com.jaeksoft.searchlib.index.IndexDocument;
 import com.jaeksoft.searchlib.parser.Parser;
 import com.jaeksoft.searchlib.parser.ParserFieldEnum;
 import com.jaeksoft.searchlib.parser.ParserSelector;
+import com.jaeksoft.searchlib.plugin.IndexPluginList;
 import com.jaeksoft.searchlib.streamlimiter.LimitException;
+import com.jaeksoft.searchlib.streamlimiter.StreamLimiter;
 
 public class CrawlFile {
 
@@ -81,30 +84,22 @@ public class CrawlFile {
 				fileItem.setFetchStatus(FetchStatus.FETCHED);
 
 				ParserSelector parserSelector = config.getParserSelector();
-				Parser parser = parserSelector.getParser(
-						fileItem.getFileName(), null);
-
-				// Get default parser
-				if (parser == null)
-					parser = parserSelector.getFileCrawlerDefaultParser();
-
-				// Parser Choice
-				if (parser == null) {
-					fileItem.setParserStatus(ParserStatus.NOPARSER);
-					return;
-				}
 
 				fileItem.setParserStatus(ParserStatus.PARSED);
 
 				IndexDocument sourceDocument = fileItem
 						.getIndexDocument(fileItemFieldEnum);
 
-				parser.setSourceDocument(sourceDocument);
-				parser.parseContent(fileInstance, null);
+				parser = config.getParserSelector().parseFileInstance(
+						sourceDocument, fileItem.getFileName(), null, null,
+						fileInstance, null,
+						parserSelector.getFileCrawlerDefaultParser());
 
-				fileItem.setLang(parser.getFieldValue(ParserFieldEnum.lang, 0));
-
-				this.parser = parser;
+				if (parser == null)
+					fileItem.setParserStatus(ParserStatus.NOPARSER);
+				else
+					fileItem.setLang(parser.getFieldValue(ParserFieldEnum.lang,
+							0));
 
 			} catch (MalformedURLException e) {
 				fileItem.setFetchStatus(FetchStatus.ERROR);
@@ -113,18 +108,6 @@ public class CrawlFile {
 			} catch (LimitException e) {
 				Logging.warn(e.toString() + " (" + fileItem.getUri() + ")", e);
 				fileItem.setFetchStatus(FetchStatus.SIZE_EXCEED);
-				setError(e.getMessage());
-			} catch (InstantiationException e) {
-				Logging.warn(e.getMessage(), e);
-				fileItem.setParserStatus(ParserStatus.PARSER_ERROR);
-				setError(e.getMessage());
-			} catch (IllegalAccessException e) {
-				Logging.warn(e.getMessage(), e);
-				fileItem.setParserStatus(ParserStatus.PARSER_ERROR);
-				setError(e.getMessage());
-			} catch (ClassNotFoundException e) {
-				Logging.warn(e.getMessage(), e);
-				fileItem.setParserStatus(ParserStatus.PARSER_ERROR);
 				setError(e.getMessage());
 			} catch (IOException e) {
 				Logging.warn(e.getMessage(), e);
@@ -150,7 +133,7 @@ public class CrawlFile {
 	}
 
 	public IndexDocument getTargetIndexDocument() throws SearchLibException,
-			UnsupportedEncodingException {
+			IOException {
 		synchronized (this) {
 			if (targetIndexDocument != null)
 				return targetIndexDocument;
@@ -161,8 +144,20 @@ public class CrawlFile {
 			fileFieldMap.mapIndexDocument(fileIndexDocument,
 					targetIndexDocument);
 
-			if (parser != null)
+			StreamLimiter streamLimiter = null;
+			if (parser != null) {
 				parser.populate(targetIndexDocument);
+				streamLimiter = parser.getStreamLimiter();
+			}
+			IndexPluginList indexPluginList = config.getFileCrawlMaster()
+					.getIndexPluginList();
+			if (indexPluginList != null) {
+				if (!indexPluginList.run((Client) config, "octet/stream",
+						streamLimiter, targetIndexDocument)) {
+					fileItem.setIndexStatus(IndexStatus.PLUGIN_REJECTED);
+					fileItem.populate(fileIndexDocument, fileItemFieldEnum);
+				}
+			}
 
 			return targetIndexDocument;
 		}

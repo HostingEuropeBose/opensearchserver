@@ -58,7 +58,7 @@ public class AutoCompletionComposer extends CommonComposer {
 			Client client = getClient();
 			if (client == null)
 				return null;
-			return client.getSchema().getFieldList().getSortedList();
+			return client.getSchema().getFieldList().getList();
 		}
 	}
 
@@ -105,7 +105,7 @@ public class AutoCompletionComposer extends CommonComposer {
 		if (manager == null)
 			return;
 		onSave$window(event);
-		manager.build(null, null);
+		manager.build(null, 1000, null);
 		reloadPage();
 	}
 
@@ -134,11 +134,10 @@ public class AutoCompletionComposer extends CommonComposer {
 		AbstractResultSearch result = manager.search(inputEvent.getValue(),
 				rows);
 		if (result != null) {
-			ResultDocument[] documents = result.getDocuments();
-			if (documents != null) {
-				resultArray = new String[documents.length];
+			if (result.getDocumentCount() > 0) {
+				resultArray = new String[result.getDocumentCount()];
 				int i = 0;
-				for (ResultDocument resDoc : documents) {
+				for (ResultDocument resDoc : result) {
 					resultArray[i++] = resDoc
 							.getValueContent(
 									AutoCompletionManager.autoCompletionSchemaFieldTerm,

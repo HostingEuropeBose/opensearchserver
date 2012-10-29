@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -24,6 +24,7 @@
 
 package com.jaeksoft.searchlib.crawler.file.database;
 
+import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 
 import org.w3c.dom.Node;
@@ -45,7 +46,6 @@ public class FilePathItem implements Comparable<FilePathItem> {
 	private String username;
 	private String password;
 	private boolean withSub;
-	private boolean ignoreHidden;
 	private boolean enabled;
 	private int delay;
 
@@ -57,14 +57,12 @@ public class FilePathItem implements Comparable<FilePathItem> {
 		username = null;
 		password = null;
 		withSub = false;
-		ignoreHidden = true;
 		enabled = false;
 		delay = 0;
 	}
 
 	public void copyTo(FilePathItem destFilePath) throws URISyntaxException {
 		destFilePath.withSub = withSub;
-		destFilePath.ignoreHidden = ignoreHidden;
 		destFilePath.type = type;
 		destFilePath.host = host;
 		destFilePath.path = path;
@@ -94,14 +92,6 @@ public class FilePathItem implements Comparable<FilePathItem> {
 
 	public void setWithSubDir(boolean b) {
 		this.withSub = b;
-	}
-
-	public boolean isIgnoreHidden() {
-		return ignoreHidden;
-	}
-
-	public void setIgnoreHidden(boolean b) {
-		this.ignoreHidden = b;
 	}
 
 	public boolean isEnabled() {
@@ -229,8 +219,6 @@ public class FilePathItem implements Comparable<FilePathItem> {
 		filePathItem.setHost(DomUtils.getAttributeText(node, "host"));
 		String withSubString = DomUtils.getAttributeText(node, "withSub");
 		filePathItem.setWithSubDir("yes".equalsIgnoreCase(withSubString));
-		String ignoreHidden = DomUtils.getAttributeText(node, "ignoreHidden");
-		filePathItem.setIgnoreHidden("yes".equalsIgnoreCase(ignoreHidden));
 		String enabled = DomUtils.getAttributeText(node, "enabled");
 		filePathItem.setEnabled("yes".equalsIgnoreCase(enabled));
 		String delay = DomUtils.getAttributeText(node, "delay");
@@ -245,14 +233,14 @@ public class FilePathItem implements Comparable<FilePathItem> {
 	 * @param xmlWriter
 	 * @param nodeName
 	 * @throws SAXException
+	 * @throws UnsupportedEncodingException
 	 */
 	public void writeXml(XmlWriter xmlWriter, String nodeName)
-			throws SAXException {
+			throws SAXException, UnsupportedEncodingException {
 		xmlWriter.startElement(nodeName, "type", type.getName(), "domain",
 				domain, "username", username, "password",
 				password == null ? null : StringUtils.base64encode(password),
-				"host", host, "withSub", withSub ? "yes" : "no",
-				"ignoreHidden", ignoreHidden ? "yes" : "no", "enabled",
+				"host", host, "withSub", withSub ? "yes" : "no", "enabled",
 				enabled ? "yes" : "no", "delay", Integer.toString(delay));
 		if (path != null)
 			xmlWriter.textNode(path);

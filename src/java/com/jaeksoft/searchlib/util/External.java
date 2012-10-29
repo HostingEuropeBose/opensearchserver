@@ -30,8 +30,6 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collection;
 
-import com.jaeksoft.searchlib.SearchLibException;
-
 public class External {
 
 	final public static void writeCollection(Collection<?> collection,
@@ -45,13 +43,12 @@ public class External {
 	}
 
 	public interface Collecter<T> {
-		public void addObject(T object) throws SearchLibException;
+		public void addObject(T object);
 	}
 
 	@SuppressWarnings("unchecked")
 	final public static <T> void readCollection(ObjectInput in,
-			Collecter<T> collecter) throws IOException, ClassNotFoundException,
-			SearchLibException {
+			Collecter<T> collecter) throws IOException, ClassNotFoundException {
 		int l = in.readInt();
 		while (l-- > 0)
 			collecter.addObject((T) in.readObject());

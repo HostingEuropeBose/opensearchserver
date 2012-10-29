@@ -45,6 +45,7 @@ import org.apache.http.HttpException;
 import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.Client;
+import com.jaeksoft.searchlib.ClientFactory;
 import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.remote.UriRead;
@@ -82,6 +83,7 @@ public abstract class AbstractServlet extends HttpServlet {
 				method, response);
 
 		try {
+			ClientFactory.INSTANCE.properties.checkApi();
 			serverURL = getCurrentServerURL(request);
 			doRequest(transaction);
 		} catch (Exception e) {
@@ -147,8 +149,8 @@ public abstract class AbstractServlet extends HttpServlet {
 	}
 
 	protected static URI buildUri(URI uri, String additionalPath,
-			String indexName, String additionnalQuery)
-			throws URISyntaxException {
+			String indexName, String login, String apiKey,
+			String additionnalQuery) throws URISyntaxException {
 		StringBuffer path = new StringBuffer(uri.getPath());
 		if (additionalPath != null)
 			path.append(additionalPath);
@@ -156,6 +158,14 @@ public abstract class AbstractServlet extends HttpServlet {
 		if (indexName != null) {
 			query.append("index=");
 			query.append(indexName);
+		}
+		if (login != null) {
+			query.append("&login=");
+			query.append(login);
+		}
+		if (apiKey != null) {
+			query.append("&key=");
+			query.append(apiKey);
 		}
 		if (additionnalQuery != null) {
 			if (query.length() > 0)

@@ -25,9 +25,11 @@
 package com.jaeksoft.searchlib.crawler.web.spider;
 
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import org.apache.commons.io.FilenameUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -42,6 +44,7 @@ public class DownloadItem {
 	private String contentEncoding = null;
 	private Integer statusCode = null;
 	private InputStream contentInputStream = null;
+	private boolean fromCache = false;
 
 	public DownloadItem(URI uri) {
 		this.uri = uri;
@@ -85,6 +88,8 @@ public class DownloadItem {
 
 	public void loadMetaFromJson(org.json.JSONObject json)
 			throws URISyntaxException, JSONException {
+
+		fromCache = true;
 
 		if (json.has(KEY_REDIRECT_LOCATION)) {
 			String s = json.getString(KEY_REDIRECT_LOCATION);
@@ -155,6 +160,17 @@ public class DownloadItem {
 	 */
 	public void setContentDispositionFilename(String contentDispositionFilename) {
 		this.contentDispositionFilename = contentDispositionFilename;
+	}
+
+	public String getFileName() throws MalformedURLException {
+		if (contentDispositionFilename != null)
+			return contentDispositionFilename;
+		if (uri == null)
+			return null;
+		String urlFile = uri.toURL().getFile();
+		if (urlFile == null)
+			return null;
+		return FilenameUtils.getName(urlFile);
 	}
 
 	/**
@@ -237,6 +253,13 @@ public class DownloadItem {
 	 */
 	public URI getUri() {
 		return uri;
+	}
+
+	/**
+	 * @return the fromCache
+	 */
+	public boolean isFromCache() {
+		return fromCache;
 	}
 
 }

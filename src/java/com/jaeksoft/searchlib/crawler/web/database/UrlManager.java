@@ -42,14 +42,13 @@ import java.util.List;
 
 import javax.xml.transform.TransformerConfigurationException;
 
-import org.apache.http.HttpException;
 import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.Client;
-import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.crawler.ItemField;
 import com.jaeksoft.searchlib.crawler.TargetStatus;
+import com.jaeksoft.searchlib.crawler.common.database.AbstractManager;
 import com.jaeksoft.searchlib.crawler.common.database.FetchStatus;
 import com.jaeksoft.searchlib.crawler.common.database.IndexStatus;
 import com.jaeksoft.searchlib.crawler.common.database.ParserStatus;
@@ -59,24 +58,24 @@ import com.jaeksoft.searchlib.crawler.web.spider.Crawl;
 import com.jaeksoft.searchlib.facet.Facet;
 import com.jaeksoft.searchlib.facet.FacetField;
 import com.jaeksoft.searchlib.facet.FacetItem;
-import com.jaeksoft.searchlib.filter.Filter.Source;
+import com.jaeksoft.searchlib.filter.FilterAbstract;
+import com.jaeksoft.searchlib.filter.QueryFilter;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.IndexDocument;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.result.AbstractResultSearch;
 import com.jaeksoft.searchlib.result.ResultDocument;
+import com.jaeksoft.searchlib.scheduler.TaskLog;
 import com.jaeksoft.searchlib.util.XmlWriter;
 
-public class UrlManager {
+public class UrlManager extends AbstractManager {
 
 	protected Client urlDbClient;
 
 	public enum SearchTemplate {
 		urlSearch, urlExport;
 	}
-
-	protected Client targetClient = null;
 
 	protected final UrlItemFieldEnum urlItemFieldEnum;
 
@@ -86,11 +85,11 @@ public class UrlManager {
 
 	public void init(Client client, File dataDir) throws SearchLibException,
 			URISyntaxException, FileNotFoundException {
+		super.init(client);
 		dataDir = new File(dataDir, "web_crawler_url");
 		if (!dataDir.exists())
 			dataDir.mkdir();
 		this.urlDbClient = new Client(dataDir, "/url_config.xml", true);
-		targetClient = client;
 	}
 
 	public void free() {
@@ -101,43 +100,10 @@ public class UrlManager {
 		return urlDbClient;
 	}
 
-	public void deleteUrl(String sUrl) throws SearchLibException {
-		try {
-			if (sUrl == null)
-				return;
-			targetClient.deleteDocument(sUrl);
-			urlDbClient.deleteDocument(sUrl);
-		} catch (IOException e) {
-			throw new SearchLibException(e);
-		} catch (URISyntaxException e) {
-			throw new SearchLibException(e);
-		} catch (InstantiationException e) {
-			throw new SearchLibException(e);
-		} catch (IllegalAccessException e) {
-			throw new SearchLibException(e);
-		} catch (ClassNotFoundException e) {
-			throw new SearchLibException(e);
-		} catch (HttpException e) {
-			throw new SearchLibException(e);
-		}
-	}
-
 	public void deleteUrls(Collection<String> workDeleteUrlList)
 			throws SearchLibException {
-		try {
-			targetClient.deleteDocuments(workDeleteUrlList);
-			urlDbClient.deleteDocuments(workDeleteUrlList);
-		} catch (IOException e) {
-			throw new SearchLibException(e);
-		} catch (URISyntaxException e) {
-			throw new SearchLibException(e);
-		} catch (InstantiationException e) {
-			throw new SearchLibException(e);
-		} catch (IllegalAccessException e) {
-			throw new SearchLibException(e);
-		} catch (ClassNotFoundException e) {
-			throw new SearchLibException(e);
-		}
+		targetClient.deleteDocuments(workDeleteUrlList);
+		urlDbClient.deleteDocuments(workDeleteUrlList);
 	}
 
 	public UrlItem getNewUrlItem() {
@@ -257,11 +223,11 @@ public class UrlManager {
 
 	}
 
-	private SearchRequest getHostFacetSearchRequest() throws SearchLibException {
+	private SearchRequest getHostFacetSearchRequest() {
 		SearchRequest searchRequest = new SearchRequest(urlDbClient);
 		searchRequest.setDefaultOperator("OR");
 		searchRequest.setRows(0);
-		searchRequest.getFacetFieldList().add(
+		searchRequest.getFacetFieldList().put(
 				new FacetField("host", 1, false, false));
 		return searchRequest;
 	}
@@ -298,8 +264,9 @@ public class UrlManager {
 		SearchRequest searchRequest = (SearchRequest) urlDbClient
 				.getNewRequest(field + "Facet");
 		searchRequest.setQueryString(queryString);
-		searchRequest.getFilterList().add(field + ":" + start + "*", false,
-				Source.REQUEST);
+		searchRequest.getFilterList().add(
+				new QueryFilter(field + ":" + start + "*", false,
+						FilterAbstract.Source.REQUEST, null));
 		getFacetLimit(field, searchRequest, limit, list);
 	}
 
@@ -337,7 +304,7 @@ public class UrlManager {
 		searchRequest.setRows((int) limit);
 		AbstractResultSearch result = (AbstractResultSearch) urlDbClient
 				.request(searchRequest);
-		for (ResultDocument item : result.getDocuments())
+		for (ResultDocument item : result)
 			urlList.add(getNewUrlItem(item));
 	}
 
@@ -353,7 +320,7 @@ public class UrlManager {
 		searchRequest.setQueryString("*:*");
 		AbstractResultSearch result = (AbstractResultSearch) urlDbClient
 				.request(searchRequest);
-		if (result.getDocumentCount() == 0)
+		if (result.getDocumentCount() <= 0)
 			return null;
 		return getNewUrlItem(result.getDocument(0));
 
@@ -361,7 +328,7 @@ public class UrlManager {
 
 	public long getSize() throws SearchLibException {
 		try {
-			return urlDbClient.getIndex().getStatistics().getNumDocs();
+			return urlDbClient.getStatistics().getNumDocs();
 		} catch (IOException e) {
 			throw new SearchLibException(e);
 		}
@@ -383,7 +350,7 @@ public class UrlManager {
 		searchRequest.setRows((int) limit);
 		AbstractResultSearch result = (AbstractResultSearch) urlDbClient
 				.request(searchRequest);
-		for (ResultDocument item : result.getDocuments())
+		for (ResultDocument item : result)
 			urlList.add(getNewUrlItem(item));
 	}
 
@@ -539,13 +506,14 @@ public class UrlManager {
 
 	public long getUrlList(SearchRequest searchRequest, long start, long rows,
 			List<UrlItem> list) throws SearchLibException {
+		searchRequest.reset();
 		searchRequest.setStart((int) start);
 		searchRequest.setRows((int) rows);
 		try {
 			AbstractResultSearch result = (AbstractResultSearch) urlDbClient
 					.request(searchRequest);
 			if (list != null)
-				for (ResultDocument doc : result.getDocuments())
+				for (ResultDocument doc : result)
 					list.add(getNewUrlItem(doc));
 			return result.getNumFound();
 		} catch (RuntimeException e) {
@@ -553,12 +521,18 @@ public class UrlManager {
 		}
 	}
 
-	public void reload(boolean optimize) throws SearchLibException {
-		if (optimize) {
-			urlDbClient.reload();
-			urlDbClient.getIndex().optimize();
+	public void reload(boolean optimize, TaskLog taskLog)
+			throws SearchLibException {
+		setCurrentTaskLog(taskLog);
+		try {
+			if (optimize) {
+				urlDbClient.reload();
+				urlDbClient.optimize();
+			}
+			targetClient.reload();
+		} finally {
+			resetCurrentTaskLog();
 		}
-		targetClient.reload();
 	}
 
 	public void updateUrlItem(UrlItem urlItem) throws SearchLibException {
@@ -610,19 +584,6 @@ public class UrlManager {
 		} catch (ClassNotFoundException e) {
 			throw new SearchLibException(e);
 		}
-	}
-
-	// TODO : can be mutualised
-	public Date getPastDate(long fetchInterval, String intervalUnit) {
-		long l;
-		if ("hours".equalsIgnoreCase(intervalUnit))
-			l = fetchInterval * 1000 * 3600;
-		else if ("minutes".equalsIgnoreCase(intervalUnit))
-			l = fetchInterval * 1000 * 60;
-		else
-			// Default is days
-			l = fetchInterval * 1000 * 86400;
-		return new Date(System.currentTimeMillis() - l);
 	}
 
 	/**
@@ -685,9 +646,8 @@ public class UrlManager {
 			int currentPos = 0;
 			List<UrlItem> uList = new ArrayList<UrlItem>();
 			for (;;) {
-				int totalSize;
-				totalSize = (int) getUrlList(searchRequest, currentPos, 1000,
-						uList);
+				int totalSize = (int) getUrlList(searchRequest, currentPos,
+						1000, uList);
 				for (UrlItem u : uList)
 					pw.println(u.getUrl());
 				if (uList.size() == 0)
@@ -757,69 +717,64 @@ public class UrlManager {
 		return tempFile;
 	}
 
-	public int deleteUrls(SearchRequest searchRequest)
+	public int deleteUrls(SearchRequest searchRequest, TaskLog taskLog)
 			throws SearchLibException {
+		setCurrentTaskLog(taskLog);
 		try {
-			int totalCount = 0;
-			long previousNumFound = 0;
+			int total = 0;
 			List<UrlItem> urlItemList = new ArrayList<UrlItem>();
 			for (;;) {
-				long numFound = getUrlList(searchRequest, 0, 1000, urlItemList);
+				urlItemList.clear();
+				getUrlList(searchRequest, 0, 1000, urlItemList);
 				if (urlItemList.size() == 0)
 					break;
 				List<String> urlList = new ArrayList<String>(urlItemList.size());
 				for (UrlItem urlItem : urlItemList)
 					urlList.add(urlItem.getUrl());
-				int count = urlDbClient.deleteDocuments(urlList);
-				if (count == 0 || previousNumFound == numFound) {
-					Logging.error("Bad count at URL deletion " + count + "/"
-							+ previousNumFound + "/" + numFound);
-					break;
-				}
-				previousNumFound = numFound;
-				totalCount += count;
+				urlDbClient.deleteDocuments(urlList);
+				total += urlItemList.size();
+				taskLog.setInfo(total + " URL(s) deleted");
 			}
-			return totalCount;
-		} catch (IOException e) {
-			throw new SearchLibException(e);
-		} catch (URISyntaxException e) {
-			throw new SearchLibException(e);
-		} catch (InstantiationException e) {
-			throw new SearchLibException(e);
-		} catch (IllegalAccessException e) {
-			throw new SearchLibException(e);
-		} catch (ClassNotFoundException e) {
-			throw new SearchLibException(e);
+			return total;
+		} finally {
+			resetCurrentTaskLog();
+		}
+	}
+
+	public void deleteAll(TaskLog taskLog) throws SearchLibException {
+		setCurrentTaskLog(taskLog);
+		try {
+			urlDbClient.deleteAll();
+		} finally {
+			resetCurrentTaskLog();
 		}
 	}
 
 	public int updateFetchStatus(SearchRequest searchRequest,
-			FetchStatus fetchStatus) throws SearchLibException {
+			FetchStatus fetchStatus, TaskLog taskLog)
+			throws SearchLibException, IOException {
+		setCurrentTaskLog(taskLog);
 		try {
-			int totalCount = 0;
-			long previousNumFound = 0;
+			int total = 0;
 			urlItemFieldEnum.fetchStatus.addFilterQuery(searchRequest,
-					fetchStatus.name, false, true);
+					fetchStatus.value, false, true);
 			List<UrlItem> urlItemList = new ArrayList<UrlItem>();
 			for (;;) {
-				long numFound = (int) getUrlList(searchRequest, 0, 1000,
-						urlItemList);
+				urlItemList.clear();
+				getUrlList(searchRequest, 0, 1000, urlItemList);
 				if (urlItemList.size() == 0)
 					break;
 				for (UrlItem urlItem : urlItemList)
 					urlItem.setFetchStatus(fetchStatus);
 				updateUrlItems(urlItemList);
-				if (previousNumFound == numFound) {
-					Logging.error("Bad count at URL fetch status update "
-							+ previousNumFound + "/" + numFound);
-					break;
-				}
-				previousNumFound = numFound;
-				totalCount += urlItemList.size();
+				total += urlItemList.size();
+				taskLog.setInfo(total + " URL(s) updated");
 			}
-			return totalCount;
+			return total;
 		} catch (ParseException e) {
 			throw new SearchLibException(e);
+		} finally {
+			resetCurrentTaskLog();
 		}
 	}
 

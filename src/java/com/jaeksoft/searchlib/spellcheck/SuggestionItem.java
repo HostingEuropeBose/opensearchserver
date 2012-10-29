@@ -62,6 +62,7 @@ public class SuggestionItem {
 			return;
 		while (termDocs.next())
 			freq += termDocs.freq();
+		termDocs.close();
 	}
 
 }

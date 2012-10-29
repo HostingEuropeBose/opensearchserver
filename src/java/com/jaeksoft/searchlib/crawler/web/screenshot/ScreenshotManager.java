@@ -28,11 +28,11 @@ import java.awt.Dimension;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
-import java.util.concurrent.locks.ReentrantLock;
 
 import javax.imageio.ImageIO;
 
@@ -43,6 +43,7 @@ import com.jaeksoft.searchlib.crawler.web.database.CredentialItem;
 import com.jaeksoft.searchlib.crawler.web.database.WebPropertyManager;
 import com.jaeksoft.searchlib.util.LastModifiedAndSize;
 import com.jaeksoft.searchlib.util.Md5Spliter;
+import com.jaeksoft.searchlib.util.SimpleLock;
 import com.jaeksoft.searchlib.util.properties.PropertyItem;
 import com.jaeksoft.searchlib.util.properties.PropertyItemListener;
 
@@ -52,7 +53,7 @@ public class ScreenshotManager implements PropertyItemListener {
 
 	private Config config;
 
-	private final ReentrantLock captureLock = new ReentrantLock();
+	private final SimpleLock lock = new SimpleLock();
 
 	private ScreenshotMethodEnum screenshotMethodEnum;
 
@@ -87,6 +88,8 @@ public class ScreenshotManager implements PropertyItemListener {
 			return new File(dirPath,
 					Md5Spliter.getMD5Hash(url.toExternalForm()) + ".png");
 		} catch (NoSuchAlgorithmException e) {
+			throw new SearchLibException(e);
+		} catch (UnsupportedEncodingException e) {
 			throw new SearchLibException(e);
 		}
 	}
@@ -162,7 +165,7 @@ public class ScreenshotManager implements PropertyItemListener {
 			boolean waitForEnd, int secTimeOut) throws SearchLibException {
 		if (!screenshotMethod.doScreenshot(url))
 			return null;
-		captureLock.lock();
+		lock.rl.lock();
 		try {
 			ScreenshotThread thread = new ScreenshotThread(config, this, url,
 					credentialItem);
@@ -171,7 +174,7 @@ public class ScreenshotManager implements PropertyItemListener {
 				thread.waitForEnd(secTimeOut);
 			return thread;
 		} finally {
-			captureLock.unlock();
+			lock.rl.unlock();
 		}
 	}
 

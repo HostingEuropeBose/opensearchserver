@@ -60,7 +60,7 @@ public abstract class HtmlDocumentProvider {
 		} catch (LimitException e) {
 			throw e;
 		} catch (Exception e) {
-			Logging.warn(e.getMessage(), e);
+			Logging.warn(e.getMessage());
 		}
 	}
 
@@ -108,18 +108,6 @@ public abstract class HtmlDocumentProvider {
 		if (content == null)
 			return null;
 		return StringEscapeUtils.unescapeHtml(content);
-	}
-
-	final public String getMetaCharset() {
-		List<HtmlNodeAbstract<?>> metas = getMetas();
-		if (metas == null)
-			return null;
-		for (HtmlNodeAbstract<?> node : metas) {
-			String charset = node.getAttributeText("charset");
-			if (charset != null && charset.length() > 0)
-				return charset;
-		}
-		return null;
 	}
 
 	final public String getMetaHttpEquiv(String name) {

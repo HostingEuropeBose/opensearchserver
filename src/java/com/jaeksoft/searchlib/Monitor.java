@@ -73,8 +73,16 @@ public class Monitor {
 		return ((double) getFreeMemory() / (double) getTotalMemory()) * 100;
 	}
 
-	public Long getFreeDiskSpace() throws SecurityException, IOException {
+	public Long getFreeDiskSpace() throws SecurityException, IOException,
+			SearchLibException {
 		try {
+			long l = ClientFactory.INSTANCE.properties.getMaxStorage();
+			if (l > 0) {
+				l -= ClientCatalog.getInstanceSize();
+				if (l < 0)
+					l = 0;
+				return l;
+			}
 			if (StartStopListener.OPENSEARCHSERVER_DATA_FILE.getClass()
 					.getDeclaredMethod("getFreeSpace") != null)
 				return StartStopListener.OPENSEARCHSERVER_DATA_FILE
@@ -88,6 +96,9 @@ public class Monitor {
 
 	public Long getTotalDiskSpace() throws SecurityException, IOException {
 		try {
+			long l = ClientFactory.INSTANCE.properties.getMaxStorage();
+			if (l > 0)
+				return l;
 			if (StartStopListener.OPENSEARCHSERVER_DATA_FILE.getClass()
 					.getDeclaredMethod("getTotalSpace") != null)
 				return StartStopListener.OPENSEARCHSERVER_DATA_FILE
@@ -99,12 +110,38 @@ public class Monitor {
 						.getAbsolutePath()) * 1000;
 	}
 
-	public Double getDiskRate() throws SecurityException, IOException {
+	public Double getDiskRate() throws SecurityException, IOException,
+			SearchLibException {
 		Long free = getFreeDiskSpace();
 		Long total = getTotalDiskSpace();
 		if (free == null || total == null)
 			return null;
 		return ((double) free / (double) total) * 100;
+	}
+
+	public double getApiWaitRate() {
+		return ClientFactory.INSTANCE.properties.getApiWaitRate();
+	}
+
+	public long getRequestPerMonthCount() {
+		return ClientFactory.INSTANCE.properties.getRequestPerMonthCount();
+	}
+
+	public final boolean isRequestPerMonthOver() {
+		return getRequestPerMonthCount() > ClientFactory.INSTANCE.properties
+				.getRequestPerMonth();
+	}
+
+	public final boolean isRequestPerMonthUnder() {
+		return !isRequestPerMonthOver();
+	}
+
+	public final String getRequestPerMonthLabel() {
+		StringBuffer sb = new StringBuffer();
+		sb.append(getRequestPerMonthCount());
+		sb.append(" / ");
+		sb.append(ClientFactory.INSTANCE.properties.getRequestPerMonth());
+		return sb.toString();
 	}
 
 	public String getDataDirectoryPath() {
@@ -164,6 +201,14 @@ public class Monitor {
 				getDataDirectoryPath());
 		xmlWriter.endElement();
 
+		xmlWriter.startElement("apiWaitRate", "rate",
+				Double.toString(getApiWaitRate()));
+		xmlWriter.endElement();
+
+		xmlWriter.startElement("requestPerMonthCount", "value",
+				Long.toString(getRequestPerMonthCount()));
+		xmlWriter.endElement();
+
 		xmlWriter.endElement();
 
 		xmlWriter.startElement("properties");
@@ -213,6 +258,9 @@ public class Monitor {
 			for (Entry<Object, Object> prop : getProperties())
 				addIfNotNull(reqEntity, "property_" + prop.getKey().toString(),
 						prop.getValue().toString());
+
+			addIfNotNull(reqEntity, "apiWaitRate",
+					Double.toString(getApiWaitRate()));
 
 		} catch (SecurityException e) {
 			throw new SearchLibException(e);

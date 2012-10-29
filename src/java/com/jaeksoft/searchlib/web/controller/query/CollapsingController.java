@@ -29,10 +29,10 @@ import java.util.List;
 
 import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.collapse.CollapseMode;
+import com.jaeksoft.searchlib.collapse.CollapseParameters;
 import com.jaeksoft.searchlib.schema.SchemaField;
 
-public class CollapsingController extends SearchRequestController {
+public class CollapsingController extends AbstractQueryController {
 
 	/**
 	 * 
@@ -50,8 +50,12 @@ public class CollapsingController extends SearchRequestController {
 		indexedFields = null;
 	}
 
-	public CollapseMode[] getCollapseModes() {
-		return CollapseMode.values();
+	public CollapseParameters.Mode[] getCollapseModes() {
+		return CollapseParameters.Mode.values();
+	}
+
+	public CollapseParameters.Type[] getCollapseTypes() {
+		return CollapseParameters.Type.values();
 	}
 
 	public List<String> getIndexedFields() throws SearchLibException {
@@ -71,7 +75,7 @@ public class CollapsingController extends SearchRequestController {
 	}
 
 	@Override
-	public void reloadPage() {
+	public void reloadPage() throws SearchLibException {
 		synchronized (this) {
 			indexedFields = null;
 			super.reloadPage();

@@ -30,11 +30,14 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringEscapeUtils;
 
+import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.ClassPropertyEnum;
 import com.jaeksoft.searchlib.analysis.LanguageEnum;
@@ -59,16 +62,20 @@ public class HtmlParser extends Parser {
 
 	private final static TreeSet<String> sentenceTagSet = new TreeSet<String>();
 
-	private static ParserFieldEnum[] fl = { ParserFieldEnum.title,
-			ParserFieldEnum.body, ParserFieldEnum.meta_keywords,
-			ParserFieldEnum.meta_description, ParserFieldEnum.meta_robots,
-			ParserFieldEnum.internal_link,
+	private static ParserFieldEnum[] fl = { ParserFieldEnum.parser_name,
+			ParserFieldEnum.title, ParserFieldEnum.body,
+			ParserFieldEnum.meta_keywords, ParserFieldEnum.meta_description,
+			ParserFieldEnum.meta_robots, ParserFieldEnum.internal_link,
 			ParserFieldEnum.internal_link_nofollow,
 			ParserFieldEnum.external_link,
 			ParserFieldEnum.external_link_nofollow, ParserFieldEnum.lang,
 			ParserFieldEnum.htmlProvider, ParserFieldEnum.htmlSource };
 
 	private UrlItemFieldEnum urlItemFieldEnum = null;
+
+	private Map<String, Float> boostTagMap;
+	private Float titleBoost;
+	private boolean ignoreMetaNoIndex;
 
 	public HtmlParser() {
 		super(fl);
@@ -110,9 +117,17 @@ public class HtmlParser extends Parser {
 		addProperty(ClassPropertyEnum.URL_FRAGMENT,
 				ClassPropertyEnum.KEEP_REMOVE_LIST[0],
 				ClassPropertyEnum.KEEP_REMOVE_LIST);
-
+		addProperty(ClassPropertyEnum.IGNORE_META_NOINDEX,
+				Boolean.FALSE.toString(), ClassPropertyEnum.BOOLEAN_LIST);
 		if (config != null)
 			urlItemFieldEnum = config.getUrlManager().getUrlItemFieldEnum();
+		addProperty(ClassPropertyEnum.TITLE_BOOST, "2", null);
+		addProperty(ClassPropertyEnum.H1_BOOST, "1.8", null);
+		addProperty(ClassPropertyEnum.H2_BOOST, "1.6", null);
+		addProperty(ClassPropertyEnum.H3_BOOST, "1.4", null);
+		addProperty(ClassPropertyEnum.H4_BOOST, "1.2", null);
+		addProperty(ClassPropertyEnum.H5_BOOST, "1.1", null);
+		addProperty(ClassPropertyEnum.H6_BOOST, "1.1", null);
 	}
 
 	private final static String OPENSEARCHSERVER_FIELD = "opensearchserver.field.";
@@ -210,41 +225,84 @@ public class HtmlParser extends Parser {
 	}
 
 	protected void addFieldTitle(String value) {
-		addField(ParserFieldEnum.title, value);
+		addField(ParserFieldEnum.title, value, titleBoost);
 	}
 
 	protected void addFieldBody(String tag, String value) {
-		addField(ParserFieldEnum.body, value);
+		Float boost = boostTagMap.get(tag);
+		if (boost == null)
+			boost = 1.0F;
+		addField(ParserFieldEnum.body, value, boost);
+	}
+
+	private final static String selectCharset(String... charsets) {
+		if (charsets.length == 0)
+			return null;
+		String first = null;
+		int position = 0;
+		int selected = 0;
+		for (String charset : charsets) {
+			position++;
+			if (charset == null)
+				continue;
+			if (first == null) {
+				first = charset;
+				selected = position;
+				continue;
+			}
+			if (!first.equals(charset))
+				break;
+		}
+		if (Logging.isDebug)
+			Logging.debug("SelectedCharset : " + first + " (" + selected + '/'
+					+ position + ')');
+		return first;
 	}
 
 	@Override
 	protected void parseContent(StreamLimiter streamLimiter,
 			LanguageEnum forcedLang) throws IOException {
 
-		String charset = null;
+		titleBoost = getFloatProperty(ClassPropertyEnum.TITLE_BOOST);
+		boostTagMap = new TreeMap<String, Float>();
+		boostTagMap.put("h1", getFloatProperty(ClassPropertyEnum.H1_BOOST));
+		boostTagMap.put("h2", getFloatProperty(ClassPropertyEnum.H2_BOOST));
+		boostTagMap.put("h3", getFloatProperty(ClassPropertyEnum.H3_BOOST));
+		boostTagMap.put("h4", getFloatProperty(ClassPropertyEnum.H4_BOOST));
+		boostTagMap.put("h5", getFloatProperty(ClassPropertyEnum.H5_BOOST));
+		boostTagMap.put("h6", getFloatProperty(ClassPropertyEnum.H6_BOOST));
+		ignoreMetaNoIndex = getBooleanProperty(ClassPropertyEnum.IGNORE_META_NOINDEX);
+
+		String currentCharset = null;
+		String headerCharset = null;
+		String detectedCharset = null;
+
 		IndexDocument sourceDocument = getSourceDocument();
 		if (sourceDocument != null && urlItemFieldEnum != null) {
 			FieldValueItem fieldValueItem = sourceDocument.getFieldValue(
 					urlItemFieldEnum.contentTypeCharset.getName(), 0);
 			if (fieldValueItem != null)
-				charset = fieldValueItem.getValue();
-			if (charset == null) {
+				headerCharset = fieldValueItem.getValue();
+			if (headerCharset == null) {
 				fieldValueItem = sourceDocument.getFieldValue(
 						urlItemFieldEnum.contentEncoding.getName(), 0);
 				if (fieldValueItem != null)
-					charset = fieldValueItem.getValue();
+					headerCharset = fieldValueItem.getValue();
 			}
+			currentCharset = headerCharset;
 		}
-		boolean charsetWasNull = charset == null;
-		if (charsetWasNull)
-			charset = getProperty(ClassPropertyEnum.DEFAULT_CHARSET).getValue();
 
-		StringWriter writer = new StringWriter();
-		IOUtils.copy(streamLimiter.getNewInputStream(), writer, charset);
-		addField(ParserFieldEnum.htmlSource, writer.toString());
-		writer.close();
+		if (currentCharset == null) {
+			detectedCharset = streamLimiter.getDetectedCharset();
+			currentCharset = detectedCharset;
+		}
 
-		HtmlDocumentProvider htmlProvider = findBestProvider(charset,
+		if (currentCharset == null) {
+			currentCharset = getProperty(ClassPropertyEnum.DEFAULT_CHARSET)
+					.getValue();
+		}
+
+		HtmlDocumentProvider htmlProvider = findBestProvider(currentCharset,
 				streamLimiter);
 		if (htmlProvider == null)
 			return;
@@ -253,25 +311,24 @@ public class HtmlParser extends Parser {
 
 		// Check ContentType charset in meta http-equiv
 		String contentType = htmlProvider.getMetaHttpEquiv("content-type");
-		String contentTypeCharset = null;
-		if (contentType != null) {
-			contentTypeCharset = MimeUtils
-					.extractContentTypeCharset(contentType);
-			// the meta in charset has priority if it is different from previous
-			// charset
-			if (contentTypeCharset != null
-					&& !contentTypeCharset.equals(charset))
-				charsetWasNull = true;
+		String metaCharset = null;
+		if (contentType != null)
+			metaCharset = MimeUtils.extractContentTypeCharset(contentType);
+
+		String selectedCharset = selectCharset(headerCharset, detectedCharset,
+				metaCharset);
+
+		if (selectedCharset != null) {
+			if (!selectedCharset.equals(currentCharset)) {
+				currentCharset = selectedCharset;
+				htmlProvider = findBestProvider(currentCharset, streamLimiter);
+			}
 		}
 
-		if (charsetWasNull) {
-			if (contentTypeCharset != null)
-				charset = contentTypeCharset;
-			else
-				charset = htmlProvider.getMetaCharset();
-			if (charset != null)
-				htmlProvider = findBestProvider(charset, streamLimiter);
-		}
+		StringWriter writer = new StringWriter();
+		IOUtils.copy(streamLimiter.getNewInputStream(), writer, currentCharset);
+		addField(ParserFieldEnum.htmlSource, writer.toString());
+		writer.close();
 
 		HtmlNodeAbstract<?> rootNode = htmlProvider.getRootNode();
 		if (rootNode == null)
@@ -290,7 +347,7 @@ public class HtmlParser extends Parser {
 			}
 		}
 
-		addField(ParserFieldEnum.charset, charset);
+		addField(ParserFieldEnum.charset, currentCharset);
 
 		addFieldTitle(htmlProvider.getTitle());
 
@@ -321,7 +378,7 @@ public class HtmlParser extends Parser {
 		boolean metaRobotsNoIndex = false;
 		if (metaRobots != null) {
 			metaRobots = metaRobots.toLowerCase();
-			if (metaRobots.contains("noindex")) {
+			if (metaRobots.contains("noindex") && !ignoreMetaNoIndex) {
 				metaRobotsNoIndex = true;
 				addField(ParserFieldEnum.meta_robots, "noindex");
 			}
@@ -337,7 +394,8 @@ public class HtmlParser extends Parser {
 				.equalsIgnoreCase(getProperty(ClassPropertyEnum.URL_FRAGMENT)
 						.getValue());
 
-		List<HtmlNodeAbstract<?>> nodes = rootNode.getAllNodes("a", "frame");
+		List<HtmlNodeAbstract<?>> nodes = rootNode.getAllNodes("a", "frame",
+				"img");
 		IndexDocument srcDoc = getSourceDocument();
 		if (srcDoc != null && nodes != null && metaRobotsFollow) {
 			URL currentURL = htmlProvider.getBaseHref();
@@ -354,7 +412,7 @@ public class HtmlParser extends Parser {
 				if ("a".equals(nodeName)) {
 					href = node.getAttributeText("href");
 					rel = node.getAttributeText("rel");
-				} else if ("frame".equals(nodeName)) {
+				} else if ("frame".equals(nodeName) || "img".equals(nodeName)) {
 					href = node.getAttributeText("src");
 				}
 				boolean follow = true;
@@ -423,5 +481,4 @@ public class HtmlParser extends Parser {
 			lang = langDetection(10000, ParserFieldEnum.body);
 
 	}
-
 }

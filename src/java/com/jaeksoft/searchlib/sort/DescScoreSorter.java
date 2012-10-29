@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2009 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -24,16 +24,21 @@
 
 package com.jaeksoft.searchlib.sort;
 
-import com.jaeksoft.searchlib.result.ResultScoreDoc;
+import com.jaeksoft.searchlib.result.collector.DocIdInterface;
 
-public class DescScoreSorter extends SorterAbstract {
+public class DescScoreSorter extends AbstractScoreSorter {
+
+	protected DescScoreSorter(DocIdInterface collector) {
+		super(collector);
+	}
 
 	@Override
-	protected int compare(ResultScoreDoc doc1, Object value1,
-			ResultScoreDoc doc2, Object value2) {
-		if (doc1.score > doc2.score)
+	final public int compare(int pos1, int pos2) {
+		float s1 = scores[pos1];
+		float s2 = scores[pos2];
+		if (s1 > s2)
 			return -1;
-		else if (doc1.score < doc2.score)
+		else if (s1 < s2)
 			return 1;
 		else
 			return 0;

@@ -33,22 +33,29 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 
 import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.util.StringUtils;
 
 public abstract class StreamLimiter implements Closeable {
 
 	private final List<InputStream> inputStreamList;
-	private final long limit;
+	protected final long limit;
 	private CachedStreamInterface outputCache;
 	private final List<File> tempFiles;
+	protected final String originalFileName;
+	private String detectedCharset;
 
-	protected StreamLimiter(long limit) throws IOException {
+	protected StreamLimiter(long limit, String originalFileName)
+			throws IOException {
 		this.limit = limit;
 		this.outputCache = null;
 		this.inputStreamList = new ArrayList<InputStream>(0);
 		this.tempFiles = new ArrayList<File>(0);
+		this.originalFileName = originalFileName;
+		this.detectedCharset = null;
 	}
 
 	public abstract File getFile() throws SearchLibException, IOException;
@@ -71,7 +78,7 @@ public abstract class StreamLimiter implements Closeable {
 			IOException;
 
 	public InputStream getNewInputStream() throws IOException {
-		if (outputCache != null)
+		if (outputCache == null)
 			loadOutputCache();
 		InputStream inputStream = outputCache.getNewInputStream();
 		inputStreamList.add(inputStream);
@@ -80,7 +87,7 @@ public abstract class StreamLimiter implements Closeable {
 
 	public String getMD5Hash() throws NoSuchAlgorithmException, LimitException,
 			IOException {
-		if (outputCache != null)
+		if (outputCache == null)
 			loadOutputCache();
 		InputStream is = null;
 		try {
@@ -93,7 +100,7 @@ public abstract class StreamLimiter implements Closeable {
 	}
 
 	public long getSize() throws LimitException, IOException {
-		if (outputCache != null)
+		if (outputCache == null)
 			loadOutputCache();
 		return outputCache.getSize();
 	}
@@ -108,10 +115,28 @@ public abstract class StreamLimiter implements Closeable {
 		tempFiles.clear();
 	}
 
-	public File getTempFile(String extension) throws IOException {
+	protected File getTempFile(String extension) throws IOException {
 		File tempFile = File.createTempFile("oss", "." + extension);
+		FileUtils.copyInputStreamToFile(getNewInputStream(), tempFile);
 		tempFiles.add(tempFile);
 		return tempFile;
+	}
+
+	public String getOriginalFileName() {
+		return originalFileName;
+	}
+
+	public String getDetectedCharset() throws IOException {
+		if (detectedCharset != null)
+			return detectedCharset;
+		InputStream is = getNewInputStream();
+		try {
+			detectedCharset = StringUtils.charsetDetector(is);
+			return detectedCharset;
+		} finally {
+			if (is != null)
+				IOUtils.closeQuietly(is);
+		}
 	}
 
 }

@@ -42,8 +42,10 @@ import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.request.AbstractRequest;
+import com.jaeksoft.searchlib.request.MoreLikeThisRequest;
 import com.jaeksoft.searchlib.request.RequestTypeEnum;
 import com.jaeksoft.searchlib.request.SearchRequest;
+import com.jaeksoft.searchlib.request.SpellCheckRequest;
 import com.jaeksoft.searchlib.result.AbstractResult;
 import com.jaeksoft.searchlib.web.AbstractServlet;
 import com.jaeksoft.searchlib.web.controller.AlertController;
@@ -97,6 +99,22 @@ public final class QueryController extends AbstractQueryController {
 				q = "*:*";
 			sb.append("&q=");
 			sb.append(URLEncoder.encode(q, "UTF-8"));
+		} else if (request instanceof SpellCheckRequest) {
+			String q = ((SpellCheckRequest) request).getQueryString();
+			sb.append("&q=");
+			if (q != null)
+				sb.append(URLEncoder.encode(q, "UTF-8"));
+		} else if (request instanceof MoreLikeThisRequest) {
+			String q = ((MoreLikeThisRequest) request).getDocQuery();
+			if (q != null && q.length() > 0) {
+				sb.append("&mlt.docquery=");
+				sb.append(URLEncoder.encode(q, "UTF-8"));
+			}
+			q = ((MoreLikeThisRequest) request).getLikeText();
+			if (q != null && q.length() > 0) {
+				sb.append("&mlt.liketext=");
+				sb.append(URLEncoder.encode(q, "UTF-8"));
+			}
 		}
 		return sb.toString();
 	}
@@ -149,6 +167,14 @@ public final class QueryController extends AbstractQueryController {
 		return !isEditingMoreLikeThis();
 	}
 
+	public boolean isEditingDocuments() throws SearchLibException {
+		return isEditing(RequestTypeEnum.DocumentsRequest);
+	}
+
+	public boolean isNotEditingDocuments() throws SearchLibException {
+		return !isEditingDocuments();
+	}
+
 	public boolean isNotSelectedRequest() {
 		return !isSelectedRequest();
 	}
@@ -196,11 +222,10 @@ public final class QueryController extends AbstractQueryController {
 		return true;
 	}
 
-	private void newEdit(AbstractRequest newRequest) {
+	private void newEdit(AbstractRequest newRequest) throws SearchLibException {
 		newRequest.setRequestName(requestName);
 		setRequest(newRequest);
 		reloadPage();
-		PushEvent.QUERY_EDIT_REQUEST.publish(newRequest);
 	}
 
 	public void onNew() throws SearchLibException, InterruptedException,
@@ -231,7 +256,7 @@ public final class QueryController extends AbstractQueryController {
 		if (entry == null)
 			return;
 		setRequest(getClient().getNewRequest(entry.getKey()));
-		PushEvent.QUERY_EDIT_REQUEST.publish(getAbstractRequest());
+		sendReload(getParent());
 	}
 
 	public void doDeleteQuery(Component comp) throws SearchLibException,
@@ -253,7 +278,7 @@ public final class QueryController extends AbstractQueryController {
 	}
 
 	public void setResult(AbstractResult<?> result) {
-		ScopeAttribute.QUERY_SEARCH_RESULT.set(this, result);
+		ScopeAttribute.QUERY_RESULT.set(this, result);
 	}
 
 	public void onCancel() throws SearchLibException {
@@ -308,7 +333,7 @@ public final class QueryController extends AbstractQueryController {
 
 		request.reset();
 		setResult(getClient().request(request));
-		PushEvent.QUERY_EDIT_RESULT.publish(getAbstractResult());
+		sendReload(getParent());
 	}
 
 	/**

@@ -35,12 +35,14 @@ import org.zkoss.zul.RowRenderer;
 
 import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.request.SearchRequest;
-import com.jaeksoft.searchlib.schema.Field;
-import com.jaeksoft.searchlib.schema.FieldList;
+import com.jaeksoft.searchlib.request.AbstractRequest;
+import com.jaeksoft.searchlib.request.RequestInterfaces;
+import com.jaeksoft.searchlib.request.RequestTypeEnum;
+import com.jaeksoft.searchlib.request.ReturnField;
+import com.jaeksoft.searchlib.request.ReturnFieldList;
 import com.jaeksoft.searchlib.schema.SchemaField;
 
-public class ReturnedController extends SearchRequestController implements
+public class ReturnedController extends AbstractQueryController implements
 		RowRenderer {
 
 	/**
@@ -53,7 +55,9 @@ public class ReturnedController extends SearchRequestController implements
 	private transient List<String> fieldLeft;
 
 	public ReturnedController() throws SearchLibException {
-		super();
+		super(RequestTypeEnum.SearchRequest,
+				RequestTypeEnum.MoreLikeThisRequest,
+				RequestTypeEnum.DocumentsRequest);
 	}
 
 	@Override
@@ -74,20 +78,29 @@ public class ReturnedController extends SearchRequestController implements
 		}
 	}
 
+	private RequestInterfaces.ReturnedFieldInterface getReturnedFieldInterface()
+			throws SearchLibException {
+		AbstractRequest req = getAbstractRequest();
+		if (req instanceof RequestInterfaces.ReturnedFieldInterface)
+			return (RequestInterfaces.ReturnedFieldInterface) req;
+		return null;
+	}
+
 	public void onReturnAdd() throws SearchLibException {
 		synchronized (this) {
 			if (selectedReturn == null)
 				return;
-			((SearchRequest) getRequest()).getReturnFieldList().add(
-					new Field(selectedReturn));
+			getReturnedFieldInterface().getReturnFieldList().put(
+					new ReturnField(selectedReturn));
 			reloadPage();
 		}
 	}
 
 	public void onReturnRemove(Event event) throws SearchLibException {
 		synchronized (this) {
-			Field field = (Field) event.getData();
-			((SearchRequest) getRequest()).getReturnFieldList().remove(field);
+			ReturnField field = (ReturnField) event.getData();
+			getReturnedFieldInterface().getReturnFieldList().remove(
+					field.getName());
 			reloadPage();
 		}
 	}
@@ -106,13 +119,13 @@ public class ReturnedController extends SearchRequestController implements
 			Client client = getClient();
 			if (client == null)
 				return null;
+			RequestInterfaces.ReturnedFieldInterface rfi = getReturnedFieldInterface();
+			if (rfi == null)
+				return null;
 			if (fieldLeft != null)
 				return fieldLeft;
 			fieldLeft = new ArrayList<String>();
-			SearchRequest request = (SearchRequest) getRequest();
-			if (request == null)
-				return null;
-			FieldList<Field> fields = request.getReturnFieldList();
+			ReturnFieldList fields = rfi.getReturnFieldList();
 			for (SchemaField field : client.getSchema().getFieldList())
 				if (field.isStored() || field.isIndexed())
 					if (fields.get(field.getName()) == null) {
@@ -126,7 +139,7 @@ public class ReturnedController extends SearchRequestController implements
 
 	@Override
 	public void render(Row row, Object data) throws Exception {
-		Field field = (Field) data;
+		ReturnField field = (ReturnField) data;
 		new Label(field.getName()).setParent(row);
 		Button button = new Button("Remove");
 		button.addForward(null, "query", "onReturnRemove", field);
@@ -134,7 +147,7 @@ public class ReturnedController extends SearchRequestController implements
 	}
 
 	@Override
-	public void reloadPage() {
+	public void reloadPage() throws SearchLibException {
 		synchronized (this) {
 			selectedReturn = null;
 			fieldLeft = null;

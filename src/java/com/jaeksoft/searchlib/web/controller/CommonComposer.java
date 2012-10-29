@@ -33,10 +33,7 @@ import org.zkoss.zul.Listitem;
 
 import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.crawler.file.database.FilePathItem;
 import com.jaeksoft.searchlib.request.AbstractRequest;
-import com.jaeksoft.searchlib.result.AbstractResult;
-import com.jaeksoft.searchlib.scheduler.JobItem;
 import com.jaeksoft.searchlib.user.User;
 
 public abstract class CommonComposer extends GenericForwardComposer implements
@@ -63,6 +60,10 @@ public abstract class CommonComposer extends GenericForwardComposer implements
 
 	protected final Object getAttribute(ScopeAttribute scopeAttribute) {
 		return session.getAttribute(scopeAttribute.name());
+	}
+
+	protected void setAttribute(ScopeAttribute scopeAttribute, Object value) {
+		session.setAttribute(scopeAttribute.name(), value);
 	}
 
 	@Override
@@ -150,26 +151,9 @@ public abstract class CommonComposer extends GenericForwardComposer implements
 	}
 
 	@Override
-	public void eventJobEdit(JobItem jobItem) throws SearchLibException {
-	}
-
-	@Override
-	public void eventFilePathEdit(FilePathItem filePathItem)
-			throws SearchLibException {
-	}
-
-	@Override
 	public void eventLogout() throws SearchLibException {
 		reset();
 		reloadPage();
-	}
-
-	@Override
-	public void eventQueryEditResult(AbstractResult<?> data) {
-	}
-
-	@Override
-	public void eventQueryEditRequest(AbstractRequest data) {
 	}
 
 	@Override

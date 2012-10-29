@@ -29,7 +29,6 @@ package com.jaeksoft.searchlib.render;
  */
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -47,10 +46,10 @@ import com.jaeksoft.searchlib.facet.FacetItem;
 import com.jaeksoft.searchlib.facet.FacetList;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.query.ParseException;
+import com.jaeksoft.searchlib.request.ReturnField;
 import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.result.AbstractResultSearch;
 import com.jaeksoft.searchlib.result.ResultDocument;
-import com.jaeksoft.searchlib.schema.Field;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
 import com.jaeksoft.searchlib.snippet.SnippetField;
 import com.jaeksoft.searchlib.web.ServletTransaction;
@@ -115,7 +114,7 @@ public class RenderOpenSearch implements Render {
 
 	private void renderDocuments() throws IOException, ParseException,
 			SyntaxError, XPathExpressionException,
-			ParserConfigurationException, SAXException {
+			ParserConfigurationException, SAXException, SearchLibException {
 		SearchRequest searchRequest = result.getRequest();
 		int start = searchRequest.getStart();
 		int end = result.getDocumentCount() + searchRequest.getStart();
@@ -141,14 +140,14 @@ public class RenderOpenSearch implements Render {
 
 	private void renderDocument(int pos) throws IOException, ParseException,
 			SyntaxError, XPathExpressionException,
-			ParserConfigurationException, SAXException {
+			ParserConfigurationException, SAXException, SearchLibException {
 
 		writer.println("<item>");
-		ResultDocument doc = result.getDocument(pos);
+		ResultDocument doc = result.getDocument(pos, null);
 		for (SnippetField field : searchRequest.getSnippetFieldList())
 			renderSnippetValue(doc, field);
 
-		for (Field field : searchRequest.getReturnFieldList())
+		for (ReturnField field : searchRequest.getReturnFieldList())
 			renderField(doc, field);
 
 		int cc = result.getCollapseCount(pos);
@@ -160,11 +159,11 @@ public class RenderOpenSearch implements Render {
 		writer.println("\t</item>");
 	}
 
-	private void renderField(ResultDocument doc, Field field)
+	private void renderField(ResultDocument doc, ReturnField field)
 			throws IOException, XPathExpressionException,
 			ParserConfigurationException, SAXException {
 		String fieldName = field.getName();
-		List<FieldValueItem> values = doc.getValueList(field);
+		FieldValueItem[] values = doc.getValueArray(field);
 		String openSearchtitleField = getFieldMap("opensearch", "title");
 		String openSearchDescriptionField = getFieldMap("opensearch",
 				"description");

@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2009 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -30,17 +30,17 @@ import java.util.TreeSet;
 import com.jaeksoft.searchlib.analysis.Analyzer;
 import com.jaeksoft.searchlib.cache.CacheKeyInterface;
 import com.jaeksoft.searchlib.query.ParseException;
-import com.jaeksoft.searchlib.schema.Field;
+import com.jaeksoft.searchlib.schema.SchemaField;
 
 public class FilterListCacheKey implements
 		CacheKeyInterface<FilterListCacheKey> {
 
 	private TreeSet<FilterCacheKey> filterCacheKeySet;
 
-	public FilterListCacheKey(FilterList filterList, Field defaultField,
+	public FilterListCacheKey(FilterList filterList, SchemaField defaultField,
 			Analyzer analyzer) throws ParseException {
 		filterCacheKeySet = new TreeSet<FilterCacheKey>();
-		for (Filter filter : filterList)
+		for (FilterAbstract<?> filter : filterList)
 			filterCacheKeySet.add(new FilterCacheKey(filter, defaultField,
 					analyzer));
 	}

@@ -24,6 +24,8 @@
 
 package com.jaeksoft.searchlib.request;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -36,7 +38,6 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.config.Config;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.util.XPathParser;
@@ -59,12 +60,11 @@ public class RequestMap {
 	 * @throws ClassNotFoundException
 	 * @throws IllegalAccessException
 	 * @throws InstantiationException
-	 * @throws SearchLibException
 	 */
 	public static RequestMap fromXmlConfig(Config config, XPathParser xpp,
 			Node parentNode) throws XPathExpressionException, DOMException,
 			ParseException, InstantiationException, IllegalAccessException,
-			ClassNotFoundException, SearchLibException {
+			ClassNotFoundException {
 		RequestMap requestMap = new RequestMap();
 		if (parentNode == null)
 			return requestMap;
@@ -107,6 +107,14 @@ public class RequestMap {
 
 	public Set<String> getNameList() {
 		return map.keySet();
+	}
+
+	public List<String> getNameList(RequestTypeEnum type) {
+		List<String> list = new ArrayList<String>();
+		for (AbstractRequest request : map.values())
+			if (request.getType() == type)
+				list.add(request.getRequestName());
+		return list;
 	}
 
 	public void remove(String requestName) {

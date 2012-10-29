@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2010-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2010-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -56,6 +56,10 @@ public class ClassPropertyEnum extends ExtensibleEnumItem<ClassPropertyEnum> {
 	public final static ClassPropertyEnum PARSER_NAME = new ClassPropertyEnum(
 			false, "name", "name", "The name of the parser ");
 
+	public final static ClassPropertyEnum PARSER_FAIL_OVER_NAME = new ClassPropertyEnum(
+			false, "fileOver", "Fail over parser",
+			"The name of the parser used as fail over");
+
 	public final static ClassPropertyEnum MIN_GRAM = new ClassPropertyEnum(
 			true, "min_gram", "Min gram size",
 			"The smallest n-gram to generate");
@@ -97,6 +101,16 @@ public class ClassPropertyEnum extends ExtensibleEnumItem<ClassPropertyEnum> {
 			true, "removeDuplicateLetters", "Duplicate letters",
 			"Detect and remove consecutive duplicate letters");
 
+	public static ClassPropertyEnum NUMBER_FORMAT = new ClassPropertyEnum(
+			true,
+			"numberFormat",
+			"Number format",
+			"Format number using java decimal format, for example, \"#,##0.00;(#,##0.00)\".");
+
+	public static ClassPropertyEnum JSON_PATH = new ClassPropertyEnum(true,
+			"jsonPath", "Json Path",
+			"Extract data from a JSON structure using Json Path syntax");
+
 	public static ClassPropertyEnum REMOVE_DUPLICATE_DIGITS = new ClassPropertyEnum(
 			true, "removeDuplicateDigits", "Duplicate digits",
 			"Detect and remove consecutive duplicate digits");
@@ -109,10 +123,77 @@ public class ClassPropertyEnum extends ExtensibleEnumItem<ClassPropertyEnum> {
 			true, "url_fragment", "URL Fragment",
 			"The Option to remove or keep the URL Fragment");
 
+	public final static ClassPropertyEnum REGULAR_EXPRESSION = new ClassPropertyEnum(
+			true, "regular_expression", "Regular Expression",
+			"The regular expression pattern");
+
+	public final static ClassPropertyEnum H1_BOOST = new ClassPropertyEnum(
+			true, "h1_boost", "H1 Boost", "Boost for H1 Tag in Html Content");
+
+	public final static ClassPropertyEnum H2_BOOST = new ClassPropertyEnum(
+			true, "h2_boost", "H2 Boost", "Boost for H2 Tag in Html Content");
+
+	public final static ClassPropertyEnum H3_BOOST = new ClassPropertyEnum(
+			true, "h3_boost", "H3 Boost", "Boost for H3 Tag in Html Content");
+
+	public final static ClassPropertyEnum H4_BOOST = new ClassPropertyEnum(
+			true, "h4_boost", "H4 Boost", "Boost for H4 Tag in Html Content");
+
+	public final static ClassPropertyEnum H5_BOOST = new ClassPropertyEnum(
+			true, "h5_boost", "H5 Boost", "Boost for H5 Tag in Html Content");
+
+	public final static ClassPropertyEnum H6_BOOST = new ClassPropertyEnum(
+			true, "h6_boost", "H6 Boost", "Boost for H6 Tag in Html Content");
+
+	public final static ClassPropertyEnum TITLE_BOOST = new ClassPropertyEnum(
+			true, "title_boost", "Title Boost",
+			"Boost for Title Tag in Html Content");
+
 	public final static String[] BOOLEAN_LIST = { Boolean.TRUE.toString(),
 			Boolean.FALSE.toString() };
 
+	public final static ClassPropertyEnum OCR_PDF_METHOD = new ClassPropertyEnum(
+			true, "ocr_pdf_method", "OCR method for PDF",
+			"Select an OCR stragegy for images in PDF");
+
+	public final static String[] OCR_PDF_METHODS = { "Embedded images",
+			"Full page" };
+
 	public final static String[] KEEP_REMOVE_LIST = { "keep", "remove" };
+
+	public final static String[] YOUTUBE_DATA_LIST = { "title", "description",
+			"full (json)" };
+
+	public final static String[] VIMEO_DATA_LIST = { "title", "description",
+			"full (json)" };
+
+	public static String[] DAILYMOTION_DATA_LIST = { "title", "full (json)" };
+
+	public static ClassPropertyEnum VIMEO_DATA = new ClassPropertyEnum(true,
+			"vimeo_data", "Vimeo Field", "The vimeo API data");
+
+	public static final ClassPropertyEnum YOUTUBE_DATA = new ClassPropertyEnum(
+			true, "youtube_data", "Youtube Field", "The youtube API data");
+
+	public static final ClassPropertyEnum DAILYMOTION_DATA = new ClassPropertyEnum(
+			true, "dailymotion_data", "Dailymotion Field",
+			"The Dailymotion API data");
+
+	public static final ClassPropertyEnum DEGREES_RADIANS_CONVERSION = new ClassPropertyEnum(
+			true, "degrees_radians_conversion", "Conversion direction",
+			"The direction of the conversion");
+
+	public final static ClassPropertyEnum DEFAULT_VALUE = new ClassPropertyEnum(
+			true, "defaultValue", "Default Value",
+			"The default value to use if no value is found");
+
+	public static String[] DEGREES_RADIANS_CONVERSION_LIST = {
+			"Degrees to Radians", "Radians to Degrees", "Check degrees",
+			"Check radians" };
+
+	public static ClassPropertyEnum IGNORE_META_NOINDEX = new ClassPropertyEnum(
+			true, "ignoreMetaNoIndex", "Ignore meta noindex",
+			"Ignore the meta noindex tag in HTML header");
 
 	private boolean isUser;
 

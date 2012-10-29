@@ -44,6 +44,7 @@ import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.remote.UriWriteStream;
 import com.jaeksoft.searchlib.replication.ReplicationItem;
 import com.jaeksoft.searchlib.user.User;
+import com.jaeksoft.searchlib.util.FilesUtils;
 import com.jaeksoft.searchlib.util.XPathParser;
 
 public class PushServlet extends AbstractServlet {
@@ -89,7 +90,7 @@ public class PushServlet extends AbstractServlet {
 						XML_CALL_KEY_STATUS_OK);
 				return;
 			}
-
+			filePath = FilesUtils.unixToSystemPath(filePath);
 			if (transaction.getParameterBoolean("type", "dir", false))
 				ClientCatalog.receive_dir(client, filePath);
 			else
@@ -120,13 +121,16 @@ public class PushServlet extends AbstractServlet {
 			ReplicationItem replicationItem, File sourceFile)
 			throws UnsupportedEncodingException, SearchLibException,
 			MalformedURLException {
-		String dataPath = client.getDirectory().getAbsolutePath();
+		String dataPath = replicationItem.getDirectory(client)
+				.getAbsolutePath();
 		String filePath = sourceFile.getAbsolutePath();
 		if (!filePath.startsWith(dataPath))
 			throw new SearchLibException("Bad file path " + filePath);
 		filePath = filePath.substring(dataPath.length());
-		return replicationItem.getCachedUrl() + "&filePath="
-				+ URLEncoder.encode(filePath, "UTF-8")
+		return replicationItem.getCachedUrl()
+				+ "&filePath="
+				+ URLEncoder.encode(FilesUtils.systemPathToUnix(filePath),
+						"UTF-8")
 				+ (sourceFile.isDirectory() ? "&type=dir" : "");
 	}
 

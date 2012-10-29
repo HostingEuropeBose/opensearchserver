@@ -27,16 +27,19 @@ package com.jaeksoft.searchlib.index;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Set;
+
+import org.jsoup.select.Collector;
 
 import com.jaeksoft.searchlib.analysis.filter.stop.WordArray;
-import com.jaeksoft.searchlib.filter.Filter;
+import com.jaeksoft.searchlib.filter.FilterAbstract;
 import com.jaeksoft.searchlib.index.term.Term;
 import com.jaeksoft.searchlib.index.term.TermDocs;
 import com.jaeksoft.searchlib.index.term.TermEnum;
 import com.jaeksoft.searchlib.index.term.TermFreqVector;
 import com.jaeksoft.searchlib.index.term.TermPositions;
 import com.jaeksoft.searchlib.query.Query;
-import com.jaeksoft.searchlib.sort.SortList;
+import com.jaeksoft.searchlib.web.controller.query.ResultDocumentController.Document;
 
 public class IndexReader {
 
@@ -99,12 +102,7 @@ public class IndexReader {
 		return null;
 	}
 
-	public TopDocs search(Query query, Filter filter, int nTop) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	public TopDocs search(Query query, Filter filter, int nTop, SortList sort) {
+	public TopDocs search(Query query, FilterAbstract<?> filter, int nTop) {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -119,7 +117,8 @@ public class IndexReader {
 
 	}
 
-	public void search(Query query, Filter filter, Collector collector) {
+	public void search(Query query, FilterAbstract<?> filter,
+			Collector collector) {
 		// TODO Auto-generated method stub
 
 	}
@@ -132,11 +131,6 @@ public class IndexReader {
 	public void deleteDocuments(Term term) {
 		// TODO Auto-generated method stub
 
-	}
-
-	public IndexDocument document(int docId, FieldSelector selector) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	public StringIndex getStringIndex(String fieldName) {
@@ -167,6 +161,11 @@ public class IndexReader {
 	public int numDeletedDocs() {
 		// TODO Auto-generated method stub
 		return 0;
+	}
+
+	public Document document(int docId, Set<String> fieldNameSet) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

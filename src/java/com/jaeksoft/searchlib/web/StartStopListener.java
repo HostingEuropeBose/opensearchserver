@@ -35,17 +35,23 @@ import com.jaeksoft.searchlib.ClientCatalog;
 import com.jaeksoft.searchlib.ClientFactory;
 import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.index.osse.OsseLibrary;
 import com.jaeksoft.searchlib.logreport.ErrorParserLogger;
 import com.jaeksoft.searchlib.scheduler.TaskManager;
+import com.jaeksoft.searchlib.util.ReadWriteLock;
 
 public class StartStopListener implements ServletContextListener {
 
 	public static File OPENSEARCHSERVER_DATA_FILE = null;
 
+	private final static ReadWriteLock rwl = new ReadWriteLock();
+
+	private static boolean active = false;
+
 	private static void initDataDir(ServletContext servletContext) {
 		String single_data = System.getenv("OPENSEARCHSERVER_DATA");
 		String multi_data = System.getenv("OPENSEARCHSERVER_MULTIDATA");
+		if (multi_data == null)
+			multi_data = System.getenv("OPENSHIFT_DATA_DIR");
 		if (multi_data != null)
 			OPENSEARCHSERVER_DATA_FILE = new File(new File(multi_data),
 					servletContext.getContextPath());
@@ -53,24 +59,40 @@ public class StartStopListener implements ServletContextListener {
 			OPENSEARCHSERVER_DATA_FILE = new File(single_data);
 		if (!OPENSEARCHSERVER_DATA_FILE.exists())
 			OPENSEARCHSERVER_DATA_FILE.mkdir();
-		System.out.println("JNA.LIBRARY.PATH IS: "
-				+ System.getProperty("jna.library.path"));
 		System.out.println("OPENSEARCHSERVER_DATA_FILE IS: "
 				+ OPENSEARCHSERVER_DATA_FILE);
-		System.out.println("OSS CLIB VERSION: "
-				+ OsseLibrary.INSTANCE.OSSCLib_GetVersionInfoText());
+	}
+
+	public static void setActive(boolean active) {
+		rwl.w.lock();
+		try {
+			StartStopListener.active = active;
+		} finally {
+			rwl.w.unlock();
+		}
+	}
+
+	public static boolean isShutdown() {
+		rwl.r.lock();
+		try {
+			return StartStopListener.active == false;
+		} finally {
+			rwl.r.unlock();
+		}
 	}
 
 	@Override
 	public void contextDestroyed(ServletContextEvent contextEvent) {
+		setActive(false);
+
 		Logging.info("OSS SHUTDOWN");
-		ErrorParserLogger.close();
 		try {
 			TaskManager.stop();
 		} catch (SearchLibException e) {
 			Logging.error(e);
 		}
 		ClientCatalog.closeAll();
+		ErrorParserLogger.close();
 	}
 
 	protected ClientFactory getClientFactory() throws SearchLibException {
@@ -83,12 +105,10 @@ public class StartStopListener implements ServletContextListener {
 		return version;
 	}
 
-	protected String getEdition() {
-		return "community edition";
-	}
-
 	@Override
 	public void contextInitialized(ServletContextEvent contextEvent) {
+
+		setActive(true);
 
 		ServletContext servletContext = contextEvent.getServletContext();
 		initDataDir(servletContext);
@@ -99,7 +119,7 @@ public class StartStopListener implements ServletContextListener {
 		ErrorParserLogger.init();
 
 		try {
-			version = new Version(servletContext, getEdition());
+			version = new Version(servletContext);
 		} catch (IOException e) {
 			Logging.error(e);
 		}

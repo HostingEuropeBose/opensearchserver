@@ -42,10 +42,12 @@ import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.Analyzer;
 import com.jaeksoft.searchlib.analysis.AnalyzerList;
 import com.jaeksoft.searchlib.analysis.CompiledAnalyzer;
+import com.jaeksoft.searchlib.analysis.DebugTokenFilter;
 import com.jaeksoft.searchlib.analysis.FilterEnum;
 import com.jaeksoft.searchlib.analysis.FilterFactory;
 import com.jaeksoft.searchlib.analysis.FilterScope;
-import com.jaeksoft.searchlib.analysis.TokenStream;
+import com.jaeksoft.searchlib.analysis.tokenizer.TokenizerEnum;
+import com.jaeksoft.searchlib.analysis.tokenizer.TokenizerFactory;
 import com.jaeksoft.searchlib.schema.Schema;
 import com.jaeksoft.searchlib.web.SchemaServlet;
 import com.jaeksoft.searchlib.web.controller.AlertController;
@@ -75,7 +77,7 @@ public class AnalyzersController extends CommonController implements
 
 	private transient String testType;
 
-	private transient List<TokenStream> testList;
+	private transient List<DebugTokenFilter> testList;
 
 	private class DeleteAlert extends AlertController {
 
@@ -214,6 +216,21 @@ public class AnalyzersController extends CommonController implements
 		return currentAnalyzer;
 	}
 
+	public String getCurrentTokenizer() {
+		Analyzer analyzer = getCurrentAnalyzer();
+		if (analyzer == null)
+			return null;
+		TokenizerFactory tokenizer = analyzer.getTokenizer();
+		if (tokenizer == null)
+			return null;
+		return tokenizer.getClassName();
+	}
+
+	public void setCurrentTokenizer(String className) throws SearchLibException {
+		getCurrentAnalyzer().setTokenizer(
+				TokenizerFactory.create(getClient(), className));
+	}
+
 	public void onEdit() throws SearchLibException {
 		editAnalyzer = getSelectedAnalyzer();
 		if (editAnalyzer != null)
@@ -244,6 +261,10 @@ public class AnalyzersController extends CommonController implements
 		editAnalyzer = null;
 		currentAnalyzer = new Analyzer(getClient());
 		reloadPage();
+	}
+
+	public String[] getTokenizerList() {
+		return TokenizerEnum.getStringArray();
 	}
 
 	public FilterEnum[] getFilterEnum() {
@@ -290,19 +311,19 @@ public class AnalyzersController extends CommonController implements
 		reloadPage();
 	}
 
-	public void onFilterUp(Component component) {
+	public void onFilterUp(Component component) throws SearchLibException {
 		FilterFactory filter = getFilter(component);
 		currentAnalyzer.filterUp(filter);
 		reloadPage();
 	}
 
-	public void onFilterDown(Component component) {
+	public void onFilterDown(Component component) throws SearchLibException {
 		FilterFactory filter = getFilter(component);
 		currentAnalyzer.filterDown(filter);
 		reloadPage();
 	}
 
-	public void onFilterRemove(Component component) {
+	public void onFilterRemove(Component component) throws SearchLibException {
 		FilterFactory filter = getFilter(component);
 		currentAnalyzer.filterRemove(filter);
 		reloadPage();
@@ -345,19 +366,19 @@ public class AnalyzersController extends CommonController implements
 		reloadPage();
 	}
 
-	public List<TokenStream> getTestList() {
+	public List<DebugTokenFilter> getTestList() {
 		return testList;
 	}
 
 	@Override
 	public void render(Listitem item, Object data) throws Exception {
-		TokenStream tokenStream = (TokenStream) data;
-		Listcell listcell = new Listcell(tokenStream.getFilterFactory()
+		DebugTokenFilter debugFilter = (DebugTokenFilter) data;
+		Listcell listcell = new Listcell(debugFilter.getClassFactory()
 				.getClassName());
 		listcell.setParent(item);
 		listcell = new Listcell();
 		Hbox hbox = new Hbox();
-		for (String term : tokenStream) {
+		for (String term : debugFilter.getTokenList()) {
 			Window window = new Window();
 			window.setBorder("normal");
 			new Label(term).setParent(window);

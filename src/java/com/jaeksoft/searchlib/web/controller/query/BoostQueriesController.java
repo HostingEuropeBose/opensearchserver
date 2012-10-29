@@ -31,7 +31,7 @@ import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.request.BoostQuery;
 import com.jaeksoft.searchlib.request.SearchRequest;
 
-public class BoostQueriesController extends SearchRequestController {
+public class BoostQueriesController extends AbstractQueryController {
 
 	/**
 	 * 
@@ -70,8 +70,10 @@ public class BoostQueriesController extends SearchRequestController {
 	/**
 	 * @param selectedBoostQuery
 	 *            the selectedBoostQuery to set
+	 * @throws SearchLibException
 	 */
-	public void setSelectedBoostQuery(BoostQuery selectedBoostQuery) {
+	public void setSelectedBoostQuery(BoostQuery selectedBoostQuery)
+			throws SearchLibException {
 		this.selectedBoostQuery = selectedBoostQuery;
 		currentBoostQuery.copyFrom(selectedBoostQuery);
 		reloadPage();

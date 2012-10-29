@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.commons.lang.StringEscapeUtils;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 
@@ -103,6 +104,20 @@ public abstract class ClassFactory {
 		return properties.get(prop);
 	}
 
+	protected float getFloatProperty(ClassPropertyEnum prop) {
+		String value = getProperty(prop).getValue();
+		if (value == null)
+			return 1.0F;
+		return Float.parseFloat(value);
+	}
+
+	protected boolean getBooleanProperty(ClassPropertyEnum prop) {
+		String value = getProperty(prop).getValue();
+		if (value == null)
+			return false;
+		return Boolean.parseBoolean(value);
+	}
+
 	final protected void addProperties(NamedNodeMap nnm)
 			throws SearchLibException {
 		if (nnm == null)
@@ -115,7 +130,8 @@ public abstract class ClassFactory {
 			if (propEnum != null) {
 				ClassProperty prop = getProperty(propEnum);
 				if (prop != null)
-					prop.setValue(attr.getNodeValue());
+					prop.setValue(StringEscapeUtils.unescapeXml(attr
+							.getNodeValue()));
 			} else {
 				Logging.warn("Property not found: " + attr.getNodeName());
 			}

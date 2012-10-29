@@ -26,6 +26,7 @@ package com.jaeksoft.searchlib;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPathExpressionException;
@@ -33,9 +34,11 @@ import javax.xml.xpath.XPathExpressionException;
 import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.util.FilesUtils;
+import com.jaeksoft.searchlib.util.properties.PropertyItem;
+import com.jaeksoft.searchlib.util.properties.PropertyItemListener;
 import com.jaeksoft.searchlib.web.StartStopListener;
 
-public class ClientFactory {
+public class ClientFactory implements PropertyItemListener {
 
 	public static ClientFactory INSTANCE = null;
 
@@ -53,6 +56,8 @@ public class ClientFactory {
 		} catch (SAXException e) {
 			throw new SearchLibException(e);
 		} catch (IOException e) {
+			throw new SearchLibException(e);
+		} catch (URISyntaxException e) {
 			throw new SearchLibException(e);
 		}
 	}
@@ -82,6 +87,11 @@ public class ClientFactory {
 
 	public static void setInstance(ClientFactory cf) {
 		INSTANCE = cf;
+	}
+
+	@Override
+	public void hasBeenSet(PropertyItem<?> prop) throws SearchLibException {
+
 	}
 
 }

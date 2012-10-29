@@ -24,6 +24,7 @@
 
 package com.jaeksoft.searchlib.request;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,9 +39,9 @@ import com.jaeksoft.searchlib.config.Config;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.ReaderInterface;
 import com.jaeksoft.searchlib.query.ParseException;
+import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.result.AbstractResult;
 import com.jaeksoft.searchlib.util.ReadWriteLock;
-import com.jaeksoft.searchlib.util.Timer;
 import com.jaeksoft.searchlib.util.XPathParser;
 import com.jaeksoft.searchlib.util.XmlWriter;
 import com.jaeksoft.searchlib.web.ServletTransaction;
@@ -55,10 +56,10 @@ public abstract class AbstractRequest {
 
 	private String requestName;
 	protected Config config;
-	private Timer timer;
-	private long finalTime;
 	private boolean withLogReport;
 	private List<String> customLogs;
+	private int timerMinTime;
+	private int timerMaxDepth;
 
 	public AbstractRequest() {
 		this.config = null;
@@ -75,25 +76,27 @@ public abstract class AbstractRequest {
 	public void fromXmlConfig(Config config, XPathParser xpp, Node node)
 			throws XPathExpressionException, DOMException, ParseException,
 			InstantiationException, IllegalAccessException,
-			ClassNotFoundException, SearchLibException {
+			ClassNotFoundException {
 		this.config = config;
 		this.requestName = XPathParser.getAttributeString(node, XML_ATTR_NAME);
 	}
 
-	public void copyFrom(AbstractRequest request) throws SearchLibException {
+	public void copyFrom(AbstractRequest request) {
 		this.config = request.config;
 		this.requestName = request.requestName;
 		this.withLogReport = request.withLogReport;
 		this.customLogs = null;
 		if (request.customLogs != null)
 			this.customLogs = new ArrayList<String>(request.customLogs);
+		this.timerMinTime = request.timerMinTime;
+		this.timerMaxDepth = request.timerMaxDepth;
 	}
 
 	protected void setDefaultValues() {
-		timer = new Timer("Request");
-		finalTime = 0;
 		withLogReport = false;
 		customLogs = null;
+		timerMinTime = 10;
+		timerMaxDepth = 3;
 	}
 
 	public abstract RequestTypeEnum getType();
@@ -102,10 +105,6 @@ public abstract class AbstractRequest {
 		rwl.w.lock();
 		try {
 			this.config = config;
-			finalTime = 0;
-			if (timer != null)
-				timer.reset();
-			timer = new Timer(getType().name());
 		} finally {
 			rwl.w.unlock();
 		}
@@ -129,38 +128,15 @@ public abstract class AbstractRequest {
 		}
 	}
 
+	public abstract Query getQuery() throws ParseException, SyntaxError,
+			SearchLibException, IOException;
+
 	public void setRequestName(String name) {
 		rwl.w.lock();
 		try {
 			this.requestName = name;
 		} finally {
 			rwl.w.unlock();
-		}
-	}
-
-	public long getFinalTime() {
-		rwl.r.lock();
-		try {
-			if (finalTime != 0)
-				return finalTime;
-		} finally {
-			rwl.r.unlock();
-		}
-		rwl.w.lock();
-		try {
-			finalTime = timer.duration();
-			return finalTime;
-		} finally {
-			rwl.w.unlock();
-		}
-	}
-
-	public Timer getTimer() {
-		rwl.r.lock();
-		try {
-			return timer;
-		} finally {
-			rwl.r.unlock();
 		}
 	}
 
@@ -218,9 +194,39 @@ public abstract class AbstractRequest {
 			throws SAXException;
 
 	public abstract void setFromServlet(ServletTransaction transaction)
-			throws SyntaxError, SearchLibException;
+			throws SyntaxError;
 
 	public abstract AbstractResult<?> execute(ReaderInterface reader)
 			throws SearchLibException;
+
+	/**
+	 * @param timerMinTime
+	 *            the timerMinTime to set
+	 */
+	public void setTimerMinTime(int timerMinTime) {
+		this.timerMinTime = timerMinTime;
+	}
+
+	/**
+	 * @return the timerMi,Time
+	 */
+	public int getTimerMinTime() {
+		return timerMinTime;
+	}
+
+	/**
+	 * @return the timerMaxDepth
+	 */
+	public int getTimerMaxDepth() {
+		return timerMaxDepth;
+	}
+
+	/**
+	 * @param timerMaxDepth
+	 *            the timerMaxDepth to set
+	 */
+	public void setTimerMaxDepth(int timerMaxDepth) {
+		this.timerMaxDepth = timerMaxDepth;
+	}
 
 }

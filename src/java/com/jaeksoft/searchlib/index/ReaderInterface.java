@@ -35,10 +35,7 @@ import com.jaeksoft.searchlib.index.term.TermFreqVector;
 import com.jaeksoft.searchlib.query.MoreLikeThis;
 import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.request.AbstractRequest;
-import com.jaeksoft.searchlib.request.DocumentsRequest;
-import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.result.AbstractResult;
-import com.jaeksoft.searchlib.result.ResultDocument;
 
 public interface ReaderInterface {
 
@@ -56,7 +53,7 @@ public interface ReaderInterface {
 			throws SearchLibException;
 
 	public TermFreqVector getTermFreqVector(int docId, String field)
-			throws IOException;
+			throws IOException, SearchLibException;
 
 	public abstract Query rewrite(Query query) throws SearchLibException;
 
@@ -65,20 +62,16 @@ public interface ReaderInterface {
 	public AbstractResult<?> request(AbstractRequest request)
 			throws SearchLibException;
 
-	public String explain(SearchRequest searchRequest, int docId, boolean bHtml)
+	public String explain(AbstractRequest request, int docId, boolean bHtml)
 			throws SearchLibException;
 
-	public ResultDocument[] documents(DocumentsRequest documentsRequest)
-			throws SearchLibException;
-
-	public IndexStatistics getStatistics() throws IOException;
+	public IndexStatistics getStatistics() throws IOException,
+			SearchLibException;
 
 	public void reload() throws SearchLibException;
 
-	public void swap(long version, boolean deleteOld) throws SearchLibException;
-
 	public void push(URI dest) throws SearchLibException;
 
-	public long getVersion();
+	public long getVersion() throws SearchLibException;
 
 }

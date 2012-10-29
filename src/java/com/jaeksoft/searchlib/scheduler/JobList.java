@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2010 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2010-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -26,6 +26,8 @@ package com.jaeksoft.searchlib.scheduler;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -130,6 +132,21 @@ public class JobList {
 		}
 	}
 
+	/**
+	 * Create a list of job name
+	 * 
+	 * @param list
+	 */
+	public void populateNameList(List<String> list) {
+		rwl.r.lock();
+		try {
+			for (JobItem job : jobs.values())
+				list.add(job.getName());
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
 	public int getActiveCount() {
 		rwl.r.lock();
 		try {
@@ -190,8 +207,10 @@ public class JobList {
 	 * 
 	 * @param xmlWriter
 	 * @throws SAXException
+	 * @throws UnsupportedEncodingException
 	 */
-	public void writeXml(XmlWriter xmlWriter) throws SAXException {
+	public void writeXml(XmlWriter xmlWriter) throws SAXException,
+			UnsupportedEncodingException {
 		rwl.r.lock();
 		try {
 			xmlWriter.startElement("jobs");

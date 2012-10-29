@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2009 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -24,32 +24,59 @@
 
 package com.jaeksoft.searchlib.sort;
 
-import com.jaeksoft.searchlib.result.ResultScoreDoc;
-import com.jaeksoft.searchlib.schema.FieldList;
+import java.io.IOException;
+
+import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.result.collector.DocIdInterface;
+import com.jaeksoft.searchlib.util.Timer;
 
 public class SortListSorter extends SorterAbstract {
 
 	private SorterAbstract[] sorterList;
 
-	protected SortListSorter(FieldList<SortField> sortFieldList) {
+	protected SortListSorter(SortFieldList sortFieldList,
+			DocIdInterface collector, ReaderLocal reader) throws IOException {
+		super(collector);
 		sorterList = new SorterAbstract[sortFieldList.size()];
 		int i = 0;
 		for (SortField sortField : sortFieldList)
-			sorterList[i++] = sortField.getSorter();
+			sorterList[i++] = sortField.getSorter(collector, reader);
 	}
 
 	@Override
-	protected int compare(ResultScoreDoc doc1, Object value1,
-			ResultScoreDoc doc2, Object value2) {
-		Object[] values1 = doc1.getSortValues();
-		Object[] values2 = doc2.getSortValues();
-		int i = 0;
+	final public int compare(int pos1, int pos2) {
 		for (SorterAbstract sorter : sorterList) {
-			int c = sorter.compare(doc1, values1[i], doc2, values2[i]);
+			int c = sorter.compare(pos1, pos2);
 			if (c != 0)
 				return c;
 		}
 		return 0;
 	}
 
+	@Override
+	final public void quickSort(Timer timer) {
+		if (sorterList.length == 1)
+			sorterList[0].quickSort(timer);
+		else
+			super.quickSort(timer);
+	}
+
+	@Override
+	public boolean isScore() {
+		for (SorterAbstract sorter : sorterList)
+			if (sorter.isScore())
+				return true;
+		return false;
+	}
+
+	@Override
+	public String toString(int pos) {
+		StringBuffer sb = new StringBuffer('[');
+		for (SorterAbstract sorter : sorterList) {
+			sb.append(sorter.toString(pos));
+			sb.append(' ');
+		}
+		sb.append(']');
+		return sb.toString();
+	}
 }

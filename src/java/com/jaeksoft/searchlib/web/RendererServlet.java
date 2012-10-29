@@ -29,6 +29,8 @@ import java.net.URLEncoder;
 
 import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.filter.FilterAbstract;
+import com.jaeksoft.searchlib.renderer.PagingSearchResult;
 import com.jaeksoft.searchlib.renderer.Renderer;
 import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.result.AbstractResultSearch;
@@ -64,6 +66,7 @@ public class RendererServlet extends AbstractServlet {
 					.getNewRequest(renderer.getRequestName());
 			if (request == null)
 				throw new SearchLibException("No request has been found");
+			request.setFromServlet(transaction);
 			if (query != null && query.length() > 0) {
 				request.setQueryString(query);
 				Integer page = transaction.getParameterInteger("page");
@@ -75,8 +78,36 @@ public class RendererServlet extends AbstractServlet {
 				AbstractResultSearch result = (AbstractResultSearch) client
 						.request(request);
 				transaction.setRequestAttribute("result", result);
+				if (result != null)
+					transaction.setRequestAttribute("paging",
+							new PagingSearchResult(result, 10));
+				if (request.isFacet()) {
+					SearchRequest facetRequest = new SearchRequest();
+					facetRequest.copyFrom(request);
+					facetRequest
+							.removeFilterSource(FilterAbstract.Source.REQUEST);
+					AbstractResultSearch facetResult = (AbstractResultSearch) client
+							.request(facetRequest);
+					transaction.setRequestAttribute("facetResult", facetResult);
+				}
 			}
 			transaction.setRequestAttribute("renderer", renderer);
+			String[] hiddenParameterList = { "use", "name", "login", "key" };
+			transaction.setRequestAttribute("hiddenParameterList",
+					hiddenParameterList);
+			StringBuffer getUrl = new StringBuffer("?query=");
+			if (query != null)
+				getUrl.append(URLEncoder.encode(query, "UTF-8"));
+			for (String p : hiddenParameterList) {
+				String v = transaction.getParameterString(p);
+				if (v != null) {
+					getUrl.append("&amp;");
+					getUrl.append(p);
+					getUrl.append('=');
+					getUrl.append(URLEncoder.encode(v, "UTF-8"));
+				}
+			}
+			transaction.setRequestAttribute("getUrl", getUrl.toString());
 			transaction.forward("/WEB-INF/jsp/renderer.jsp");
 		} catch (Exception e) {
 			throw new ServletException(e);

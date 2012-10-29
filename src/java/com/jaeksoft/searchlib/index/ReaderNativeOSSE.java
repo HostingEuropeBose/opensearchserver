@@ -37,10 +37,7 @@ import com.jaeksoft.searchlib.index.term.TermFreqVector;
 import com.jaeksoft.searchlib.query.MoreLikeThis;
 import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.request.AbstractRequest;
-import com.jaeksoft.searchlib.request.DocumentsRequest;
-import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.result.AbstractResult;
-import com.jaeksoft.searchlib.result.ResultDocument;
 
 public class ReaderNativeOSSE extends ReaderAbstract {
 
@@ -48,19 +45,15 @@ public class ReaderNativeOSSE extends ReaderAbstract {
 
 	private OsseErrorHandler err;
 
-	protected ReaderNativeOSSE(OsseIndex index) throws SearchLibException {
+	protected ReaderNativeOSSE(IndexConfig indexConfig, OsseIndex index)
+			throws SearchLibException {
+		super(indexConfig);
 		this.index = index;
 	}
 
 	@Override
 	public void close() {
 		err.release();
-	}
-
-	@Override
-	public ResultDocument[] documents(DocumentsRequest documentsRequest) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override
@@ -105,12 +98,6 @@ public class ReaderNativeOSSE extends ReaderAbstract {
 	}
 
 	@Override
-	public void swap(long version, boolean deleteOld) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
 	public TermEnum getTermEnum() {
 		// TODO Auto-generated method stub
 		return null;
@@ -129,12 +116,6 @@ public class ReaderNativeOSSE extends ReaderAbstract {
 	}
 
 	@Override
-	public String explain(SearchRequest searchRequest, int docId, boolean bHtml) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public Query rewrite(Query query) {
 		// TODO Auto-generated method stub
 		return null;
@@ -148,6 +129,13 @@ public class ReaderNativeOSSE extends ReaderAbstract {
 
 	@Override
 	public AbstractResult<?> request(AbstractRequest request) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String explain(AbstractRequest request, int docId, boolean bHtml)
+			throws SearchLibException {
 		// TODO Auto-generated method stub
 		return null;
 	}

@@ -36,12 +36,10 @@ import java.util.List;
 import java.util.Map;
 
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.Source;
-import javax.xml.transform.sax.SAXSource;
-import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.xpath.XPathExpressionException;
 
+import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 import org.zkoss.util.media.Media;
 import org.zkoss.zk.ui.event.Event;
@@ -64,24 +62,24 @@ public class UploadXmlController extends CommonController {
 
 	public class UpdateThread extends ThreadAbstract {
 
-		private Source xmlSource;
+		private volatile String mediaName;
 
-		private String mediaName;
+		private volatile Client client;
 
-		private Client client;
+		private volatile String xsl;
 
-		private String xsl;
+		private volatile File xmlTempResult;
 
-		private File xmlTempResult;
+		private volatile StreamSource streamSource;
 
-		private UpdateThread(Client client, Source xmlSource, String xsl,
-				String mediaName) {
+		private UpdateThread(Client client, StreamSource streamSource,
+				String xsl, String mediaName) {
 			super(client, null);
 			this.client = client;
-			this.xmlSource = xmlSource;
 			this.xsl = xsl;
 			this.mediaName = mediaName;
 			xmlTempResult = null;
+			this.streamSource = streamSource;
 			setInfo("Starting...");
 		}
 
@@ -90,14 +88,16 @@ public class UploadXmlController extends CommonController {
 			setInfo("Running...");
 			ProxyHandler proxyHandler = client.getWebPropertyManager()
 					.getProxyHandler();
+			Node xmlDoc;
 			if (xsl != null && xsl.length() > 0) {
 				xmlTempResult = File.createTempFile("ossupload", ".xml");
-				DomUtils.xslt(xmlSource, new StreamSource(xsl),
-						new StreamResult(xmlTempResult));
-				xmlSource = new StreamSource(xmlTempResult);
+				DomUtils.xslt(streamSource, xsl, xmlTempResult);
+				xmlDoc = DomUtils.readXml(new StreamSource(xmlTempResult),
+						false);
+			} else {
+				xmlDoc = DomUtils.readXml(streamSource, false);
 			}
-			int updatedCount = client.updateXmlDocuments(
-					SAXSource.sourceToInputSource(xmlSource), 50, null,
+			int updatedCount = client.updateXmlDocuments(xmlDoc, 50, null,
 					proxyHandler, this);
 			setInfo("Done: " + updatedCount + " document(s)");
 		}
@@ -191,7 +191,7 @@ public class UploadXmlController extends CommonController {
 		return false;
 	}
 
-	public void onRefresh() {
+	public void onTimerRefresh() {
 		synchronized (this) {
 			reloadComponent("threadList");
 			reloadComponent("updateTimer");
@@ -220,24 +220,24 @@ public class UploadXmlController extends CommonController {
 			ClassNotFoundException {
 		synchronized (this) {
 			Client client = getClient();
-			StreamSource xmlSource;
+			StreamSource streamSource;
 			if (media.inMemory()) {
 				if (media.isBinary()) {
-					byte[] bytes = media.getByteData();
-					xmlSource = new StreamSource(
-							new ByteArrayInputStream(bytes));
+					// Memory + Binary
+					streamSource = new StreamSource(new ByteArrayInputStream(
+							media.getByteData()));
 				} else {
-					byte[] bytes = media.getStringData().getBytes();
-					xmlSource = new StreamSource(
-							new ByteArrayInputStream(bytes));
+					// Memory + Texte
+					streamSource = new StreamSource(media.getReaderData());
 				}
 			} else {
-				if (media.isBinary())
-					xmlSource = new StreamSource(media.getStreamData());
+				if (media.isBinary()) // File + Binary
+					streamSource = new StreamSource(media.getStreamData());
 				else
-					xmlSource = new StreamSource(media.getReaderData());
+					// File + Text
+					streamSource = new StreamSource(media.getReaderData());
 			}
-			UpdateThread thread = new UpdateThread(client, xmlSource,
+			UpdateThread thread = new UpdateThread(client, streamSource,
 					xslContent, media.getName());
 			List<UpdateThread> list = getUpdateList(client);
 			synchronized (list) {
@@ -279,8 +279,9 @@ public class UploadXmlController extends CommonController {
 	/**
 	 * @param xslEnabled
 	 *            the xslEnabled to set
+	 * @throws SearchLibException
 	 */
-	public void setXslEnabled(boolean xslEnabled) {
+	public void setXslEnabled(boolean xslEnabled) throws SearchLibException {
 		this.xslEnabled = xslEnabled;
 		this.xslContent = null;
 		reloadPage();

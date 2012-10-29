@@ -25,7 +25,6 @@
 package com.jaeksoft.searchlib.web.controller;
 
 import java.io.IOException;
-import java.util.Set;
 
 import javax.naming.NamingException;
 import javax.xml.transform.TransformerConfigurationException;
@@ -35,8 +34,11 @@ import org.zkoss.zk.ui.Component;
 
 import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.index.IndexMode;
 import com.jaeksoft.searchlib.replication.ReplicationItem;
+import com.jaeksoft.searchlib.replication.ReplicationList;
 import com.jaeksoft.searchlib.replication.ReplicationMaster;
+import com.jaeksoft.searchlib.replication.ReplicationType;
 
 public class ReplicationController extends CommonController {
 
@@ -66,7 +68,7 @@ public class ReplicationController extends CommonController {
 		return selectedItem;
 	}
 
-	public void setSelectedItem(ReplicationItem item) {
+	public void setSelectedItem(ReplicationItem item) throws SearchLibException {
 		selectedItem = item;
 		currentItem = new ReplicationItem(selectedItem);
 		reloadPage();
@@ -107,7 +109,7 @@ public class ReplicationController extends CommonController {
 		return replicationMaser.getThreadsCount() > 0;
 	}
 
-	public void onTimer() {
+	public void onTimer() throws SearchLibException {
 		super.reloadPage();
 	}
 
@@ -127,11 +129,11 @@ public class ReplicationController extends CommonController {
 		onCancel();
 	}
 
-	public Set<ReplicationItem> getReplicationSet() throws SearchLibException {
+	public ReplicationList getReplicationList() throws SearchLibException {
 		Client client = getClient();
 		if (client == null)
 			return null;
-		return client.getReplicationList().getSet();
+		return client.getReplicationList();
 	}
 
 	private ReplicationItem getReplicationItem(Component comp) {
@@ -159,4 +161,11 @@ public class ReplicationController extends CommonController {
 		reloadPage();
 	}
 
+	public ReplicationType[] getTypeValues() {
+		return ReplicationType.values();
+	}
+
+	public IndexMode[] getReadWriteModeList() {
+		return IndexMode.values();
+	}
 }

@@ -41,4 +41,9 @@ public class TermDocs {
 		return 0;
 	}
 
+	public void close() {
+		// TODO Auto-generated method stub
+
+	}
+
 }

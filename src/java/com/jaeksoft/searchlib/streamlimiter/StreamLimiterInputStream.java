@@ -28,15 +28,17 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
+import org.apache.commons.io.FilenameUtils;
+
 import com.jaeksoft.searchlib.SearchLibException;
 
 public class StreamLimiterInputStream extends StreamLimiter {
 
 	private final InputStream inputStream;
 
-	public StreamLimiterInputStream(long limit, InputStream inputStream)
-			throws IOException {
-		super(limit);
+	public StreamLimiterInputStream(long limit, InputStream inputStream,
+			String originalFileName) throws IOException {
+		super(limit, originalFileName);
 		this.inputStream = inputStream;
 	}
 
@@ -48,7 +50,9 @@ public class StreamLimiterInputStream extends StreamLimiter {
 	@Override
 	public File getFile() throws SearchLibException {
 		try {
-			return getTempFile(null);
+			String ext = originalFileName == null ? null : FilenameUtils
+					.getExtension(originalFileName);
+			return getTempFile(ext);
 		} catch (IOException e) {
 			throw new SearchLibException(e);
 		}

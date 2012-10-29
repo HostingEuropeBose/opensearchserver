@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2009 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -30,9 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import com.jaeksoft.searchlib.util.External.Collecter;
-
-public class FacetList implements Iterable<Facet>, Collecter<Facet> {
+public class FacetList implements Iterable<Facet> {
 
 	private List<Facet> facetList;
 	private transient Map<String, Facet> facetMap;
@@ -51,8 +49,7 @@ public class FacetList implements Iterable<Facet>, Collecter<Facet> {
 		return facetList.iterator();
 	}
 
-	@Override
-	public void addObject(Facet facet) {
+	public void add(Facet facet) {
 		facetList.add(facet);
 		facetMap.put(facet.facetField.getName(), facet);
 	}

@@ -37,8 +37,14 @@ import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.LanguageEnum;
 import com.jaeksoft.searchlib.query.ParseException;
+import com.jaeksoft.searchlib.request.MoreLikeThisRequest;
+import com.jaeksoft.searchlib.request.RequestTypeEnum;
+import com.jaeksoft.searchlib.request.ReturnField;
 import com.jaeksoft.searchlib.request.SearchRequest;
+import com.jaeksoft.searchlib.request.SpellCheckRequest;
 import com.jaeksoft.searchlib.snippet.SnippetField;
+import com.jaeksoft.searchlib.spellcheck.SpellCheckDistanceEnum;
+import com.jaeksoft.searchlib.spellcheck.SpellCheckField;
 import com.jaeksoft.searchlib.user.Role;
 import com.jaeksoft.searchlib.user.User;
 
@@ -117,7 +123,7 @@ public class SearchTemplateServlet extends AbstractServlet {
 			SearchRequest request = (SearchRequest) client.getRequestMap().get(
 					searchTemplate);
 			if (snippetField != null) {
-				request.getSnippetFieldList().add(
+				request.getSnippetFieldList().put(
 						new SnippetField(snippetField));
 				SnippetField snippetFieldParameter = request
 						.getSnippetFieldList().get(snippetField);
@@ -175,6 +181,138 @@ public class SearchTemplateServlet extends AbstractServlet {
 		return true;
 	}
 
+	private void createMoreLikeThisTemplate(
+			MoreLikeThisRequest moreLikeThisRequest,
+			ServletTransaction transaction) throws ParseException {
+
+		String p;
+		if ((p = transaction.getParameterString("qt.name")) != null)
+			moreLikeThisRequest.setRequestName(p);
+
+		if ((p = transaction.getParameterString("qt.query")) != null)
+			moreLikeThisRequest.setDocQuery(p);
+
+		if ((p = transaction.getParameterString("qt.lang")) != null)
+			moreLikeThisRequest.setLang(LanguageEnum.findByNameOrCode(p));
+
+		if ((p = transaction.getParameterString("qt.like")) != null)
+			moreLikeThisRequest.setLikeText(p);
+
+		if ((p = transaction.getParameterString("qt.analyzer")) != null)
+			moreLikeThisRequest.setAnalyzerName(p);
+
+		Integer i;
+		if ((i = transaction.getParameterInteger("qt.minwordlen")) != null)
+			moreLikeThisRequest.setMinWordLen(i);
+
+		if ((i = transaction.getParameterInteger("qt.maxwordlen")) != null)
+			moreLikeThisRequest.setMaxWordLen(i);
+
+		if ((i = transaction.getParameterInteger("qt.mindocfreq")) != null)
+			moreLikeThisRequest.setMinDocFreq(i);
+
+		if ((i = transaction.getParameterInteger("qt.mintermfreq")) != null)
+			moreLikeThisRequest.setMinTermFreq(i);
+
+		if ((i = transaction.getParameterInteger("qt.maxqueryTerms")) != null)
+			moreLikeThisRequest.setMaxQueryTerms(i);
+
+		if ((i = transaction.getParameterInteger("qt.maxnumtokensparsed")) != null)
+			moreLikeThisRequest.setMaxNumTokensParsed(i);
+
+		if ((p = transaction.getParameterString("qt.stopwords")) != null)
+			moreLikeThisRequest.setStopWords(p);
+
+		if ((i = transaction.getParameterInteger("qt.rows")) != null)
+			moreLikeThisRequest.setRows(i);
+
+		if ((i = transaction.getParameterInteger("qt.start")) != null)
+			moreLikeThisRequest.setStart(i);
+
+		if ((p = transaction.getParameterString("qt.fields")) != null) {
+			String fields[] = p.split("\\,");
+			for (String mltField : fields) {
+				moreLikeThisRequest.getFieldList().put(
+						new ReturnField(mltField));
+			}
+		}
+
+		if ((p = transaction.getParameterString("qt.returnfields")) != null) {
+			String returnFields[] = p.split("\\,");
+			for (String mltReturnField : returnFields) {
+				moreLikeThisRequest.getReturnFieldList().put(
+						new ReturnField(mltReturnField));
+			}
+		}
+
+		String[] values;
+		if ((values = transaction.getParameterValues("qt.fq")) != null) {
+			for (String value : values)
+				if (value != null)
+					if (value.trim().length() > 0)
+						moreLikeThisRequest.addFilter(value, false);
+		}
+
+		if ((values = transaction.getParameterValues("qt.fqn")) != null) {
+			for (String value : values)
+				if (value != null)
+					if (value.trim().length() > 0)
+						moreLikeThisRequest.addFilter(value, true);
+		}
+
+	}
+
+	private void createSearchTemplate(SearchRequest request,
+			ServletTransaction transaction) {
+		String p;
+		if ((p = transaction.getParameterString("qt.name")) != null)
+			request.setRequestName(p);
+
+		if ((p = transaction.getParameterString("qt.query")) != null)
+			request.setPatternQuery(p);
+
+		if ((p = transaction.getParameterString("qt.operator")) != null)
+			request.setDefaultOperator(p);
+
+		Integer i;
+		if ((i = transaction.getParameterInteger("qt.rows")) != null)
+			request.setRows(i);
+
+		if ((i = transaction.getParameterInteger("qt.slop")) != null)
+			request.setPhraseSlop(i);
+
+		if ((p = transaction.getParameterString("qt.lang")) != null)
+			request.setLang(LanguageEnum.findByNameOrCode(p));
+
+	}
+
+	private void createSpellTemplate(SpellCheckRequest spellCheckRequest,
+			ServletTransaction transaction) {
+		SpellCheckField spellCheckField = new SpellCheckField();
+
+		String p;
+		if ((p = transaction.getParameterString("qt.name")) != null)
+			spellCheckRequest.setRequestName(p);
+
+		if ((p = transaction.getParameterString("qt.query")) != null)
+			spellCheckRequest.setQueryString(p);
+
+		Integer i;
+		if ((i = transaction.getParameterInteger("qt.suggestions")) != null)
+			spellCheckField.setSuggestionNumber(i);
+
+		if ((p = transaction.getParameterString("qt.field")) != null)
+			spellCheckField.setName(p);
+
+		if ((p = transaction.getParameterString("qt.lang")) != null)
+			spellCheckRequest.setLang(LanguageEnum.findByNameOrCode(p));
+
+		if ((p = transaction.getParameterString("qt.algorithm")) != null)
+			spellCheckField.setStringDistance(SpellCheckDistanceEnum.find(p));
+
+		spellCheckRequest.getSpellCheckFieldList().put(spellCheckField);
+	}
+
 	private boolean createTemplate(User user, ServletTransaction transaction)
 			throws InterruptedException, SearchLibException, NamingException,
 			ParserConfigurationException, SAXException, IOException,
@@ -182,36 +320,27 @@ public class SearchTemplateServlet extends AbstractServlet {
 			InstantiationException, IllegalAccessException,
 			ClassNotFoundException {
 		Client client = transaction.getClient();
-		SearchRequest request = new SearchRequest(client);
-		if (transaction.getParameterString("qt.name") != null) {
-			String searchTemplate = transaction.getParameterString("qt.name");
-			request.setRequestName(searchTemplate);
+		String queryType = transaction.getParameterString("qt.type");
+		if (queryType == null
+				|| RequestTypeEnum.SearchRequest.name().equalsIgnoreCase(
+						queryType)) {
+			SearchRequest request = new SearchRequest(client);
+			createSearchTemplate(request, transaction);
+			client.getRequestMap().put(request);
 		}
-		if (transaction.getParameterString("qt.query") != null) {
-			String queryPattern = transaction.getParameterString("qt.query");
-			request.setPatternQuery(queryPattern);
+		if (RequestTypeEnum.SpellCheckRequest.name()
+				.equalsIgnoreCase(queryType)) {
+			SpellCheckRequest spellCheckRequest = new SpellCheckRequest(client);
+			createSpellTemplate(spellCheckRequest, transaction);
+			client.getRequestMap().put(spellCheckRequest);
 		}
-		if (transaction.getParameterString("qt.operator") != null) {
-			String defaultOperator = transaction
-					.getParameterString("qt.operator");
-			request.setDefaultOperator(defaultOperator);
+		if (RequestTypeEnum.MoreLikeThisRequest.name().equalsIgnoreCase(
+				queryType)) {
+			MoreLikeThisRequest moreLikeThisRequest = new MoreLikeThisRequest(
+					client);
+			createMoreLikeThisTemplate(moreLikeThisRequest, transaction);
+			client.getRequestMap().put(moreLikeThisRequest);
 		}
-		if (transaction.getParameterString("qt.rows") != null) {
-			int rows = Integer.parseInt(transaction
-					.getParameterString("qt.rows"));
-			request.setRows(rows);
-		}
-		if (transaction.getParameterString("qt.slop") != null) {
-			int phraseSlop = Integer.parseInt(transaction
-					.getParameterString("qt.slop"));
-			request.setPhraseSlop(phraseSlop);
-		}
-		if (transaction.getParameterString("qt.lang") != null) {
-			request.setLang(LanguageEnum.valueOf(transaction
-					.getParameterString("qt.lang")));
-		}
-
-		client.getRequestMap().put(request);
 		client.saveRequests();
 		return true;
 	}

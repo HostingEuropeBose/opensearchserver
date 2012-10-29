@@ -82,6 +82,8 @@ public class HomeController extends CommonController {
 
 	public void setClientName(ClientCatalogItem item)
 			throws SearchLibException, NamingException {
+		if (item == null)
+			return;
 		Client client = ClientCatalog.getClient(item.getIndexName());
 		if (client == null)
 			return;
@@ -104,7 +106,8 @@ public class HomeController extends CommonController {
 		return indexTemplate;
 	}
 
-	public void setNewIndexTemplate(TemplateList indexTemplate) {
+	public void setNewIndexTemplate(TemplateList indexTemplate)
+			throws SearchLibException {
 		this.indexTemplate = indexTemplate;
 		reloadPage();
 	}
@@ -128,7 +131,8 @@ public class HomeController extends CommonController {
 		setClient(ClientCatalog.getClient(indexName));
 	}
 
-	public void onListRefresh() {
+	@Override
+	public void doRefresh() throws SearchLibException {
 		catalogItems = null;
 		reloadPage();
 	}

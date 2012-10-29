@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.stream.StreamSource;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
@@ -60,22 +61,20 @@ public class XPathParser {
 
 	public XPathParser(File file) throws ParserConfigurationException,
 			SAXException, IOException {
-		this(file, DomUtils.getNewDocumentBuilder(false, true).parse(
-				file.getAbsoluteFile()));
+		this(file, DomUtils.readXml(new StreamSource(file.getAbsoluteFile()),
+				true));
 	}
 
 	public XPathParser(InputSource inputSource) throws SAXException,
 			IOException, ParserConfigurationException {
-		this(null, DomUtils.getNewDocumentBuilder(false, true).parse(
-				inputSource));
+		this(null, DomUtils.readXml(inputSource, true));
 		Document document = (Document) rootNode;
 		document.normalize();
 	}
 
 	public XPathParser(InputStream inputStream) throws SAXException,
 			IOException, ParserConfigurationException {
-		this(null, DomUtils.getNewDocumentBuilder(false, true).parse(
-				inputStream));
+		this(null, DomUtils.readXml(new InputSource(inputStream), true));
 	}
 
 	public XPathParser(Node rootNode) {
@@ -115,9 +114,12 @@ public class XPathParser {
 		return getNodeString(rootNode, query);
 	}
 
-	public final String getNodeString(Node node)
+	public final String getNodeString(Node node, boolean trim)
 			throws XPathExpressionException {
-		return xPath.evaluate("text()", node);
+		String txt = xPath.evaluate("text()", node);
+		if (txt == null)
+			return null;
+		return trim ? txt.trim() : txt;
 	}
 
 	public final NodeList getNodeList(Node parentNode, String query)
@@ -161,6 +163,13 @@ public class XPathParser {
 		return unescapeXml ? StringEscapeUtils.unescapeXml(t) : t;
 	}
 
+	public final static boolean getAttributeStringMatch(Node node,
+			String attributeName, String value) {
+		if (value == null)
+			return false;
+		return value.equals(getAttributeString(node, attributeName, true));
+	}
+
 	public final static String getAttributeString(Node node,
 			String attributeName) {
 		return getAttributeString(node, attributeName, true);
@@ -187,12 +196,23 @@ public class XPathParser {
 		return Float.parseFloat(value);
 	}
 
-	final public String getSubNodeTextIfAny(Node parentNode, String nodeName)
-			throws XPathExpressionException {
+	public final static double getAttributeDouble(Node node,
+			String attributeName) {
+		String value = getAttributeString(node, attributeName, false);
+		if (value == null || value.length() == 0)
+			return 0;
+		return Double.parseDouble(value);
+	}
+
+	final public String getSubNodeTextIfAny(Node parentNode, String nodeName,
+			boolean trim) throws XPathExpressionException {
 		Node node = getNode(parentNode, nodeName);
 		if (node == null)
 			return null;
-		return node.getTextContent();
+		String txt = node.getTextContent();
+		if (txt == null)
+			return null;
+		return trim ? txt.trim() : txt;
 	}
 
 }

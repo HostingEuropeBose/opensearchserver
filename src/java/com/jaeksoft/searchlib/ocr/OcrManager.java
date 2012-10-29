@@ -24,6 +24,8 @@
 
 package com.jaeksoft.searchlib.ocr;
 
+import java.awt.Image;
+import java.awt.image.RenderedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.File;
@@ -32,14 +34,19 @@ import java.util.InvalidPropertiesFormatException;
 import java.util.Properties;
 import java.util.regex.Pattern;
 
+import javax.imageio.ImageIO;
+
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteWatchdog;
 import org.apache.commons.exec.PumpStreamHandler;
+import org.apache.commons.io.FileUtils;
 import org.apache.poi.util.IOUtils;
 
+import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.LanguageEnum;
+import com.jaeksoft.searchlib.util.ImageUtils;
 import com.jaeksoft.searchlib.util.PropertiesUtils;
 import com.jaeksoft.searchlib.util.ReadWriteLock;
 import com.jaeksoft.searchlib.web.StartStopListener;
@@ -50,6 +57,8 @@ public class OcrManager implements Closeable {
 
 	private final static String OCR_PROPERTY_ENABLED = "enabled";
 
+	private final static String OCR_PROPERTY_DEFAULT_LANGUAGE = "defaultLanguage";
+
 	private final static String OCR_PROPERTY_TESSERACT_PATH = "tesseractPath";
 
 	private final ReadWriteLock rwl = new ReadWriteLock();
@@ -57,6 +66,8 @@ public class OcrManager implements Closeable {
 	private boolean enabled = false;
 
 	private String tesseractPath = null;
+
+	private TesseractLanguageEnum defaultLanguage;
 
 	private File propFile;
 
@@ -67,6 +78,9 @@ public class OcrManager implements Closeable {
 		Properties properties = PropertiesUtils.loadFromXml(propFile);
 		enabled = "true".equalsIgnoreCase(properties.getProperty(
 				OCR_PROPERTY_ENABLED, "false"));
+		defaultLanguage = TesseractLanguageEnum.find(properties.getProperty(
+				OCR_PROPERTY_DEFAULT_LANGUAGE,
+				TesseractLanguageEnum.None.name()));
 		tesseractPath = properties.getProperty(OCR_PROPERTY_TESSERACT_PATH);
 		setEnabled(enabled);
 	}
@@ -76,6 +90,9 @@ public class OcrManager implements Closeable {
 		properties.setProperty(OCR_PROPERTY_ENABLED, Boolean.toString(enabled));
 		if (tesseractPath != null)
 			properties.setProperty(OCR_PROPERTY_TESSERACT_PATH, tesseractPath);
+		if (defaultLanguage != null)
+			properties.setProperty(OCR_PROPERTY_DEFAULT_LANGUAGE,
+					defaultLanguage.name());
 		PropertiesUtils.storeToXml(properties, propFile);
 	}
 
@@ -147,7 +164,7 @@ public class OcrManager implements Closeable {
 	}
 
 	Pattern tesseractCheckPattern = Pattern
-			.compile("Usage:.*tesseract imagename outputbase");
+			.compile("Usage:.*tesseract.* imagename outputbase");
 
 	public void check() throws SearchLibException {
 		rwl.r.lock();
@@ -158,8 +175,9 @@ public class OcrManager implements Closeable {
 			if (!file.exists())
 				throw new SearchLibException("The file don't exist");
 			CommandLine cmdLine = CommandLine.parse(tesseractPath);
-			String result = run(cmdLine, 60, 1);
-			System.out.println(result);
+			StringBuffer sbResult = new StringBuffer();
+			run(cmdLine, 60, 1, sbResult);
+			String result = sbResult.toString();
 			if (!tesseractCheckPattern.matcher(result).find())
 				throw new SearchLibException("Wrong returned message: "
 						+ result);
@@ -187,31 +205,96 @@ public class OcrManager implements Closeable {
 			txtPath = txtPath.substring(0, txtPath.length() - 4);
 			cmdLine.addArgument(txtPath);
 			TesseractLanguageEnum tle = TesseractLanguageEnum.find(lang);
-			if (tle != null)
+			if (tle == null)
+				tle = defaultLanguage;
+			if (tle != null && tle != TesseractLanguageEnum.None)
 				cmdLine.addArgument("-l " + tle.option);
-			run(cmdLine, 3600, 0);
+			int ev = run(cmdLine, 3600, null, null);
+			if (ev == 3)
+				Logging.warn("Image format not supported by Tesseract ("
+						+ input.getName() + ")");
 		} finally {
 			rwl.r.unlock();
 		}
 	}
 
-	private final String run(CommandLine cmdLine, int secTimeOut, int exitValue)
+	private final static String OCR_IMAGE_FORMAT = "jpg";
+
+	public String ocerizeImage(Image image, LanguageEnum lang)
+			throws InterruptedException, IOException, SearchLibException {
+		File textFile = null;
+		File imageFile = null;
+		try {
+			RenderedImage renderedImage = ImageUtils.toBufferedImage(image);
+			textFile = File.createTempFile("ossocrtxt", ".txt");
+			imageFile = File
+					.createTempFile("ossocrimg", '.' + OCR_IMAGE_FORMAT);
+			ImageIO.write(renderedImage, OCR_IMAGE_FORMAT, imageFile);
+			image.flush();
+			if (imageFile.length() == 0)
+				return null;
+			ocerize(imageFile, textFile, lang);
+			return FileUtils.readFileToString(textFile, "UTF-8");
+		} finally {
+			Logging.debug(imageFile);
+			if (imageFile != null)
+				FileUtils.deleteQuietly(imageFile);
+			if (textFile != null)
+				FileUtils.deleteQuietly(textFile);
+		}
+	}
+
+	private final int run(CommandLine cmdLine, int secTimeOut,
+			Integer expectedExitValue, StringBuffer returnedText)
 			throws IOException, SearchLibException {
 		DefaultExecutor executor = new DefaultExecutor();
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		try {
+			Logging.info("LOG OCR: " + cmdLine);
 			PumpStreamHandler streamHandler = new PumpStreamHandler(baos);
 			executor.setStreamHandler(streamHandler);
-			executor.setExitValue(exitValue);
+			if (expectedExitValue != null)
+				executor.setExitValue(expectedExitValue);
 			ExecuteWatchdog watchdog = new ExecuteWatchdog(secTimeOut * 1000);
 			executor.setWatchdog(watchdog);
 			int ev = executor.execute(cmdLine);
-			if (ev != exitValue)
-				throw new SearchLibException("Bad exit value (" + ev + ")");
-			return baos.toString("UTF-8");
+			if (expectedExitValue != null)
+				if (ev != expectedExitValue)
+					throw new SearchLibException("Bad exit value (" + ev + ") ");
+			if (returnedText != null)
+				returnedText.append(baos.toString("UTF-8"));
+			return ev;
 		} finally {
 			if (baos != null)
 				IOUtils.closeQuietly(baos);
+		}
+	}
+
+	/**
+	 * @return the defaultLanguage
+	 */
+	public TesseractLanguageEnum getDefaultLanguage() {
+		rwl.r.lock();
+		try {
+			return defaultLanguage;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	/**
+	 * @param defaultLanguage
+	 *            the defaultLanguage to set
+	 * @throws IOException
+	 */
+	public void setDefaultLanguage(TesseractLanguageEnum defaultLanguage)
+			throws IOException {
+		rwl.w.lock();
+		try {
+			this.defaultLanguage = defaultLanguage;
+			save();
+		} finally {
+			rwl.w.unlock();
 		}
 	}
 

@@ -43,6 +43,7 @@ import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.xpath.XPathExpressionException;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import org.xml.sax.SAXException;
 import org.zkoss.zk.ui.WebApp;
@@ -132,16 +133,42 @@ public class ClientCatalog {
 		}
 	}
 
-	public static final long countAllDocuments() throws IOException {
+	public static final long countAllDocuments() throws IOException,
+			SearchLibException {
 		r.lock();
 		try {
 			long count = 0;
-			for (Client client : CLIENTS.values())
-				count += client.getIndex().getStatistics().getNumDocs();
+			for (Client client : CLIENTS.values()) {
+				if (client.isTrueReplicate())
+					continue;
+				count += client.getStatistics().getNumDocs();
+			}
 			return count;
 		} finally {
 			r.unlock();
 		}
+	}
+
+	private static volatile long lastInstanceSize = 0;
+
+	public static final long calculateInstanceSize() throws SearchLibException {
+		r.lock();
+		try {
+			if (StartStopListener.OPENSEARCHSERVER_DATA_FILE == null)
+				return 0;
+			lastInstanceSize = new LastModifiedAndSize(
+					StartStopListener.OPENSEARCHSERVER_DATA_FILE, false)
+					.getSize();
+			return lastInstanceSize;
+		} finally {
+			r.unlock();
+		}
+	}
+
+	public static long getInstanceSize() throws SearchLibException {
+		if (lastInstanceSize != 0)
+			return lastInstanceSize;
+		return calculateInstanceSize();
 	}
 
 	public static final LastModifiedAndSize getLastModifiedAndSize(
@@ -245,6 +272,7 @@ public class ClientCatalog {
 			TemplateAbstract template) throws SearchLibException, IOException {
 		if (user != null && !user.isAdmin())
 			throw new SearchLibException("Operation not permitted");
+		ClientFactory.INSTANCE.properties.checkMaxIndexNumber();
 		if (!isValidIndexName(indexName))
 			throw new SearchLibException("The name '" + indexName
 					+ "' is not allowed");
@@ -388,7 +416,9 @@ public class ClientCatalog {
 		return new File(clientDir.getParentFile(), "._" + clientDir.getName());
 	}
 
-	public static void receive_init(Client client) throws IOException {
+	public static void receive_init(Client client) throws IOException,
+			SearchLibException {
+		ClientFactory.INSTANCE.properties.checkMaxStorageLimit();
 		File rootDir = getTempReceiveDir(client);
 		FileUtils.deleteDirectory(rootDir);
 		rootDir.mkdir();
@@ -405,8 +435,10 @@ public class ClientCatalog {
 			client.trash(trashDir);
 			getTempReceiveDir(client).renameTo(clientDir);
 			CLIENTS.remove(clientDir);
-			CLIENTS.put(clientDir,
-					ClientFactory.INSTANCE.newClient(clientDir, true, true));
+			Client newClient = ClientFactory.INSTANCE.newClient(clientDir,
+					true, true);
+			newClient.writeReplCheck();
+			CLIENTS.put(clientDir, newClient);
 			PushEvent.CLIENT_SWITCH.publish(webapp, client);
 		} finally {
 			w.unlock();
@@ -437,13 +469,8 @@ public class ClientCatalog {
 		} catch (IOException e) {
 			throw e;
 		} finally {
-			if (fos != null) {
-				try {
-					fos.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
+			if (fos != null)
+				IOUtils.closeQuietly(fos);
 		}
 	}
 

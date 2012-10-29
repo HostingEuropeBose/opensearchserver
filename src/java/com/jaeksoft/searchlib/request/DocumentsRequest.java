@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -25,120 +25,274 @@
 package com.jaeksoft.searchlib.request;
 
 import java.io.IOException;
-import java.util.Iterator;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.xml.xpath.XPathExpressionException;
+
+import org.w3c.dom.DOMException;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.config.Config;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
+import com.jaeksoft.searchlib.index.ReaderInterface;
+import com.jaeksoft.searchlib.index.ReaderLocal;
 import com.jaeksoft.searchlib.query.ParseException;
-import com.jaeksoft.searchlib.result.AbstractResultSearch;
-import com.jaeksoft.searchlib.result.ResultScoreDoc;
-import com.jaeksoft.searchlib.schema.Field;
-import com.jaeksoft.searchlib.schema.FieldList;
-import com.jaeksoft.searchlib.snippet.SnippetField;
+import com.jaeksoft.searchlib.query.Query;
+import com.jaeksoft.searchlib.result.AbstractResult;
+import com.jaeksoft.searchlib.result.ResultDocuments;
+import com.jaeksoft.searchlib.schema.SchemaFieldList;
+import com.jaeksoft.searchlib.util.XPathParser;
+import com.jaeksoft.searchlib.util.XmlWriter;
+import com.jaeksoft.searchlib.web.ServletTransaction;
 
-public class DocumentsRequest {
+public class DocumentsRequest extends AbstractRequest implements
+		RequestInterfaces.ReturnedFieldInterface {
 
-	private DocumentRequest[] requestedDocuments;
-
-	private FieldList<SnippetField> snippetFieldList;
-
-	private FieldList<Field> returnFieldList;
-
-	private transient FieldList<Field> documentFieldList;
+	private List<Integer> docList;
+	private List<String> uniqueKeyList;
+	private ReturnFieldList returnFieldList;
 
 	public DocumentsRequest() {
-		documentFieldList = null;
 	}
 
-	private DocumentsRequest(SearchRequest searchRequest)
-			throws ParseException, SyntaxError, IOException, SearchLibException {
-		requestedDocuments = null;
-		this.snippetFieldList = searchRequest.getSnippetFieldList();
-		for (SnippetField snippetField : snippetFieldList)
-			snippetField.initSearchTerms(searchRequest);
-		this.returnFieldList = searchRequest.getReturnFieldList();
+	public DocumentsRequest(Config config) {
+		super(config);
 	}
 
-	/**
-	 * Build a new DocumentsRequest by extracting requested documents (from
-	 * request.start to request.end)
-	 * 
-	 * @param resultSingle
-	 * @throws ParseException
-	 * @throws SyntaxError
-	 * @throws IOException
-	 * @throws SearchLibException
-	 */
-	public DocumentsRequest(AbstractResultSearch result) throws ParseException,
-			SyntaxError, IOException, SearchLibException {
-		this(result.getRequest());
-		int start = result.getRequest().getStart();
-		int rows = result.getDocumentCount();
-		if (rows <= 0)
-			return;
-		requestedDocuments = new DocumentRequest[rows];
-		ResultScoreDoc[] docs = result.getDocs();
-		for (int i = 0; i < rows; i++) {
-			ResultScoreDoc doc = docs[i + start];
-			requestedDocuments[i] = new DocumentRequest(doc, i);
+	@Override
+	protected void setDefaultValues() {
+		super.setDefaultValues();
+		this.docList = new ArrayList<Integer>(0);
+		this.uniqueKeyList = new ArrayList<String>(0);
+		this.returnFieldList = new ReturnFieldList();
+	}
+
+	@Override
+	public void copyFrom(AbstractRequest request) {
+		super.copyFrom(request);
+		DocumentsRequest docsRequest = (DocumentsRequest) request;
+		this.docList = new ArrayList<Integer>(docsRequest.docList);
+		this.uniqueKeyList = new ArrayList<String>(docsRequest.uniqueKeyList);
+		this.returnFieldList = new ReturnFieldList(docsRequest.returnFieldList);
+	}
+
+	@Override
+	public Query getQuery() throws SearchLibException, IOException {
+		return null;
+	}
+
+	@Override
+	public ReturnFieldList getReturnFieldList() {
+		rwl.r.lock();
+		try {
+			return this.returnFieldList;
+		} finally {
+			rwl.r.unlock();
 		}
 	}
 
-	/**
-	 * Build a new DocumentsRequest with only documents that match the indexName
-	 * 
-	 * @param resultGroup
-	 * @param indexName
-	 * @throws ParseException
-	 * @throws SyntaxError
-	 * @throws IOException
-	 */
-	public DocumentsRequest(DocumentsRequest documentsRequest)
-			throws ParseException, SyntaxError, IOException {
-
-		this.snippetFieldList = documentsRequest.snippetFieldList;
-		this.returnFieldList = documentsRequest.returnFieldList;
-		this.documentFieldList = documentsRequest.documentFieldList;
-
-		DocumentRequest[] tempDocs = new DocumentRequest[documentsRequest.requestedDocuments.length];
-		int l = 0;
-		for (DocumentRequest doc : documentsRequest.requestedDocuments)
-			tempDocs[l++] = doc;
-		requestedDocuments = new DocumentRequest[l];
-		l = 0;
-		for (DocumentRequest doc : tempDocs) {
-			if (doc == null)
-				break;
-			requestedDocuments[l++] = doc;
+	@Override
+	public void addReturnField(String fieldName) {
+		rwl.w.lock();
+		try {
+			returnFieldList.put(new ReturnField(config.getSchema()
+					.getFieldList().get(fieldName).getName()));
+		} finally {
+			rwl.w.unlock();
 		}
 	}
 
-	public DocumentRequest[] getRequestedDocuments() {
-		return requestedDocuments;
+	@Override
+	public void fromXmlConfig(Config config, XPathParser xpp, Node node)
+			throws XPathExpressionException, DOMException, ParseException,
+			InstantiationException, IllegalAccessException,
+			ClassNotFoundException {
+		rwl.w.lock();
+		try {
+			super.fromXmlConfig(config, xpp, node);
+
+			NodeList nodes = xpp.getNodeList(node, "docs/doc");
+			if (nodes != null) {
+				for (int i = 0; i < nodes.getLength(); i++) {
+					Node n = nodes.item(i);
+					if (n != null) {
+						int id = XPathParser.getAttributeValue(n, "id");
+						docList.add(id);
+					}
+				}
+			}
+
+			nodes = xpp.getNodeList(node, "uniqueKeys/key");
+			if (nodes != null) {
+				for (int i = 0; i < nodes.getLength(); i++) {
+					Node n = nodes.item(i);
+					if (n != null)
+						uniqueKeyList.add(xpp.getNodeString(n, false));
+				}
+			}
+
+			SchemaFieldList fieldList = config.getSchema().getFieldList();
+			returnFieldList.filterCopy(fieldList,
+					xpp.getNodeString(node, "returnFields"));
+			nodes = xpp.getNodeList(node, "returnFields/field");
+			for (int i = 0; i < nodes.getLength(); i++) {
+				ReturnField field = ReturnField.fromXmlConfig(nodes.item(i));
+				if (field != null)
+					returnFieldList.put(field);
+			}
+
+		} finally {
+			rwl.w.unlock();
+		}
 	}
 
-	public FieldList<SnippetField> getSnippetFieldList() {
-		return snippetFieldList;
+	@Override
+	public void writeXmlConfig(XmlWriter xmlWriter) throws SAXException {
+		rwl.r.lock();
+		try {
+			xmlWriter.startElement(XML_NODE_REQUEST, XML_ATTR_NAME,
+					getRequestName(), XML_ATTR_TYPE, getType().name());
+
+			if (docList.size() > 0) {
+				xmlWriter.startElement("docs");
+				for (Integer id : docList) {
+					xmlWriter.startElement("doc", "id", id.toString());
+					xmlWriter.endElement();
+				}
+				xmlWriter.endElement();
+			}
+			if (uniqueKeyList.size() > 0) {
+				xmlWriter.startElement("uniqueKeys");
+				for (String key : uniqueKeyList) {
+					xmlWriter.startElement("key");
+					xmlWriter.textNode(key);
+					xmlWriter.endElement();
+				}
+				xmlWriter.endElement();
+			}
+			if (returnFieldList.size() > 0) {
+				xmlWriter.startElement("returnFields");
+				returnFieldList.writeXmlConfig(xmlWriter);
+				xmlWriter.endElement();
+			}
+			xmlWriter.endElement();
+		} finally {
+			rwl.r.unlock();
+		}
 	}
 
-	public FieldList<Field> getReturnFieldList() {
-		return returnFieldList;
+	@Override
+	public RequestTypeEnum getType() {
+		return RequestTypeEnum.DocumentsRequest;
 	}
 
-	public FieldList<Field> getDocumentFieldList() throws SearchLibException {
-		if (documentFieldList != null)
-			return documentFieldList;
-		documentFieldList = new FieldList<Field>(returnFieldList);
-		Iterator<SnippetField> it = snippetFieldList.iterator();
-		while (it.hasNext())
-			documentFieldList.add(new Field(it.next()));
-		return documentFieldList;
+	@Override
+	public void setFromServlet(ServletTransaction transaction) {
+		rwl.w.lock();
+		try {
+
+			String[] values;
+
+			SchemaFieldList shemaFieldList = config.getSchema().getFieldList();
+
+			if ((values = transaction.getParameterValues("rf")) != null) {
+				for (String value : values)
+					if (value != null)
+						if (value.trim().length() > 0)
+							returnFieldList.put(new ReturnField(shemaFieldList
+									.get(value).getName()));
+			}
+
+			if ((values = transaction.getParameterValues("id")) != null) {
+				for (String value : values)
+					if (value != null)
+						if (value.trim().length() > 0)
+							docList.add(Integer.parseInt(value));
+			}
+			if ((values = transaction.getParameterValues("uk")) != null) {
+				for (String value : values)
+					if (value != null) {
+						value = value.trim();
+						if (value.length() > 0)
+							uniqueKeyList.add(value);
+					}
+			}
+
+		} finally {
+			rwl.w.unlock();
+		}
+
 	}
 
-	public boolean isEmpty() {
-		if (requestedDocuments == null)
-			return true;
-		return requestedDocuments.length == 0;
+	@Override
+	public void reset() {
+	}
+
+	@Override
+	public AbstractResult<DocumentsRequest> execute(ReaderInterface reader)
+			throws SearchLibException {
+		try {
+			return new ResultDocuments((ReaderLocal) reader, this);
+		} catch (IOException e) {
+			throw new SearchLibException(e);
+		} catch (ParseException e) {
+			throw new SearchLibException(e);
+		} catch (SyntaxError e) {
+			throw new SearchLibException(e);
+		} catch (InstantiationException e) {
+			throw new SearchLibException(e);
+		} catch (IllegalAccessException e) {
+			throw new SearchLibException(e);
+		} catch (ClassNotFoundException e) {
+			throw new SearchLibException(e);
+		}
+	}
+
+	@Override
+	public String getInfo() {
+		rwl.r.lock();
+		try {
+			StringBuffer sb = new StringBuffer();
+			sb.append("Fields:");
+			sb.append(returnFieldList.toString());
+			sb.append(" - Document id(s):");
+			for (Integer id : docList) {
+				sb.append(" [");
+				sb.append(id);
+				sb.append(']');
+			}
+			sb.append(" - Unique key(s):");
+			for (String uniq : uniqueKeyList) {
+				sb.append(" [");
+				sb.append(uniq);
+				sb.append(']');
+			}
+			return sb.toString();
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	public List<Integer> getDocList() {
+		rwl.r.lock();
+		try {
+			return docList;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	public List<String> getUniqueKeyList() {
+		rwl.r.lock();
+		try {
+			return uniqueKeyList;
+		} finally {
+			rwl.r.unlock();
+		}
 	}
 
 }

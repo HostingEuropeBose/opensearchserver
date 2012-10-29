@@ -50,15 +50,23 @@ import com.jaeksoft.searchlib.parser.Parser;
 import com.jaeksoft.searchlib.parser.ParserSelector;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
+import com.jaeksoft.searchlib.schema.FieldValueOriginEnum;
 import com.jaeksoft.searchlib.util.StringUtils;
 import com.jaeksoft.searchlib.util.XmlWriter;
 import com.jaeksoft.searchlib.util.map.GenericLink;
+import com.jaeksoft.searchlib.util.map.SourceField;
 
-public class DatabaseFieldMap extends FieldMapGeneric<DatabaseFieldTarget> {
+public class DatabaseFieldMap extends
+		FieldMapGeneric<SourceField, DatabaseFieldTarget> {
 
 	@Override
 	protected DatabaseFieldTarget loadTarget(String targetName, Node node) {
 		return new DatabaseFieldTarget(targetName, node);
+	}
+
+	@Override
+	protected SourceField loadSource(String source) {
+		return new SourceField(source);
 	}
 
 	@Override
@@ -68,7 +76,7 @@ public class DatabaseFieldMap extends FieldMapGeneric<DatabaseFieldTarget> {
 	}
 
 	public boolean isUrl() {
-		for (GenericLink<String, DatabaseFieldTarget> link : getList()) {
+		for (GenericLink<SourceField, DatabaseFieldTarget> link : getList()) {
 			DatabaseFieldTarget dfTarget = link.getTarget();
 			if (dfTarget.isCrawlUrl())
 				return true;
@@ -83,8 +91,8 @@ public class DatabaseFieldMap extends FieldMapGeneric<DatabaseFieldTarget> {
 			IllegalAccessException, ClassNotFoundException, SearchLibException,
 			ParseException, IOException, SyntaxError, URISyntaxException,
 			InterruptedException {
-		for (GenericLink<String, DatabaseFieldTarget> link : getList()) {
-			String columnName = link.getSource();
+		for (GenericLink<SourceField, DatabaseFieldTarget> link : getList()) {
+			String columnName = link.getSource().getUniqueName();
 			if (!columns.contains(columnName))
 				continue;
 			String content = resultSet.getString(columnName);
@@ -96,16 +104,13 @@ public class DatabaseFieldMap extends FieldMapGeneric<DatabaseFieldTarget> {
 			if (dfTarget.isFilePath()) {
 				File file = new File(dfTarget.getFilePath(content));
 				if (file.exists()) {
-					Parser parser = parserSelector.getParser(file.getName(),
-							null);
-					if (parser != null) {
-						try {
-							parser.parseContent(file, lang);
-						} catch (IOException e) {
-							Logging.warn(e.getMessage(), e);
-						}
+					Parser parser = parserSelector.parseFile(null,
+							file.getName(), null, null, file, lang);
+					if (parser != null)
 						parser.populate(target);
-					}
+				} else {
+					Logging.error("Database crawler: File don't exist:"
+							+ file.getAbsolutePath());
 				}
 			}
 			if (dfTarget.isCrawlUrl()) {
@@ -127,7 +132,9 @@ public class DatabaseFieldMap extends FieldMapGeneric<DatabaseFieldTarget> {
 				content = StringUtils.removeTag(content);
 			if (dfTarget.hasRegexpPattern())
 				content = dfTarget.applyRegexPattern(content);
-			target.add(dfTarget.getName(), new FieldValueItem(content));
+			target.add(dfTarget.getName(), new FieldValueItem(
+					FieldValueOriginEnum.EXTERNAL, content));
 		}
 	}
+
 }

@@ -33,11 +33,11 @@ import org.zkoss.zul.RowRenderer;
 import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.facet.FacetField;
+import com.jaeksoft.searchlib.facet.FacetFieldList;
 import com.jaeksoft.searchlib.request.SearchRequest;
-import com.jaeksoft.searchlib.schema.FieldList;
 import com.jaeksoft.searchlib.schema.SchemaField;
 
-public class FacetController extends SearchRequestController {
+public class FacetController extends AbstractQueryController {
 
 	/**
 	 * 
@@ -90,7 +90,7 @@ public class FacetController extends SearchRequestController {
 			if (request == null)
 				return null;
 			fieldLeft = new ArrayList<String>();
-			FieldList<FacetField> facetFields = request.getFacetFieldList();
+			FacetFieldList facetFields = request.getFacetFieldList();
 			for (SchemaField field : client.getSchema().getFieldList())
 				if (field.isIndexed())
 					if (facetFields.get(field.getName()) == null) {
@@ -106,7 +106,7 @@ public class FacetController extends SearchRequestController {
 		synchronized (this) {
 			FacetField facetField = (FacetField) event.getData();
 			((SearchRequest) getRequest()).getFacetFieldList().remove(
-					facetField);
+					facetField.getName());
 			reloadPage();
 		}
 	}
@@ -127,14 +127,14 @@ public class FacetController extends SearchRequestController {
 		synchronized (this) {
 			if (selectedFacet == null)
 				return;
-			((SearchRequest) getRequest()).getFacetFieldList().add(
+			((SearchRequest) getRequest()).getFacetFieldList().put(
 					new FacetField(selectedFacet, 0, false, false));
 			reloadPage();
 		}
 	}
 
 	@Override
-	public void reloadPage() {
+	public void reloadPage() throws SearchLibException {
 		synchronized (this) {
 			fieldLeft = null;
 			selectedFacet = null;

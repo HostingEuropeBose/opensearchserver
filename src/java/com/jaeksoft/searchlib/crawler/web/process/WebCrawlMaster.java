@@ -33,14 +33,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
-import javax.xml.parsers.DocumentBuilder;
-
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
+import org.xml.sax.InputSource;
 
 import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.config.Config;
+import com.jaeksoft.searchlib.crawler.common.database.AbstractManager;
 import com.jaeksoft.searchlib.crawler.common.process.CrawlMasterAbstract;
 import com.jaeksoft.searchlib.crawler.common.process.CrawlQueueAbstract;
 import com.jaeksoft.searchlib.crawler.common.process.CrawlStatistics;
@@ -59,6 +59,7 @@ import com.jaeksoft.searchlib.crawler.web.database.WebPropertyManager;
 import com.jaeksoft.searchlib.crawler.web.spider.Crawl;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.query.ParseException;
+import com.jaeksoft.searchlib.scheduler.TaskManager;
 import com.jaeksoft.searchlib.util.DomUtils;
 
 public class WebCrawlMaster extends CrawlMasterAbstract {
@@ -100,6 +101,8 @@ public class WebCrawlMaster extends CrawlMasterAbstract {
 			int threadNumber = propertyManager.getMaxThreadNumber().getValue();
 			maxUrlPerSession = propertyManager.getMaxUrlPerSession().getValue();
 			maxUrlPerHost = propertyManager.getMaxUrlPerHost().getValue();
+			String schedulerJobName = propertyManager
+					.getSchedulerAfterSession().getValue();
 
 			synchronized (newHostList) {
 				newHostList.clear();
@@ -137,8 +140,13 @@ public class WebCrawlMaster extends CrawlMasterAbstract {
 			urlCrawlQueue.index(true);
 			if (currentStats.getUrlCount() > 0) {
 				setStatus(CrawlStatus.OPTIMIZATION);
-				config.getUrlManager().reload(true);
+				config.getUrlManager().reload(true, null);
 			}
+			if (schedulerJobName != null && schedulerJobName.length() > 0) {
+				setStatus(CrawlStatus.EXECUTE_SCHEDULER_JOB);
+				TaskManager.executeJob(config.getIndexName(), schedulerJobName);
+			}
+			setStatus(CrawlStatus.BREAK);
 			sleepSec(5);
 		}
 		urlCrawlQueue.index(true);
@@ -150,10 +158,12 @@ public class WebCrawlMaster extends CrawlMasterAbstract {
 			InterruptedException, SearchLibException, InstantiationException,
 			IllegalAccessException {
 		Config config = getConfig();
-		setStatus(CrawlStatus.EXTRACTING_HOSTLIST);
 		UrlManager urlManager = config.getUrlManager();
+		setStatus(CrawlStatus.OPTIMIZATION);
+		urlManager.reload(true, null);
+		setStatus(CrawlStatus.EXTRACTING_HOSTLIST);
 		WebPropertyManager propertyManager = config.getWebPropertyManager();
-		fetchIntervalDate = urlManager.getPastDate(propertyManager
+		fetchIntervalDate = AbstractManager.getPastDate(propertyManager
 				.getFetchInterval().getValue(), propertyManager
 				.getFetchIntervalUnit().getValue());
 		urlManager.getOldHostToFetch(fetchIntervalDate, maxUrlPerSession,
@@ -188,11 +198,8 @@ public class WebCrawlMaster extends CrawlMasterAbstract {
 	private List<String> getListOfUrls(String uri) {
 		List<String> urls = new ArrayList<String>();
 		try {
-			// Using factory get an instance of document builder
-			DocumentBuilder db = DomUtils.getNewDocumentBuilder(false, true);
-
 			// parse using builder to get DOM representation of the XML file
-			Document doc = db.parse(uri);
+			Document doc = DomUtils.readXml(new InputSource(uri), true);
 			if (doc != null) {
 				List<Node> nodes = DomUtils.getAllNodes(doc, "loc");
 				if (nodes != null) {

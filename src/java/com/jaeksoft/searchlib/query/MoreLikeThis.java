@@ -25,15 +25,22 @@
 package com.jaeksoft.searchlib.query;
 
 import java.io.StringReader;
+import java.util.Set;
 
 import com.jaeksoft.searchlib.analysis.Analyzer;
-import com.jaeksoft.searchlib.analysis.filter.stop.WordArray;
 import com.jaeksoft.searchlib.index.IndexReader;
 
 /*
  * TODO: Full implementation
  */
 public class MoreLikeThis {
+
+	public static final int DEFAULT_MIN_WORD_LENGTH = 0;
+	public static final int DEFAULT_MAX_WORD_LENGTH = 0;
+	public static final int DEFAULT_MIN_DOC_FREQ = 0;
+	public static final int DEFAULT_MIN_TERM_FREQ = 0;
+	public static final int DEFAULT_MAX_NUM_TOKENS_PARSED = 0;
+	public static final int DEFAULT_MAX_QUERY_TERMS = 0;
 
 	public MoreLikeThis(IndexReader indexReader) {
 		// TODO Auto-generated constructor stub
@@ -74,7 +81,7 @@ public class MoreLikeThis {
 
 	}
 
-	public void setStopWords(WordArray words) {
+	public void setStopWords(Set<String> words) {
 		// TODO Auto-generated method stub
 
 	}
@@ -82,6 +89,16 @@ public class MoreLikeThis {
 	public Query like(int docId) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	public void setMaxNumTokensParsed(int maxNumTokensParsed) {
+		// TODO Auto-generated method stub
+
+	}
+
+	public void setMaxQueryTerms(int maxQueryTerms) {
+		// TODO Auto-generated method stub
+
 	}
 
 }

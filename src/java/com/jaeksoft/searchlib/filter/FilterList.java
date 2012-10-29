@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -26,6 +26,7 @@ package com.jaeksoft.searchlib.filter;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
 
@@ -33,47 +34,50 @@ import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.analysis.Analyzer;
 import com.jaeksoft.searchlib.config.Config;
-import com.jaeksoft.searchlib.filter.Filter.Source;
 import com.jaeksoft.searchlib.index.ReaderLocal;
 import com.jaeksoft.searchlib.query.ParseException;
-import com.jaeksoft.searchlib.schema.Field;
-import com.jaeksoft.searchlib.util.External.Collecter;
+import com.jaeksoft.searchlib.schema.SchemaField;
+import com.jaeksoft.searchlib.util.Timer;
 import com.jaeksoft.searchlib.util.XmlWriter;
+import com.jaeksoft.searchlib.web.ServletTransaction;
 
-public class FilterList implements Collecter<Filter>, Iterable<Filter> {
+public class FilterList implements Iterable<FilterAbstract<?>> {
 
-	private List<Filter> filterList;
+	private List<FilterAbstract<?>> filterList;
 
 	private transient Config config;
 
 	public FilterList() {
 		config = null;
-		this.filterList = new ArrayList<Filter>();
+		this.filterList = new ArrayList<FilterAbstract<?>>();
 	}
 
 	public FilterList(FilterList fl) {
 		this.config = fl.config;
-		this.filterList = new ArrayList<Filter>(fl.size());
-		for (Filter f : fl)
-			addObject(f);
+		this.filterList = new ArrayList<FilterAbstract<?>>(fl.size());
+		for (FilterAbstract<?> f : fl)
+			add(f.duplicate());
 	}
 
 	public FilterList(Config config) {
-		this.filterList = new ArrayList<Filter>();
+		this.filterList = new ArrayList<FilterAbstract<?>>();
 		this.config = config;
 	}
 
-	@Override
-	public void addObject(Filter filter) {
+	public void add(FilterAbstract<?> filter) {
 		filterList.add(filter);
+		renumbered();
 	}
 
-	public void add(String req, boolean negative, Source src) {
-		addObject(new Filter(req, negative, src));
-	}
-
-	public void remove(Filter filter) {
+	public void remove(FilterAbstract<?> filter) {
 		filterList.remove(filter);
+		renumbered();
+	}
+
+	private void renumbered() {
+		int i = 1;
+		for (FilterAbstract<?> item : filterList)
+			item.setParamPosition(i++);
 	}
 
 	public int size() {
@@ -81,22 +85,26 @@ public class FilterList implements Collecter<Filter>, Iterable<Filter> {
 	}
 
 	@Override
-	public Iterator<Filter> iterator() {
+	public Iterator<FilterAbstract<?>> iterator() {
 		return filterList.iterator();
 	}
 
-	public FilterHits getFilterHits(ReaderLocal reader, Field defaultField,
-			Analyzer analyzer) throws IOException, ParseException {
+	public BitSet getOpenBitSet(ReaderLocal reader, SchemaField defaultField,
+			Analyzer analyzer, Timer timer) throws IOException, ParseException {
 
 		if (size() == 0)
 			return null;
 
-		FilterHits filterHits = new FilterHits();
-		for (Filter filter : filterList)
-			filterHits
-					.and(reader.getFilterHits(defaultField, analyzer, filter));
-
-		return filterHits;
+		BitSet docSet = null;
+		for (FilterAbstract<?> filter : filterList) {
+			FilterHits filterHits = reader.getFilterHits(defaultField,
+					analyzer, filter, timer);
+			if (docSet == null)
+				docSet = (BitSet) filterHits.docSet.clone();
+			else
+				filterHits.and(docSet);
+		}
+		return docSet;
 	}
 
 	public Object[] toArray() {
@@ -104,8 +112,13 @@ public class FilterList implements Collecter<Filter>, Iterable<Filter> {
 	}
 
 	public void writeXmlConfig(XmlWriter xmlWriter) throws SAXException {
-		for (Filter filter : filterList)
+		for (FilterAbstract<?> filter : filterList)
 			filter.writeXmlConfig(xmlWriter);
+	}
+
+	public void setFromServlet(ServletTransaction transaction) {
+		for (FilterAbstract<?> filter : filterList)
+			filter.setFromServlet(transaction);
 	}
 
 }

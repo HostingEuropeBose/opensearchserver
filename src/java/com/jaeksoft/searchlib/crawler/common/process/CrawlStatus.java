@@ -40,7 +40,7 @@ public enum CrawlStatus {
 
 	INDEXATION("Indexation"),
 
-	OPTIMIZATION("database optimization"),
+	OPTIMIZATION("Optimizing database"),
 
 	EXTRACTING_URLS("Extracting urls"),
 
@@ -52,7 +52,13 @@ public enum CrawlStatus {
 
 	COMPLETE("Complete"),
 
-	DELETE_REMOVED("Delete removed files");
+	DELETE_REMOVED("Delete removed files"),
+
+	DELETION("Deletion"),
+
+	EXECUTE_SCHEDULER_JOB("Execute scheduler job"),
+
+	BREAK("Relaxing break");
 
 	public String name;
 

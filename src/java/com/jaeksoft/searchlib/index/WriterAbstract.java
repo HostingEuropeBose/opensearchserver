@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -24,6 +24,7 @@
 
 package com.jaeksoft.searchlib.index;
 
+import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,21 +33,24 @@ import com.jaeksoft.searchlib.util.Md5Spliter;
 
 public abstract class WriterAbstract implements WriterInterface {
 
-	private Md5Spliter md5spliter = null;
+	final protected IndexConfig indexConfig;
+	final private Md5Spliter md5spliter;
 	private String keyField = null;
 	protected List<BeforeUpdateInterface> beforeUpdateList = null;
 	protected boolean optimizing;
 
 	protected WriterAbstract(IndexConfig indexConfig) {
+		this.indexConfig = indexConfig;
 		optimizing = false;
-		this.md5spliter = null;
 		this.keyField = indexConfig.getKeyField();
 		if (indexConfig.getKeyMd5RegExp() != null)
 			md5spliter = new Md5Spliter(indexConfig.getKeyMd5RegExp());
+		else
+			md5spliter = null;
 	}
 
 	protected boolean acceptDocument(IndexDocument document)
-			throws NoSuchAlgorithmException {
+			throws NoSuchAlgorithmException, UnsupportedEncodingException {
 		if (keyField == null)
 			return true;
 		if (md5spliter == null)

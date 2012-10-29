@@ -25,23 +25,26 @@
 package com.jaeksoft.searchlib.result;
 
 import java.io.IOException;
+import java.util.TreeSet;
 
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.facet.FacetField;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.DocSetHits;
 import com.jaeksoft.searchlib.index.ReaderLocal;
-import com.jaeksoft.searchlib.index.StringIndex;
+import com.jaeksoft.searchlib.join.JoinList;
+import com.jaeksoft.searchlib.join.JoinResult;
 import com.jaeksoft.searchlib.query.ParseException;
-import com.jaeksoft.searchlib.request.DocumentsRequest;
 import com.jaeksoft.searchlib.request.SearchRequest;
+import com.jaeksoft.searchlib.result.collector.CollapseDocInterface;
+import com.jaeksoft.searchlib.result.collector.DocIdInterface;
+import com.jaeksoft.searchlib.util.Timer;
 
 public class ResultSearchSingle extends AbstractResultSearch {
 
 	transient private ReaderLocal reader;
-	transient private StringIndex[] sortStringIndexArray;
-	transient private StringIndex[] facetStringIndexArray;
 	transient private DocSetHits docSetHits;
+	transient private final TreeSet<String> fieldNameSet;
 
 	/**
 	 * The constructor executes the request using the searcher provided and
@@ -64,52 +67,70 @@ public class ResultSearchSingle extends AbstractResultSearch {
 		super(searchRequest);
 
 		this.reader = reader;
-		docSetHits = reader.searchDocSet(searchRequest);
+		docSetHits = reader.searchDocSet(searchRequest, timer);
 		numFound = docSetHits.getDocNumFound();
-		maxScore = docSetHits.getMaxScore();
 
-		ResultScoreDoc[] docs;
-		// Are we doing collapsing ?
-		if (collapse != null) {
-			docs = collapse.collapse(this);
-			collapsedDocCount = collapse.getDocCount();
-		} else
-			docs = fetch();
+		DocIdInterface notCollapsedDocs = docSetHits.getDocIdInterface(timer);
+		CollapseDocInterface collapsedDocs = null;
 
-		facetStringIndexArray = FacetField.newStringIndexArrayForCollapsing(
-				searchRequest.getFacetFieldList(), reader);
-		if (facetStringIndexArray != null && docs != null)
-			for (ResultScoreDoc doc : docs)
-				doc.loadFacetValues(facetStringIndexArray);
+		JoinResult[] joinResults = null;
 
-		for (FacetField facetField : searchRequest.getFacetFieldList())
-			this.facetList.addObject(facetField.getFacet(this));
-
-		if (searchRequest.isWithSortValues()) {
-			sortStringIndexArray = searchRequest.getSortList()
-					.newStringIndexArray(reader);
-			if (sortStringIndexArray != null && docs != null)
-				for (ResultScoreDoc doc : docs)
-					doc.loadSortValues(sortStringIndexArray);
+		// Are we doing join
+		if (searchRequest.isJoin()) {
+			Timer joinTimer = new Timer(timer, "join");
+			JoinList joinList = searchRequest.getJoinList();
+			joinResults = new JoinResult[joinList.size()];
+			Timer t = new Timer(joinTimer, "join - apply");
+			notCollapsedDocs = joinList.apply(reader, notCollapsedDocs,
+					joinResults, t);
+			t.duration();
+			t = new Timer(joinTimer, "join - sort");
+			searchRequest.getSortFieldList()
+					.getSorter(notCollapsedDocs, reader).quickSort(t);
+			t.duration();
+			numFound = notCollapsedDocs.getSize();
+			joinTimer.duration();
 		}
 
-		setDocs(docs);
+		// Are we doing collapsing ?
+		if (collapse != null) {
+			collapsedDocs = collapse.collapse(reader, notCollapsedDocs, timer);
+			collapsedDocCount = collapsedDocs == null ? 0 : collapsedDocs
+					.getCollapsedCount();
+		}
 
-		if (searchRequest.isWithDocument())
-			setDocuments(reader.documents(new DocumentsRequest(this)));
+		// We compute facet
+		if (searchRequest.isFacet()) {
+			Timer facetTimer = new Timer(timer, "facet");
+			for (FacetField facetField : searchRequest.getFacetFieldList()) {
+				Timer t = new Timer(facetTimer, "facet - "
+						+ facetField.getName() + '(' + facetField.getMinCount()
+						+ ')');
+				this.facetList.add(facetField.getFacet(reader,
+						notCollapsedDocs, collapsedDocs, timer));
+				t.duration();
+			}
+			facetTimer.duration();
+		}
 
-		searchRequest.getTimer().setInfo(searchRequest.toString());
+		// No collapsing
+		if (collapsedDocs == null) {
+			if (notCollapsedDocs != null)
+				setDocs(notCollapsedDocs);
+			else
+				setDocs(docSetHits.getDocIdInterface(timer));
+		} else
+			setDocs(collapsedDocs);
 
-	}
+		if (joinResults != null)
+			setJoinResults(joinResults);
 
-	private ResultScoreDoc[] fetch() throws IOException, ParseException,
-			SyntaxError {
-		int end = request.getEnd();
-		String collapseField = request.getCollapseField();
-		StringIndex collapseFieldStringIndex = (collapseField != null) ? reader
-				.getStringIndex(collapseField) : null;
-		return ResultScoreDoc.appendResultScoreDocArray(this, getDocs(),
-				docSetHits.getScoreDocs(end), end, collapseFieldStringIndex);
+		maxScore = request.isScoreRequired() ? docSetHits.getMaxScore(timer)
+				: 0;
+
+		fieldNameSet = new TreeSet<String>();
+		searchRequest.getReturnFieldList().populate(fieldNameSet);
+		searchRequest.getSnippetFieldList().populate(fieldNameSet);
 	}
 
 	/**
@@ -129,4 +150,34 @@ public class ResultSearchSingle extends AbstractResultSearch {
 		return this.docSetHits;
 	}
 
+	@Override
+	public ResultDocument getDocument(int pos, Timer timer)
+			throws SearchLibException {
+		if (docs == null || pos < 0 || pos > docs.getSize())
+			return null;
+		try {
+			int docId = docs.getIds()[pos];
+			ResultDocument resultDocument = new ResultDocument(request,
+					fieldNameSet, docId, reader, timer);
+			if (!(docs instanceof CollapseDocInterface))
+				return resultDocument;
+			if (request.getCollapseMax() > 0)
+				return resultDocument;
+			int[] collapsedDocs = ((CollapseDocInterface) docs)
+					.getCollapsedDocs(pos);
+			if (collapsedDocs != null)
+				for (int doc : collapsedDocs) {
+					ResultDocument rd = new ResultDocument(request,
+							fieldNameSet, doc, reader, timer);
+					resultDocument.appendIfStringDoesNotExist(rd);
+				}
+			return resultDocument;
+		} catch (IOException e) {
+			throw new SearchLibException(e);
+		} catch (ParseException e) {
+			throw new SearchLibException(e);
+		} catch (SyntaxError e) {
+			throw new SearchLibException(e);
+		}
+	}
 }

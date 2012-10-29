@@ -43,6 +43,7 @@ public class LinkUtils {
 		href = href.trim();
 		if (href.length() == 0)
 			return null;
+
 		String fragment = null;
 		try {
 			href = new URL(currentURL, href).toExternalForm();

@@ -28,13 +28,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
-
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.ReaderLocal;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.render.Render;
+import com.jaeksoft.searchlib.render.RenderSpellCheckJson;
+import com.jaeksoft.searchlib.render.RenderSpellCheckXml;
 import com.jaeksoft.searchlib.request.SpellCheckRequest;
 import com.jaeksoft.searchlib.spellcheck.SpellCheck;
 import com.jaeksoft.searchlib.spellcheck.SpellCheckField;
@@ -58,9 +58,18 @@ public class ResultSpellCheck extends AbstractResult<SpellCheckRequest> {
 	}
 
 	@Override
-	public Render getRender(HttpServletRequest request) {
-		// TODO Auto-generated method stub
+	protected Render getRenderXml() {
+		return new RenderSpellCheckXml(this);
+	}
+
+	@Override
+	protected Render getRenderCsv() {
 		return null;
+	}
+
+	@Override
+	protected Render getRenderJson(boolean indent) {
+		return new RenderSpellCheckJson(this, indent);
 	}
 
 }

@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2010-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2010-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -27,6 +27,7 @@ package com.jaeksoft.searchlib.web.controller.crawler.file;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,37 +35,42 @@ import java.util.List;
 import javax.naming.NamingException;
 
 import org.apache.commons.io.filefilter.HiddenFileFilter;
-import org.zkoss.zk.ui.Component;
+import org.zkoss.zk.ui.Executions;
+import org.zkoss.zul.Listcell;
 import org.zkoss.zul.Messagebox;
-import org.zkoss.zul.Tab;
 
+import com.dropbox.client2.session.AccessTokenPair;
+import com.dropbox.client2.session.WebAuthSession.WebAuthInfo;
 import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.ClientFactory;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.crawler.file.database.FileInstanceType;
 import com.jaeksoft.searchlib.crawler.file.database.FilePathItem;
 import com.jaeksoft.searchlib.crawler.file.database.FilePathManager;
+import com.jaeksoft.searchlib.crawler.file.process.fileInstances.DropboxFileInstance;
 import com.jaeksoft.searchlib.web.StartStopListener;
 import com.jaeksoft.searchlib.web.controller.AlertController;
-import com.jaeksoft.searchlib.web.controller.CommonController;
-import com.jaeksoft.searchlib.web.controller.PushEvent;
 
-public class FilePathEditController extends CommonController {
+public class FilePathEditController extends FileCrawlerController {
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = -46755671370102218L;
 
-	private transient FilePathItem selectedFilePath;
+	private FilePathItem currentFilePath;
 
-	private transient FilePathItem currentFilePath;
+	private transient FileSelectorItem currentFile;
 
-	private transient File currentFile;
+	private transient FileSelectorItem currentFolder;
 
-	private transient File currentFolder;
+	private transient List<FileSelectorItem> currentFolderList;
 
-	private transient List<File> currentFolderList;
+	private transient FileSelectorItem[] currentFileList;
+
+	private boolean showHidden;
+
+	private WebAuthInfo webAuthInfo;
 
 	private class DeleteAlert extends AlertController {
 
@@ -88,6 +94,29 @@ public class FilePathEditController extends CommonController {
 		}
 	}
 
+	public class FileSelectorItem {
+
+		final protected File file;
+
+		protected FileSelectorItem(File file) {
+			this.file = file;
+		}
+
+		public String getName() {
+			if (file == null)
+				return null;
+			String n = file.getName();
+			if (n != null && n.length() > 0)
+				return n;
+			return file.getPath();
+		}
+
+		public File getFile() {
+			return file;
+		}
+
+	}
+
 	public FilePathEditController() throws SearchLibException, NamingException {
 		super();
 	}
@@ -97,10 +126,12 @@ public class FilePathEditController extends CommonController {
 		Client client = getClient();
 		if (client == null)
 			return;
-		selectedFilePath = null;
-		currentFilePath = new FilePathItem(client);
+		currentFilePath = null;
+		currentFileList = null;
 		currentFile = null;
 		currentFolder = null;
+		showHidden = false;
+		webAuthInfo = null;
 	}
 
 	public List<FileInstanceType> getTypeList() throws SearchLibException {
@@ -111,26 +142,28 @@ public class FilePathEditController extends CommonController {
 	}
 
 	@Override
-	public void eventFilePathEdit(FilePathItem filePathItem)
-			throws SearchLibException {
-		if (filePathItem == null)
+	public void reloadPage() throws SearchLibException {
+		FilePathItem filePathItem = getFilePathItemEdit();
+		if (filePathItem == currentFilePath || filePathItem == null) {
+			super.reloadPage();
 			return;
-		this.selectedFilePath = filePathItem;
+		}
 		try {
-			filePathItem.copyTo(currentFilePath);
+			currentFilePath = filePathItem;
 			if ("file".equals(filePathItem.getType().getScheme())) {
-				File f = new File(filePathItem.getPath());
-				if (f.exists()) {
-					setCurrentFolder(f.getParentFile());
-					setCurrentFile(new File(filePathItem.getPath()));
+				String path = filePathItem.getPath();
+				if (path != null) {
+					File f = new File(path);
+					if (f.exists()) {
+						setCurrentFolder(f.getParentFile());
+						setCurrentFile(new FileSelectorItem(new File(path)));
+					}
 				}
 			}
-		} catch (URISyntaxException e) {
-			throw new SearchLibException(e);
 		} catch (IOException e) {
 			throw new SearchLibException(e);
 		}
-		reloadPage();
+		super.reloadPage();
 	}
 
 	/**
@@ -142,31 +175,21 @@ public class FilePathEditController extends CommonController {
 	}
 
 	public String getCurrentEditMode() throws SearchLibException {
-		return selectedFilePath == null ? "Add a new location"
+		return isNoFilePathSelected() ? "Add a new location"
 				: "Edit the selected location";
-	}
-
-	public boolean selected() {
-		return selectedFilePath != null;
-	}
-
-	public boolean notSelected() {
-		return !selected();
 	}
 
 	public void onCancel() throws SearchLibException {
 		reset();
-		reloadPage();
-		Tab tab = (Tab) getFellow("tabCrawlerRepository", true);
-		tab.setSelected(true);
-		PushEvent.FILEPATH_EDIT.publish();
+		setFilePathItemEdit(null);
+		reloadFileCrawlerPages();
 	}
 
 	public void onDelete() throws SearchLibException, InterruptedException {
-		if (selectedFilePath == null)
+		FilePathItem filePath = getFilePathItemSelected();
+		if (filePath == null)
 			return;
-		new DeleteAlert(selectedFilePath);
-		onCancel();
+		new DeleteAlert(filePath);
 	}
 
 	public void onSave() throws InterruptedException, SearchLibException,
@@ -176,6 +199,7 @@ public class FilePathEditController extends CommonController {
 			return;
 		FilePathManager filePathManager = client.getFilePathManager();
 		FilePathItem checkFilePath = filePathManager.get(currentFilePath);
+		FilePathItem selectedFilePath = getFilePathItemSelected();
 		if (selectedFilePath == null) {
 			if (checkFilePath != null) {
 				new AlertController("The location already exists");
@@ -193,30 +217,49 @@ public class FilePathEditController extends CommonController {
 		onCancel();
 	}
 
-	public File[] getCurrentFileList() throws SearchLibException, IOException {
+	private FileSelectorItem[] getList(File[] files) {
+		if (files == null)
+			return null;
+		FileSelectorItem[] items = new FileSelectorItem[files.length];
+		int i = 0;
+		for (File file : files)
+			items[i++] = new FileSelectorItem(file);
+		return items;
+
+	}
+
+	public FileSelectorItem[] getCurrentFileList() throws SearchLibException,
+			IOException {
 		synchronized (this) {
+			if (currentFileList != null)
+				return currentFileList;
+			File[] files = null;
 			getCurrentFolder();
 			if (currentFolder == null) {
-				return File.listRoots();
+				files = File.listRoots();
+			} else {
+				if (!isShowHidden())
+					files = currentFolder.file
+							.listFiles((FileFilter) HiddenFileFilter.VISIBLE);
+				else
+					files = currentFolder.file.listFiles();
 			}
-			if (isIgnoreHidden())
-				return currentFolder
-						.listFiles((FileFilter) HiddenFileFilter.VISIBLE);
-			else
-				return currentFolder.listFiles();
+			currentFileList = getList(files);
+			return currentFileList;
 		}
 	}
 
-	public void setCurrentFile(File file) {
-		currentFile = file;
+	public void setCurrentFile(FileSelectorItem item) {
+		currentFile = item;
 		reloadBrowser();
 	}
 
-	public File getCurrentFile() {
+	public FileSelectorItem getCurrentFile() {
 		return currentFile;
 	}
 
-	public File getCurrentFolder() throws SearchLibException, IOException {
+	public FileSelectorItem getCurrentFolder() throws SearchLibException,
+			IOException {
 		synchronized (this) {
 			Client client = getClient();
 			if (client == null)
@@ -228,7 +271,7 @@ public class FilePathEditController extends CommonController {
 		}
 	}
 
-	public List<File> getFolderTree() {
+	public List<FileSelectorItem> getFolderTree() {
 		return currentFolderList;
 	}
 
@@ -237,6 +280,8 @@ public class FilePathEditController extends CommonController {
 	}
 
 	public boolean isLocalFileType() {
+		if (currentFilePath == null)
+			return false;
 		return "file".equals(currentFilePath.getType().getScheme());
 	}
 
@@ -245,6 +290,8 @@ public class FilePathEditController extends CommonController {
 	}
 
 	public boolean isDomain() {
+		if (currentFilePath == null)
+			return false;
 		return "smb".equals(currentFilePath.getType().getScheme());
 	}
 
@@ -256,73 +303,129 @@ public class FilePathEditController extends CommonController {
 		return !isNotSelectedFile();
 	}
 
-	public boolean isNotSelectedFilePath() {
-		return !isSelectedFilePath();
-	}
-
-	public boolean isSelectedFilePath() {
-		return selectedFilePath != null;
-	}
-
-	public void setCurrentFolder(File file) throws IOException {
-		if (!ClientFactory.INSTANCE.properties.checkChrootQuietly(file))
-			return;
-		currentFolder = file;
+	public void setCurrentFolder(FileSelectorItem fileSelectorItem)
+			throws IOException {
+		if (fileSelectorItem != null)
+			if (!ClientFactory.INSTANCE.properties
+					.checkChrootQuietly(fileSelectorItem.file))
+				return;
+		currentFolder = fileSelectorItem;
 		currentFolderList = null;
 		if (currentFolder != null) {
-			currentFolderList = new ArrayList<File>();
-			File f = currentFolder;
+			currentFolderList = new ArrayList<FileSelectorItem>();
+			FileSelectorItem f = currentFolder;
 			for (;;) {
-				currentFolderList.add(0, f);
-				f = f.getParentFile();
-				if (f == null)
+				currentFolderList.add(0, new FileSelectorItem(f.file));
+				File p = f.file.getParentFile();
+				if (p == null)
 					break;
-				if (!ClientFactory.INSTANCE.properties.checkChrootQuietly(f))
+				f = new FileSelectorItem(p);
+				if (!ClientFactory.INSTANCE.properties
+						.checkChrootQuietly(f.file))
 					break;
 			}
 		}
+		currentFileList = null;
 		currentFile = null;
 		reloadBrowser();
 	}
 
+	private void setCurrentFolder(File file) throws IOException {
+		if (file == null)
+			setCurrentFolder((FileSelectorItem) null);
+		else
+			setCurrentFolder(new FileSelectorItem(file));
+	}
+
 	public FileInstanceType getCurrentFileType() {
+		if (currentFilePath == null)
+			return null;
 		return currentFilePath.getType();
 	}
 
-	public void setCurrentFileType(FileInstanceType type) {
+	public void setCurrentFileType(FileInstanceType type)
+			throws SearchLibException {
 		currentFilePath.setType(type);
 		reloadPage();
 	}
 
-	public boolean isIgnoreHidden() {
-		return currentFilePath.isIgnoreHidden();
+	public boolean isShowHidden() {
+		return showHidden;
 	}
 
-	public void setIgnoreHidden(boolean b) {
-		currentFilePath.setIgnoreHidden(b);
-		reloadPage();
+	public void setShowHidden(boolean b) throws SearchLibException {
+		showHidden = b;
+		currentFileList = null;
+		reloadBrowser();
 	}
 
 	public void reloadBrowser() {
 		reloadComponent("filebrowser");
 	}
 
-	public void onOpenFile(Component component) throws IOException {
-		File file = (File) component.getAttribute("file");
-		if (file.isDirectory())
-			setCurrentFolder(file);
+	public void onOpenFile(Listcell cell) throws IOException {
+		if (currentFile != null)
+			if (currentFile.file.isDirectory())
+				setCurrentFolder(currentFile);
 	}
 
-	public void onSelectFile() {
+	public void onSelectFile() throws SearchLibException {
 		if (currentFile != null) {
-			currentFilePath.setPath(currentFile.getAbsolutePath());
+			currentFilePath.setPath(currentFile.file.getAbsolutePath());
 			reloadPage();
 		}
 	}
 
+	public void onRefreshList() {
+		currentFileList = null;
+		reloadBrowser();
+	}
+	
 	public void onParentFolder() throws IOException {
 		if (currentFolder != null)
-			setCurrentFolder(currentFolder.getParentFile());
+			setCurrentFolder(currentFolder.file.getParentFile());
+	}
+
+	public boolean isDropbox() {
+		if (currentFilePath == null)
+			return false;
+		return currentFilePath.getType().is(DropboxFileInstance.class);
+	}
+
+	public void onDropboxAuthRequest() throws MalformedURLException,
+			SearchLibException {
+		webAuthInfo = DropboxFileInstance.requestAuthorization();
+		reloadPage();
+		Executions.getCurrent().sendRedirect(webAuthInfo.url, "_blank");
+	}
+
+	public void onDropboxConfirmAuth() throws SearchLibException,
+			InterruptedException {
+		StringBuffer uid = new StringBuffer();
+		AccessTokenPair atp = DropboxFileInstance.retrieveAccessToken(
+				webAuthInfo, uid);
+		if (uid.length() == 0) {
+			new AlertController("The Dropbox authentication process failed");
+			return;
+		}
+		currentFilePath.setHost(uid.toString() + ".dropbox.com");
+		currentFilePath.setUsername(atp.key);
+		currentFilePath.setPassword(atp.secret);
+		reloadPage();
+	}
+
+	public boolean isDropboxWebAuthInfo() {
+		return webAuthInfo != null;
+	}
+
+	public boolean isNotDropboxWebAuthInfo() {
+		return !isDropboxWebAuthInfo();
+	}
+
+	public String getDropboxAuthUrl() {
+		if (webAuthInfo == null)
+			return null;
+		return webAuthInfo.url;
 	}
 
 }

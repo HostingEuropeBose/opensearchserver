@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -26,25 +26,39 @@ package com.jaeksoft.searchlib.snippet;
 
 import java.util.List;
 
-import com.jaeksoft.searchlib.schema.Field;
 import com.jaeksoft.searchlib.schema.FieldValue;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
 
 public class SnippetFieldValue extends FieldValue {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 9069619321715897099L;
 
 	private boolean highlighted;
 
 	public SnippetFieldValue() {
 	}
 
-	public SnippetFieldValue(Field field, List<FieldValueItem> values,
+	private SnippetFieldValue(SnippetFieldValue field) {
+		super(field);
+		this.highlighted = field.highlighted;
+	}
+
+	public SnippetFieldValue(String fieldName, List<FieldValueItem> values,
 			boolean highlighted) {
-		super(field, values);
+		super(fieldName, values);
 		this.highlighted = highlighted;
 	}
 
 	public boolean isHighlighted() {
 		return highlighted;
+	}
+
+	@Override
+	public SnippetFieldValue duplicate() {
+		return new SnippetFieldValue(this);
 	}
 
 }

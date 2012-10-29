@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2010-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2010-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -24,14 +24,13 @@
 
 package com.jaeksoft.searchlib.scheduler;
 
+import java.io.UnsupportedEncodingException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.apache.commons.codec.binary.Base64;
 import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.config.Config;
-import com.jaeksoft.searchlib.util.StringUtils;
 import com.jaeksoft.searchlib.util.XmlWriter;
 
 public class TaskProperties {
@@ -70,13 +69,15 @@ public class TaskProperties {
 		TaskProperty prop = map.get(propertyDef);
 		if (prop == null)
 			return;
-		if (prop.getType() == TaskPropertyType.password)
-			if (Base64.isBase64(value))
-				value = StringUtils.base64decode(value);
 		prop.setValue(value);
 	}
 
-	public void writeXml(XmlWriter xmlWriter) throws SAXException {
+	public void set(TaskProperty taskProperty) {
+		setValue(taskProperty.getDef(), taskProperty.getValue());
+	}
+
+	public void writeXml(XmlWriter xmlWriter) throws SAXException,
+			UnsupportedEncodingException {
 		if (cache != null)
 			for (TaskProperty taskProperty : cache)
 				taskProperty.writeXml(xmlWriter);

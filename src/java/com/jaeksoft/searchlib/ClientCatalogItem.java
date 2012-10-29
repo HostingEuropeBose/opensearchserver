@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2010-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2010-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -37,12 +37,9 @@ public class ClientCatalogItem implements Comparable<ClientCatalogItem> {
 
 	private LastModifiedAndSize lastModifiedAndSize;
 
-	private Long numDocs;
-
 	public ClientCatalogItem(String indexName) {
 		this.indexName = indexName;
 		this.lastModifiedAndSize = null;
-		this.numDocs = null;
 	}
 
 	public String getIndexName() {
@@ -59,8 +56,14 @@ public class ClientCatalogItem implements Comparable<ClientCatalogItem> {
 		return lastModifiedAndSize.getSize();
 	}
 
-	public Long getNumDocs() {
-		return numDocs;
+	public Integer getNumDocs() throws SearchLibException, NamingException,
+			IOException {
+		Client client = getClient();
+		if (client == null)
+			return null;
+		if (!client.isOnline())
+			return null;
+		return client.getStatistics().getNumDocs();
 	}
 
 	public long getLastModified() {
@@ -80,10 +83,7 @@ public class ClientCatalogItem implements Comparable<ClientCatalogItem> {
 		Client client = getClient();
 		if (client == null)
 			return null;
-		if (client.isOptimizing())
-			return "Running";
-		return Boolean
-				.toString(client.getIndex().getStatistics().isOptimized());
+		return client.getOptimizationStatus();
 	}
 
 	@Override
@@ -101,13 +101,5 @@ public class ClientCatalogItem implements Comparable<ClientCatalogItem> {
 
 	public void computeInfos() throws SearchLibException {
 		lastModifiedAndSize = ClientCatalog.getLastModifiedAndSize(indexName);
-		try {
-			numDocs = new Long(ClientCatalog.getClient(indexName).getIndex()
-					.getStatistics().getNumDocs());
-		} catch (IOException e) {
-			throw new SearchLibException(e);
-		} catch (NamingException e) {
-			throw new SearchLibException(e);
-		}
 	}
 }

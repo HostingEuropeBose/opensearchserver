@@ -26,7 +26,6 @@ package com.jaeksoft.searchlib.web.controller.query;
 
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.request.RequestTypeEnum;
-import com.jaeksoft.searchlib.result.ResultSpellCheck;
 
 public class ResultSpellCheckController extends AbstractQueryController {
 
@@ -36,15 +35,11 @@ public class ResultSpellCheckController extends AbstractQueryController {
 	private static final long serialVersionUID = -8879293595598057014L;
 
 	public ResultSpellCheckController() throws SearchLibException {
-		super();
+		super(RequestTypeEnum.SpellCheckRequest);
 	}
 
 	@Override
 	protected void reset() throws SearchLibException {
-	}
-
-	public ResultSpellCheck getResult() {
-		return (ResultSpellCheck) getResult(RequestTypeEnum.SearchRequest);
 	}
 
 }

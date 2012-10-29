@@ -23,13 +23,27 @@
 
 package com.jaeksoft.searchlib.util;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.text.DecimalFormat;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringEscapeUtils;
 
-public class StringUtils {
+import com.ibm.icu.text.CharsetDetector;
+import com.ibm.icu.text.CharsetMatch;
+
+public class StringUtils extends org.apache.commons.lang.StringUtils {
 
 	private enum SizeUnit {
 		BYTE("B", 1), KILOBYTE("KB", 1024), MEGABYTE("MB", 1024 * 1024), GIGABYTE(
@@ -127,14 +141,26 @@ public class StringUtils {
 		return text;
 	}
 
-	public static void main(String[] args) {
-		String text = "<p style=\"text-align: right;\"><em>Travailler   dans la tolérance et en cohérence    apportera respect à tous</em><br />Florence, directrice</p><p>Accueil des enfants du lundi au vendredi de 7h30 à 18h30. La crèche ferme une semaine à Noël et quatre semaines en été.</p>";
-		System.out.println(removeTag(text));
-		text = "<p style=\"text-align: right;\"><em>Travailler     dans la tolérance    et en cohérence apportera   respect à tous</em><br />Florence, directrice</p><p>Accueil des enfants du lundi au vendredi de 7h30 à 18h30. La crèche ferme une semaine à Noël et quatre semaines en été.</p>";
-		System.out.println(removeTag(text));
-		text = "test<script>script content</SCRIPT>test<object>object    content</object>test";
-		System.out.println(removeScriptObjectStylePattern.matcher(text)
-				.replaceAll(""));
+	public static void main(String[] args) throws IOException {
+		List<String> lines = FileUtils.readLines(new File(args[0]));
+		FileWriter fw = new FileWriter(new File(args[1]));
+		PrintWriter pw = new PrintWriter(fw);
+		for (String line : lines)
+			pw.println(StringEscapeUtils.unescapeHtml(line));
+		pw.close();
+		fw.close();
+	}
+
+	public static Pattern wildcardPattern(String s) {
+		final CharSequence[] esc = { "\\", ".", "(", ")", "[", "]", "+", "?",
+				"*" };
+		final CharSequence[] replace = { "/", "\\.", "\\(", "\\)", "\\[",
+				"\\]", "\\+", "\\?", ".*" };
+		s = s.trim();
+		int i = 0;
+		for (CharSequence ch : esc)
+			s = s.replace(ch, replace[i++]);
+		return Pattern.compile(s);
 	}
 
 	public static final String removeTag(String text, String[] allowedTags) {
@@ -165,9 +191,11 @@ public class StringUtils {
 	 * @param text
 	 *            the text to encode
 	 * @return a base64 encoded string
+	 * @throws UnsupportedEncodingException
 	 */
-	public final static String base64encode(String text) {
-		return Base64.encodeBase64URLSafeString(text.getBytes());
+	public final static String base64encode(String text)
+			throws UnsupportedEncodingException {
+		return Base64.encodeBase64URLSafeString(text.getBytes("UTF-8"));
 	}
 
 	/**
@@ -191,6 +219,17 @@ public class StringUtils {
 		return 0;
 	}
 
+	public final static int compareNullString(String v1, String v2) {
+		if (v1 == null) {
+			if (v2 == null)
+				return 0;
+			return -1;
+		}
+		if (v2 == null)
+			return 1;
+		return v1.compareTo(v2);
+	}
+
 	public final static String leftPad(int value, int size) {
 		return org.apache.commons.lang.StringUtils.leftPad(
 				Integer.toString(value), size, '0');
@@ -199,5 +238,28 @@ public class StringUtils {
 	public final static String leftPad(long value, int size) {
 		return org.apache.commons.lang.StringUtils.leftPad(
 				Long.toString(value), size, '0');
+	}
+
+	public final static String charsetDetector(InputStream inputStream)
+			throws IOException {
+		CharsetDetector detector = new CharsetDetector();
+		detector.setText(inputStream);
+		CharsetMatch match = detector.detect();
+		if (match == null)
+			return null;
+		return match.getName();
+	}
+
+	public final static String[] toStringArray(Collection<?> collection,
+			boolean sort) {
+		if (collection == null)
+			return null;
+		String[] array = new String[collection.size()];
+		int i = 0;
+		for (Object o : collection)
+			array[i++] = o.toString();
+		if (sort)
+			Arrays.sort(array);
+		return array;
 	}
 }

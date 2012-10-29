@@ -24,8 +24,6 @@
 
 package com.jaeksoft.searchlib.template;
 
-import java.io.File;
-
 public class FileCrawler extends TemplateAbstract {
 
 	public final static String publicName = "file crawler";
@@ -36,9 +34,21 @@ public class FileCrawler extends TemplateAbstract {
 
 	public final static String root = "file_crawler";
 
-	public final static String[] resources = { "config.xml", "parsers.xml",
-			"requests.xml", "filecrawler-mapping.xml",
-			"renderers" + File.separator + "default.xml" };
+	public final static String[] resources = {
+
+	"config.xml", "parsers.xml", "jobs.xml",
+
+	"requests.xml", "filecrawler-mapping.xml",
+
+	"renderers" + '/' + "default-file.xml",
+
+	"stopwords" + '/' + "English stop words",
+
+	"stopwords" + '/' + "French stop words",
+
+	"stopwords" + '/' + "German stop words"
+
+	};
 
 	protected FileCrawler() {
 		super(root, resources, publicName, description);

@@ -76,4 +76,9 @@ public class IndexWriter {
 
 	}
 
+	public void deleteAll() {
+		// TODO Auto-generated method stub
+
+	}
+
 }

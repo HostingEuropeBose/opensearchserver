@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -31,18 +31,18 @@ import java.util.List;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
-import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.ReaderLocal;
 import com.jaeksoft.searchlib.index.StringIndex;
-import com.jaeksoft.searchlib.result.ResultSearchSingle;
-import com.jaeksoft.searchlib.schema.Field;
-import com.jaeksoft.searchlib.schema.FieldList;
-import com.jaeksoft.searchlib.schema.SchemaField;
+import com.jaeksoft.searchlib.result.collector.CollapseDocInterface;
+import com.jaeksoft.searchlib.result.collector.DocIdInterface;
+import com.jaeksoft.searchlib.schema.AbstractField;
+import com.jaeksoft.searchlib.schema.SchemaFieldList;
+import com.jaeksoft.searchlib.util.Timer;
 import com.jaeksoft.searchlib.util.XPathParser;
 import com.jaeksoft.searchlib.util.XmlWriter;
 
-public class FacetField extends Field {
+public class FacetField extends AbstractField<FacetField> {
 
 	private int minCount;
 
@@ -69,7 +69,7 @@ public class FacetField extends Field {
 	}
 
 	@Override
-	public Field duplicate() {
+	public FacetField duplicate() {
 		return new FacetField(this);
 	}
 
@@ -109,23 +109,33 @@ public class FacetField extends Field {
 				|| "1".equalsIgnoreCase(value);
 	}
 
-	public Facet getFacet(ResultSearchSingle result) throws IOException {
+	final public Facet getFacet(ReaderLocal reader,
+			DocIdInterface notCollapsedDocs,
+			CollapseDocInterface collapsedDocs, Timer timer) throws IOException {
+		// Two conditions for use postCollapsing
+		boolean useCollapsing = postCollapsing && collapsedDocs != null;
 		if (multivalued) {
-			if (postCollapsing && result.getCollapseDocCount() > 0)
-				return Facet.facetMultivaluedCollapsed(result, this);
-			else
-				return Facet.facetMultivaluedNonCollapsed(result, this);
+			if (useCollapsing)
+				return Facet.facetMultivalued(reader, collapsedDocs, this,
+						timer);
+			else {
+				return Facet.facetMultivalued(reader, notCollapsedDocs, this,
+						timer);
+			}
 		} else {
-			if (postCollapsing && result.getCollapseDocCount() > 0)
-				return Facet.facetSingleValueCollapsed(result, this);
-			else
-				return Facet.facetSingleValueNonCollapsed(result, this);
+			if (useCollapsing)
+				return Facet.facetSingleValue(reader, collapsedDocs, this,
+						timer);
+			else {
+				return Facet.facetSingleValue(reader, notCollapsedDocs, this,
+						timer);
+
+			}
 		}
 	}
 
-	public static void copyFacetFields(Node node,
-			FieldList<SchemaField> source, FieldList<FacetField> target)
-			throws SearchLibException {
+	public static void copyFacetFields(Node node, SchemaFieldList source,
+			FacetFieldList target) {
 		String fieldName = XPathParser.getAttributeString(node, "name");
 		int minCount = XPathParser.getAttributeValue(node, "minCount");
 		boolean multivalued = "yes".equals(XPathParser.getAttributeString(node,
@@ -134,7 +144,7 @@ public class FacetField extends Field {
 				node, "postCollapsing"));
 		FacetField facetField = new FacetField(source.get(fieldName).getName(),
 				minCount, multivalued, postCollapsing);
-		target.add(facetField);
+		target.put(facetField);
 	}
 
 	/**
@@ -172,11 +182,10 @@ public class FacetField extends Field {
 	}
 
 	@Override
-	public int compareTo(Field o) {
-		int c = super.compareTo(o);
+	public int compareTo(FacetField f) {
+		int c = super.compareTo(f);
 		if (c != 0)
 			return c;
-		FacetField f = (FacetField) o;
 		if ((c = minCount - f.minCount) != 0)
 			return c;
 		if (multivalued != f.multivalued)
@@ -192,7 +201,7 @@ public class FacetField extends Field {
 	}
 
 	public static StringIndex[] newStringIndexArrayForCollapsing(
-			FieldList<FacetField> facetFieldList, ReaderLocal reader)
+			FacetFieldList facetFieldList, ReaderLocal reader, Timer timer)
 			throws IOException {
 		if (facetFieldList.size() == 0)
 			return null;

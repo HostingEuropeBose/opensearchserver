@@ -24,14 +24,13 @@
 
 package com.jaeksoft.searchlib.index.term;
 
-import com.jaeksoft.searchlib.schema.FieldValueItem;
 
 /*
  * TODO Full implementation
  */
 public class TermFreqVector {
 
-	public FieldValueItem[] getTerms() {
+	public String[] getTerms() {
 		// TODO Auto-generated method stub
 		return null;
 	}

@@ -31,13 +31,14 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.lucene.index.Term;
+import org.apache.lucene.index.TermEnum;
 import org.zkoss.zul.Filedownload;
 
 import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.index.term.Term;
-import com.jaeksoft.searchlib.index.term.TermEnum;
+import com.jaeksoft.searchlib.util.StringUtils;
 import com.jaeksoft.searchlib.web.controller.CommonController;
 
 public class TermController extends CommonController {
@@ -77,7 +78,7 @@ public class TermController extends CommonController {
 
 	private transient TermEnum currentTermEnum;
 
-	private transient List<String> fieldList;
+	private transient String[] fieldList;
 
 	private transient String currentField;
 
@@ -118,7 +119,7 @@ public class TermController extends CommonController {
 			String currentField = getCurrentField();
 			if (currentField == null)
 				return null;
-			return client.getIndex().getTermEnum(currentField, getSearchTerm());
+			return client.getTermEnum(currentField, getSearchTerm());
 		}
 	}
 
@@ -157,12 +158,8 @@ public class TermController extends CommonController {
 			Client client = getClient();
 			if (client == null)
 				return;
-			if (fieldList == null)
-				fieldList = new ArrayList<String>();
-			else
-				fieldList.clear();
-			for (Object f : client.getIndex().getFieldNames())
-				fieldList.add(f.toString());
+			fieldList = StringUtils.toStringArray(client.getIndexAbstract()
+					.getFieldNames(), true);
 		}
 	}
 
@@ -174,7 +171,7 @@ public class TermController extends CommonController {
 		}
 	}
 
-	public List<String> getFieldList() throws IOException, SearchLibException {
+	public String[] getFieldList() throws IOException, SearchLibException {
 		synchronized (this) {
 			if (fieldList == null)
 				setFieldList();
@@ -203,11 +200,11 @@ public class TermController extends CommonController {
 
 	public String getCurrentField() throws IOException, SearchLibException {
 		synchronized (this) {
-			List<String> fieldList = getFieldList();
+			String[] fieldList = getFieldList();
 			if (fieldList == null)
 				return null;
-			if (currentField == null && fieldList.size() > 0)
-				currentField = fieldList.get(0);
+			if (currentField == null && fieldList.length > 0)
+				currentField = fieldList[0];
 			return currentField;
 		}
 	}
@@ -245,7 +242,7 @@ public class TermController extends CommonController {
 			PrintWriter pw = null;
 			TermEnum termEnum = null;
 			try {
-				File tempFile = File.createTempFile("OSS_term_freq", "csv");
+				File tempFile = File.createTempFile("OSS_term_freq", ".csv");
 				pw = new PrintWriter(tempFile);
 				termEnum = buildTermEnum();
 				while (termEnum.term() != null) {
@@ -261,6 +258,7 @@ public class TermController extends CommonController {
 				}
 				pw.close();
 				termEnum.close();
+				termEnum = null;
 				pw = null;
 				Filedownload.save(new FileInputStream(tempFile),
 						"text/csv; charset-UTF-8", "OSS_term_freq_"

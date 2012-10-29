@@ -26,15 +26,14 @@ package com.jaeksoft.searchlib.web.controller.scheduler;
 
 import javax.naming.NamingException;
 
-import org.zkoss.zul.Tab;
+import org.zkoss.zk.ui.Component;
 
 import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.scheduler.JobItem;
-import com.jaeksoft.searchlib.web.controller.CommonController;
-import com.jaeksoft.searchlib.web.controller.PushEvent;
+import com.jaeksoft.searchlib.scheduler.TaskManager;
 
-public class SchedulerListController extends CommonController {
+public class SchedulerListController extends SchedulerController {
 
 	/**
 	 * 
@@ -49,29 +48,11 @@ public class SchedulerListController extends CommonController {
 	protected void reset() throws SearchLibException {
 	}
 
-	@Override
-	public void eventJobEdit(JobItem job) throws SearchLibException {
-		reloadPage();
-	}
-
 	public JobItem[] getJobs() throws SearchLibException {
 		Client client = getClient();
 		if (client == null)
 			return null;
 		return client.getJobList().getJobs();
-	}
-
-	public JobItem getSelectedJob() {
-		return null;
-	}
-
-	public void setSelectedJob(JobItem job) {
-		if (job == null)
-			return;
-		reloadPage();
-		PushEvent.JOB_EDIT.publish(job);
-		Tab tab = (Tab) getFellow("tabSchedulerEdit", true);
-		tab.setSelected(true);
 	}
 
 	public boolean isRefresh() throws SearchLibException {
@@ -81,7 +62,43 @@ public class SchedulerListController extends CommonController {
 		return client.getJobList().getActiveCount() > 0;
 	}
 
-	public void onTimer() {
+	private JobItem getCompJobItem(Component comp) {
+		return (JobItem) getRecursiveComponentAttribute(comp, "jobentry");
+	}
+
+	public void doEdit(Component comp) throws SearchLibException {
+		JobItem selectedJob = getCompJobItem(comp);
+		if (selectedJob == null)
+			return;
+		setJobItemSelected(selectedJob);
+		JobItem currentJob = new JobItem(null);
+		currentJob.copyFrom(selectedJob);
+		setJobItemEdit(currentJob);
+		reloadSchedulerPages();
+	}
+
+	public void doExecute(Component comp) throws SearchLibException,
+			NamingException {
+		JobItem job = getCompJobItem(comp);
+		if (job == null)
+			return;
+		Client client = getClient();
+		if (client == null)
+			return;
+		if (job.isRunning())
+			throw new SearchLibException("The job " + job.getName()
+					+ " is already running.");
+		TaskManager.executeJob(client.getIndexName(), job.getName());
+		reloadPage();
+	}
+
+	public void onNewJob() throws SearchLibException {
+		setJobItemEdit(new JobItem("New job"));
+		setJobItemSelected(null);
+		reloadSchedulerPages();
+	}
+
+	public void onTimer() throws SearchLibException {
 		reloadPage();
 	}
 

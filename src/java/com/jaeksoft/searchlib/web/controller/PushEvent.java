@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2010 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2010-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -66,27 +66,7 @@ public enum PushEvent {
 	/**
 	 * Notify that the schema has changes (fields or analyzers)
 	 */
-	SCHEMA_CHANGED(EventQueues.APPLICATION),
-
-	/**
-	 * The user load a request
-	 */
-	QUERY_EDIT_REQUEST(EventQueues.DESKTOP),
-
-	/**
-	 * The user does a search
-	 */
-	QUERY_EDIT_RESULT(EventQueues.DESKTOP),
-
-	/**
-	 * An job has been selected for edition
-	 */
-	JOB_EDIT(EventQueues.SESSION),
-
-	/**
-	 * A filePathItem has been selected for edition
-	 */
-	FILEPATH_EDIT(EventQueues.SESSION);
+	SCHEMA_CHANGED(EventQueues.APPLICATION);
 
 	private final String eventName;
 

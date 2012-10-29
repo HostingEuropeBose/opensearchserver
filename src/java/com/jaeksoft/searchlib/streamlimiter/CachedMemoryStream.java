@@ -42,14 +42,15 @@ public class CachedMemoryStream extends ByteArrayOutputStream implements
 			if (!bNoLimit) {
 				limit -= bufferSize;
 				if (limit < 0)
-					throw new LimitException();
+					throw new LimitException("Stream larger than " + limit
+							+ " bytes.");
 			}
 		}
 	}
 
 	@Override
 	public InputStream getNewInputStream() {
-		return new ByteArrayInputStream(buf);
+		return new ByteArrayInputStream(buf, 0, count);
 	}
 
 	@Override

@@ -23,13 +23,18 @@
 
 package com.jaeksoft.searchlib.web.controller.crawler.file;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import javax.xml.transform.TransformerConfigurationException;
+
+import org.xml.sax.SAXException;
 import org.zkoss.zk.ui.event.Event;
 import org.zkoss.zk.ui.event.EventListener;
 import org.zkoss.zk.ui.ext.AfterCompose;
+import org.zkoss.zul.Listbox;
 import org.zkoss.zul.event.PagingEvent;
 
 import com.jaeksoft.searchlib.Client;
@@ -39,9 +44,14 @@ import com.jaeksoft.searchlib.crawler.common.database.IndexStatus;
 import com.jaeksoft.searchlib.crawler.common.database.ParserStatus;
 import com.jaeksoft.searchlib.crawler.file.database.FileItem;
 import com.jaeksoft.searchlib.crawler.file.database.FileManager;
+import com.jaeksoft.searchlib.crawler.file.database.FileManager.SearchTemplate;
 import com.jaeksoft.searchlib.crawler.file.database.FileTypeEnum;
 import com.jaeksoft.searchlib.crawler.web.database.RobotsTxtStatus;
 import com.jaeksoft.searchlib.request.SearchRequest;
+import com.jaeksoft.searchlib.scheduler.TaskItem;
+import com.jaeksoft.searchlib.scheduler.TaskManager;
+import com.jaeksoft.searchlib.scheduler.task.TaskFileManagerAction;
+import com.jaeksoft.searchlib.web.controller.AlertController;
 import com.jaeksoft.searchlib.web.controller.ScopeAttribute;
 import com.jaeksoft.searchlib.web.controller.crawler.CrawlerController;
 
@@ -74,10 +84,19 @@ public class FileController extends CrawlerController implements AfterCompose {
 		super.afterCompose();
 		getFellow("paging").addEventListener("onPaging", new EventListener() {
 			@Override
-			public void onEvent(Event event) {
+			public void onEvent(Event event) throws SearchLibException {
 				onPaging((PagingEvent) event);
 			}
 		});
+	}
+
+	public FileManager getFileManager() throws SearchLibException {
+		synchronized (this) {
+			Client client = getClient();
+			if (client == null)
+				return null;
+			return client.getFileManager();
+		}
 	}
 
 	public int getActivePage() {
@@ -296,7 +315,7 @@ public class FileController extends CrawlerController implements AfterCompose {
 		}
 	}
 
-	public void onPaging(PagingEvent pagingEvent) {
+	public void onPaging(PagingEvent pagingEvent) throws SearchLibException {
 		synchronized (this) {
 			fileList = null;
 			activePage = pagingEvent.getActivePage();
@@ -304,7 +323,7 @@ public class FileController extends CrawlerController implements AfterCompose {
 		}
 	}
 
-	public void onSearch() {
+	public void onSearch() throws SearchLibException {
 		synchronized (this) {
 			fileList = null;
 			activePage = 0;
@@ -314,33 +333,34 @@ public class FileController extends CrawlerController implements AfterCompose {
 	}
 
 	@Override
-	public void onReload() {
+	public void onReload() throws SearchLibException {
 		synchronized (this) {
 			reloadPage();
 		}
 	}
 
-	private SearchRequest getSearchRequest(FileManager fileManager)
-			throws SearchLibException {
-		return fileManager.fileQuery(getRepository(), getFileName(), getLang(),
-				null, getMinContentLength(), getMaxContentLength(),
-				getExtension(), getFetchStatus(), getParserStatus(),
-				getIndexStatus(), getCrawlDateStart(), getCrawlDateEnd(),
-				getDateModifiedStart(), getDateModifiedEnd(), getFileType(),
-				null);
+	private SearchRequest getSearchRequest(FileManager fileManager,
+			SearchTemplate fileSearchTemplate) throws SearchLibException {
+		return fileManager.fileQuery(fileSearchTemplate, getRepository(),
+				getFileName(), getLang(), null, getMinContentLength(),
+				getMaxContentLength(), getExtension(), getFetchStatus(),
+				getParserStatus(), getIndexStatus(), getCrawlDateStart(),
+				getCrawlDateEnd(), getDateModifiedStart(),
+				getDateModifiedEnd(), getFileType(), null);
 	}
 
 	public List<FileItem> getFileList() throws SearchLibException {
 		synchronized (this) {
-			Client client = getClient();
-			if (client == null)
-				return null;
 			if (fileList != null)
 				return fileList;
 
+			FileManager fileManager = getFileManager();
+			if (fileManager == null)
+				return null;
+
 			fileList = new ArrayList<FileItem>();
-			FileManager fileManager = client.getFileManager();
-			SearchRequest searchRequest = getSearchRequest(fileManager);
+			SearchRequest searchRequest = getSearchRequest(fileManager,
+					SearchTemplate.fileSearch);
 
 			totalSize = (int) fileManager.getFiles(searchRequest,
 					fileManager.getFileItemFieldEnum().uri, true, getPageSize()
@@ -391,4 +411,84 @@ public class FileController extends CrawlerController implements AfterCompose {
 		}
 	}
 
+	private void onTask(TaskFileManagerAction taskFileManagerAction)
+			throws SearchLibException, InterruptedException {
+		Client client = getClient();
+		if (client == null)
+			return;
+		TaskItem taskItem = new TaskItem(client, taskFileManagerAction);
+		TaskManager.executeTask(client, taskItem, null);
+		client.getFileManager().waitForTask(taskFileManagerAction, 30);
+	}
+
+	public void onSetToUnfetched() throws SearchLibException,
+			InterruptedException {
+		synchronized (this) {
+			FileManager fileManager = getFileManager();
+			if (fileManager == null)
+				return;
+			SearchRequest searchRequest = getSearchRequest(fileManager,
+					SearchTemplate.fileSearch);
+			TaskFileManagerAction taskFileManagerAction = new TaskFileManagerAction();
+			taskFileManagerAction.setSelection(searchRequest, false, true);
+			taskFileManagerAction.setOptimize();
+			onTask(taskFileManagerAction);
+		}
+	}
+
+	public void onDelete() throws SearchLibException, InterruptedException {
+		synchronized (this) {
+			FileManager fileManager = getFileManager();
+			if (fileManager == null)
+				return;
+			SearchRequest searchRequest = getSearchRequest(fileManager,
+					SearchTemplate.fileExport);
+			TaskFileManagerAction taskFileManagerAction = new TaskFileManagerAction();
+			taskFileManagerAction.setSelection(searchRequest, true, false);
+			taskFileManagerAction.setOptimize();
+			onTask(taskFileManagerAction);
+		}
+	}
+
+	public void onOptimize() throws SearchLibException, InterruptedException {
+		synchronized (this) {
+			TaskFileManagerAction taskFileManagerAction = new TaskFileManagerAction();
+			taskFileManagerAction.setOptimize();
+			onTask(taskFileManagerAction);
+		}
+	}
+
+	public void onGo() throws SearchLibException, IOException,
+			TransformerConfigurationException, SAXException,
+			InterruptedException {
+		synchronized (this) {
+			Client client = getClient();
+			if (client == null)
+				return;
+			if (client.getFileCrawlMaster().isRunning()) {
+				new AlertController("Please stop the File crawler first.");
+				return;
+			}
+			Listbox actionListbox = (Listbox) getFellow("actionListbox");
+			String action = actionListbox.getSelectedItem().getValue()
+					.toString();
+			if ("setToUnfetched".equalsIgnoreCase(action))
+				onSetToUnfetched();
+			else if ("delete".equalsIgnoreCase(action))
+				onDelete();
+			else if ("optimize".equalsIgnoreCase(action))
+				onOptimize();
+		}
+	}
+
+	public void onTimer() {
+		reloadComponent("taskLogInfo");
+	}
+
+	public boolean isRefresh() throws SearchLibException {
+		FileManager fileManager = getFileManager();
+		if (fileManager == null)
+			return false;
+		return fileManager.isCurrentTaskLog();
+	}
 }

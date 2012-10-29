@@ -24,8 +24,8 @@
 
 package com.jaeksoft.searchlib.plugin;
 
-import java.util.Properties;
 import java.util.Map.Entry;
+import java.util.Properties;
 
 import javax.xml.xpath.XPathExpressionException;
 
@@ -49,7 +49,7 @@ public class IndexPluginItem {
 		for (int i = 0; i < nodes.getLength(); i++) {
 			Node node = nodes.item(i);
 			String name = XPathParser.getAttributeString(node, "name");
-			String value = xpp.getNodeString(node);
+			String value = xpp.getNodeString(node, false);
 			properties.put(name, value);
 		}
 	}

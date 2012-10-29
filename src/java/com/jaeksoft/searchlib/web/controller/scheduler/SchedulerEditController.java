@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2010-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2010-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -30,7 +30,6 @@ import javax.naming.NamingException;
 
 import org.zkoss.zk.ui.Component;
 import org.zkoss.zul.Messagebox;
-import org.zkoss.zul.Tab;
 
 import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.SearchLibException;
@@ -39,23 +38,21 @@ import com.jaeksoft.searchlib.scheduler.JobList;
 import com.jaeksoft.searchlib.scheduler.TaskEnumItem;
 import com.jaeksoft.searchlib.scheduler.TaskItem;
 import com.jaeksoft.searchlib.web.controller.AlertController;
-import com.jaeksoft.searchlib.web.controller.CommonController;
-import com.jaeksoft.searchlib.web.controller.PushEvent;
 
-public class SchedulerEditController extends CommonController {
+public class SchedulerEditController extends SchedulerController {
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = -5736529335058096440L;
 
-	private transient JobItem selectedJob;
-
 	private transient JobItem currentJob;
 
 	private transient TaskEnumItem selectedTask;
 
 	private transient TaskItem currentTask;
+
+	private transient TaskItem selectedJobTask;
 
 	private class DeleteAlert extends AlertController {
 
@@ -83,20 +80,18 @@ public class SchedulerEditController extends CommonController {
 
 	@Override
 	protected void reset() throws SearchLibException {
-		selectedJob = null;
-		currentJob = new JobItem("New job");
+		currentJob = null;
+		selectedJobTask = null;
 		Client client = getClient();
 		if (client != null)
 			setSelectedTask(client.getJobTaskEnum().getFirst());
 	}
 
 	@Override
-	public void eventJobEdit(JobItem job) throws SearchLibException {
-		if (job == null)
-			return;
-		this.selectedJob = job;
-		currentJob.copy(job);
-		reloadPage();
+	public void reloadPage() throws SearchLibException {
+		JobItem jobItem = getJobItemEdit();
+		currentJob = jobItem;
+		super.reloadPage();
 	}
 
 	/**
@@ -116,16 +111,8 @@ public class SchedulerEditController extends CommonController {
 	}
 
 	public String getCurrentEditMode() throws SearchLibException {
-		return selectedJob == null ? "Create a new job"
+		return isNoJobItemSelected() ? "Create a new job"
 				: "Edit the selected job";
-	}
-
-	public boolean selected() {
-		return selectedJob != null;
-	}
-
-	public boolean notSelected() {
-		return !selected();
 	}
 
 	public List<TaskEnumItem> getTaskEnum() throws SearchLibException {
@@ -163,10 +150,20 @@ public class SchedulerEditController extends CommonController {
 	 * @throws SearchLibException
 	 */
 	public void onTaskAdd() throws SearchLibException {
+		currentJob.taskAdd(currentTask);
+		onTaskCancel();
+	}
+
+	public void onTaskSave() throws SearchLibException {
+		selectedJobTask.setProperties(currentTask.getProperties());
+		onTaskCancel();
+	}
+
+	public void onTaskCancel() throws SearchLibException {
 		Client client = getClient();
 		if (client == null)
 			return;
-		currentJob.taskAdd(currentTask);
+		selectedJobTask = null;
 		this.currentTask = new TaskItem(client, selectedTask.getTask());
 		reloadPage();
 	}
@@ -185,8 +182,9 @@ public class SchedulerEditController extends CommonController {
 	 * Move the task up
 	 * 
 	 * @param component
+	 * @throws SearchLibException
 	 */
-	public void onTaskUp(Component component) {
+	public void onTaskUp(Component component) throws SearchLibException {
 		TaskItem taskItem = getTaskItem(component);
 		currentJob.taskUp(taskItem);
 		reloadPage();
@@ -196,8 +194,9 @@ public class SchedulerEditController extends CommonController {
 	 * Move the task down
 	 * 
 	 * @param component
+	 * @throws SearchLibException
 	 */
-	public void onTaskDown(Component component) {
+	public void onTaskDown(Component component) throws SearchLibException {
 		TaskItem taskItem = getTaskItem(component);
 		currentJob.taskDown(taskItem);
 		reloadPage();
@@ -207,8 +206,9 @@ public class SchedulerEditController extends CommonController {
 	 * Remove the task
 	 * 
 	 * @param component
+	 * @throws SearchLibException
 	 */
-	public void onTaskRemove(Component component) {
+	public void onTaskRemove(Component component) throws SearchLibException {
 		TaskItem taskItem = getTaskItem(component);
 		currentJob.taskRemove(taskItem);
 		reloadPage();
@@ -216,17 +216,15 @@ public class SchedulerEditController extends CommonController {
 
 	public void onCancel() throws SearchLibException {
 		reset();
-		reloadPage();
-		Tab tab = (Tab) getFellow("tabSchedulerList", true);
-		tab.setSelected(true);
-		PushEvent.JOB_EDIT.publish();
+		setJobItemEdit(null);
+		reloadSchedulerPages();
 	}
 
 	public void onDelete() throws SearchLibException, InterruptedException {
+		JobItem selectedJob = getJobItemSelected();
 		if (selectedJob == null)
 			return;
 		new DeleteAlert(selectedJob);
-		onCancel();
 	}
 
 	public void onSave() throws InterruptedException, SearchLibException {
@@ -234,6 +232,7 @@ public class SchedulerEditController extends CommonController {
 		if (client == null)
 			return;
 		JobList jobList = client.getJobList();
+		JobItem selectedJob = getJobItemSelected();
 		if (selectedJob == null) {
 			if (jobList.get(currentJob.getName()) != null) {
 				new AlertController("The name is already used");
@@ -241,9 +240,37 @@ public class SchedulerEditController extends CommonController {
 			}
 			jobList.add(currentJob);
 		} else
-			selectedJob.copy(currentJob);
+			selectedJob.copyFrom(currentJob);
 		client.saveJobs();
 		onCancel();
+	}
+
+	public boolean isNotSelectedJobTask() {
+		return getSelectedJobTask() == null;
+	}
+
+	public boolean isSelectedJobTask() {
+		return !isNotSelectedJobTask();
+	}
+
+	/**
+	 * @return the selectedJobTask
+	 */
+	public TaskItem getSelectedJobTask() {
+		return selectedJobTask;
+	}
+
+	/**
+	 * @param selectedJobTask
+	 *            the selectedJobTask to set
+	 * @throws SearchLibException
+	 */
+	public void setSelectedJobTask(TaskItem selectedJobTask)
+			throws SearchLibException {
+		this.selectedJobTask = selectedJobTask;
+		if (selectedJobTask != null)
+			this.currentTask = new TaskItem(selectedJobTask);
+		reloadPage();
 	}
 
 }

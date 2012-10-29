@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2010 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2010-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -25,8 +25,6 @@
 package com.jaeksoft.searchlib.scheduler;
 
 import java.text.ParseException;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import javax.naming.NamingException;
 
@@ -44,27 +42,29 @@ import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.ClientCatalog;
 import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.util.SimpleLock;
+import com.jaeksoft.searchlib.web.StartStopListener;
 
 public class TaskManager implements Job {
 
-	private final static Lock lock = new ReentrantLock();
+	private final static SimpleLock lock = new SimpleLock();
 
 	private static Scheduler scheduler = null;
 
 	public static void start() throws SearchLibException {
-		lock.lock();
+		lock.rl.lock();
 		try {
 			scheduler = StdSchedulerFactory.getDefaultScheduler();
 			scheduler.start();
 		} catch (SchedulerException e) {
 			throw new SearchLibException(e);
 		} finally {
-			lock.unlock();
+			lock.rl.unlock();
 		}
 	}
 
 	public static void stop() throws SearchLibException {
-		lock.lock();
+		lock.rl.lock();
 		try {
 			if (scheduler != null) {
 				scheduler.shutdown();
@@ -73,16 +73,20 @@ public class TaskManager implements Job {
 		} catch (SchedulerException e) {
 			throw new SearchLibException(e);
 		} finally {
-			lock.unlock();
+			lock.rl.unlock();
 		}
 	}
 
-	public static void checkJob(String indexName, String jobName,
+	private static void checkSchedulerAvailable() throws SearchLibException {
+		if (scheduler == null)
+			throw new SearchLibException("The scheduler is not availalbe.");
+	}
+
+	public static void cronJob(String indexName, String jobName,
 			TaskCronExpression cron) throws SearchLibException {
-		lock.lock();
+		lock.rl.lock();
 		try {
-			if (scheduler == null)
-				throw new SearchLibException("The scheduler is not availalbe.");
+			checkSchedulerAvailable();
 			Trigger trigger = new CronTrigger(jobName, indexName,
 					cron.getStringExpression());
 
@@ -111,36 +115,76 @@ public class TaskManager implements Job {
 		} catch (SchedulerException e) {
 			throw new SearchLibException(e);
 		} finally {
-			lock.unlock();
+			lock.rl.unlock();
 		}
+	}
+
+	/**
+	 * Synchronous execution of a full Job
+	 * 
+	 * @param indexName
+	 * @param jobName
+	 * @throws SearchLibException
+	 * @throws NamingException
+	 */
+	public static void executeJob(String indexName, String jobName)
+			throws SearchLibException, NamingException {
+		Client client = ClientCatalog.getClient(indexName);
+		if (client == null)
+			throw new SearchLibException("Client not found: " + indexName);
+		JobList jobList = client.getJobList();
+		JobItem jobItem = jobList.get(jobName);
+		if (jobItem == null)
+			throw new SearchLibException("Job not found: " + jobName);
+		jobItem.run(client);
+	}
+
+	/**
+	 * Asynchronous execution of a Task
+	 * 
+	 * @param client
+	 * @param taskItem
+	 * @param taskLog
+	 * @return
+	 * @throws InterruptedException
+	 */
+	public static ImmediateExecution executeTask(Client client,
+			TaskItem taskItem, TaskLog taskLog) throws InterruptedException {
+		if (taskLog == null)
+			taskLog = new TaskLog(taskItem, false);
+		ImmediateExecution execution = new ImmediateExecution(client, taskItem,
+				taskLog);
+		client.getThreadPool().execute(execution);
+		taskItem.waitForStart(600);
+		return execution;
 	}
 
 	public static String[] getActiveJobs(String indexName)
 			throws SearchLibException {
-		lock.lock();
+		lock.rl.lock();
 		try {
 			return scheduler.getJobNames(indexName);
 		} catch (SchedulerException e) {
 			throw new SearchLibException(e);
 		} finally {
-			lock.unlock();
+			lock.rl.unlock();
 		}
 	}
 
 	public static void removeJob(String indexName, String jobName)
 			throws SearchLibException {
-		lock.lock();
+		lock.rl.lock();
 		try {
 			scheduler.deleteJob(jobName, indexName);
 		} catch (SchedulerException e) {
 			throw new SearchLibException(e);
 		} finally {
-			lock.unlock();
+			lock.rl.unlock();
 		}
 	}
 
 	public static void removeJobs(String indexName) throws SearchLibException {
-		lock.lock();
+		lock.rl.lock();
 		try {
 			String[] jobNames = scheduler.getJobNames(indexName);
 			for (String jobName : jobNames)
@@ -148,32 +192,24 @@ public class TaskManager implements Job {
 		} catch (SchedulerException e) {
 			throw new SearchLibException(e);
 		} finally {
-			lock.unlock();
+			lock.rl.unlock();
 		}
-
 	}
 
 	@Override
 	public void execute(JobExecutionContext context)
 			throws JobExecutionException {
-		JobDetail detail = context.getJobDetail();
-		String indexName = detail.getGroup();
-		String jobName = detail.getName();
+		if (StartStopListener.isShutdown())
+			throw new JobExecutionException("Aborted (application stopped)");
+		JobDetail jobDetail = context.getJobDetail();
+		String indexName = jobDetail.getGroup();
+		String jobName = jobDetail.getName();
 		try {
-			Client client = ClientCatalog.getClient(indexName);
-			if (client == null) {
-				removeJobs(indexName);
-				return;
-			}
-			JobList jobList = client.getJobList();
-			JobItem jobItem = jobList.get(jobName);
-			if (jobItem != null)
-				jobItem.run(client);
+			executeJob(indexName, jobName);
 		} catch (SearchLibException e) {
 			Logging.error(e);
 		} catch (NamingException e) {
 			Logging.error(e);
 		}
-
 	}
 }

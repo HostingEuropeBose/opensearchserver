@@ -27,14 +27,14 @@ package com.jaeksoft.searchlib.cache;
 import java.io.IOException;
 
 import com.jaeksoft.searchlib.analysis.Analyzer;
-import com.jaeksoft.searchlib.filter.Filter;
+import com.jaeksoft.searchlib.filter.FilterAbstract;
 import com.jaeksoft.searchlib.filter.FilterCacheKey;
 import com.jaeksoft.searchlib.filter.FilterHits;
 import com.jaeksoft.searchlib.index.IndexConfig;
 import com.jaeksoft.searchlib.index.ReaderLocal;
 import com.jaeksoft.searchlib.query.ParseException;
-import com.jaeksoft.searchlib.query.Query;
-import com.jaeksoft.searchlib.schema.Field;
+import com.jaeksoft.searchlib.schema.SchemaField;
+import com.jaeksoft.searchlib.util.Timer;
 
 public class FilterCache extends LRUCache<FilterCacheKey, FilterHits> {
 
@@ -45,18 +45,18 @@ public class FilterCache extends LRUCache<FilterCacheKey, FilterHits> {
 		this.indexConfig = indexConfig;
 	}
 
-	public FilterHits get(ReaderLocal reader, Field defaultField,
-			Analyzer analyzer, Filter filter) throws ParseException,
-			IOException {
+	public FilterHits get(ReaderLocal reader, FilterAbstract<?> filter,
+			SchemaField defaultField, Analyzer analyzer, Timer timer)
+			throws ParseException, IOException {
 		rwl.w.lock();
 		try {
-			FilterCacheKey filterCacheKey = null;
-			filterCacheKey = new FilterCacheKey(filter, defaultField, analyzer);
+			FilterCacheKey filterCacheKey = new FilterCacheKey(filter,
+					defaultField, analyzer);
 			FilterHits filterHits = getAndPromote(filterCacheKey);
 			if (filterHits != null)
 				return filterHits;
-			Query query = filter.getQuery(defaultField, analyzer);
-			filterHits = new FilterHits(query, filter.isNegative(), reader);
+			filterHits = filter.getFilterHits(reader, defaultField, analyzer,
+					timer);
 			put(filterCacheKey, filterHits);
 			return filterHits;
 		} finally {

@@ -40,7 +40,6 @@ import org.apache.pdfbox.pdmodel.PDDocumentInformation;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDResources;
 import org.apache.pdfbox.pdmodel.graphics.xobject.PDXObjectImage;
-import org.apache.pdfbox.util.PDFTextStripper;
 
 import com.jaeksoft.searchlib.ClientCatalog;
 import com.jaeksoft.searchlib.Logging;
@@ -53,12 +52,13 @@ import com.jaeksoft.searchlib.util.StringUtils;
 
 public class PdfParser extends Parser {
 
-	private static ParserFieldEnum[] fl = { ParserFieldEnum.title,
-			ParserFieldEnum.author, ParserFieldEnum.subject,
-			ParserFieldEnum.content, ParserFieldEnum.producer,
-			ParserFieldEnum.keywords, ParserFieldEnum.creation_date,
-			ParserFieldEnum.modification_date, ParserFieldEnum.language,
-			ParserFieldEnum.number_of_pages, ParserFieldEnum.ocr_content };
+	private static ParserFieldEnum[] fl = { ParserFieldEnum.parser_name,
+			ParserFieldEnum.title, ParserFieldEnum.author,
+			ParserFieldEnum.subject, ParserFieldEnum.content,
+			ParserFieldEnum.producer, ParserFieldEnum.keywords,
+			ParserFieldEnum.creation_date, ParserFieldEnum.modification_date,
+			ParserFieldEnum.language, ParserFieldEnum.number_of_pages,
+			ParserFieldEnum.ocr_content };
 
 	public PdfParser() {
 		super(fl);
@@ -153,6 +153,30 @@ public class PdfParser extends Parser {
 		}
 	}
 
+	private void doOcr(OcrManager ocr, LanguageEnum lang, PDXObjectImage image)
+			throws IOException, SearchLibException {
+		File imageFile = null;
+		File textFile = null;
+		try {
+			String suffix = image.getSuffix();
+			imageFile = File.createTempFile("osspdfimg", '.' + suffix);
+
+			textFile = File.createTempFile("ossocr", ".txt");
+			image.write2file(imageFile);
+			if (imageFile.length() == 0)
+				throw new IOException("PDF/OCR: Image file is empty");
+			ocr.ocerize(imageFile, textFile, lang);
+			addField(ParserFieldEnum.ocr_content,
+					FileUtils.readFileToString(textFile, "UTF-8"));
+
+		} finally {
+			if (imageFile != null)
+				FileUtils.deleteQuietly(imageFile);
+			if (textFile != null)
+				FileUtils.deleteQuietly(textFile);
+		}
+	}
+
 	private void extractImagesForOCR(PDDocument pdf, LanguageEnum lang)
 			throws IOException, SearchLibException {
 		OcrManager ocr = ClientCatalog.getOcrManager();
@@ -171,15 +195,9 @@ public class PdfParser extends Parser {
 				while (imageIter.hasNext()) {
 					String key = (String) imageIter.next();
 					PDXObjectImage image = (PDXObjectImage) images.get(key);
-					File imageFile = File.createTempFile("osspdfimg",
-							'.' + image.getSuffix());
-					File textFile = File.createTempFile("ossocr", ".txt");
-					image.write2file(imageFile);
-					ocr.ocerize(imageFile, textFile, lang);
-					addField(ParserFieldEnum.ocr_content,
-							FileUtils.readFileToString(textFile, "UTF-8"));
-					imageFile.delete();
-					textFile.delete();
+					if (image == null)
+						continue;
+					doOcr(ocr, lang, image);
 				}
 			}
 		}

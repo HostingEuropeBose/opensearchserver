@@ -24,6 +24,9 @@
 
 package com.jaeksoft.searchlib.scheduler;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+
 import javax.xml.xpath.XPathExpressionException;
 
 import org.w3c.dom.Node;
@@ -33,19 +36,35 @@ import org.xml.sax.SAXException;
 import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.config.Config;
+import com.jaeksoft.searchlib.util.StringUtils;
 import com.jaeksoft.searchlib.util.XPathParser;
 import com.jaeksoft.searchlib.util.XmlWriter;
 
-public class TaskItem {
+public class TaskItem extends ExecutionAbstract {
+
+	private Config config;
 
 	private TaskAbstract task;
 
 	private TaskProperties userProperties;
 
 	public TaskItem(Config config, TaskAbstract task) {
+		this.config = config;
 		this.task = task;
 		userProperties = new TaskProperties(config, task,
 				task.getPropertyList());
+	}
+
+	public TaskItem(TaskItem selectedJobTask) {
+		this(selectedJobTask.config, selectedJobTask.task);
+		setProperties(selectedJobTask.getProperties());
+	}
+
+	public void setProperties(TaskProperty[] taskProps) {
+		if (taskProps == null)
+			return;
+		for (TaskProperty taskProperty : taskProps)
+			userProperties.set(new TaskProperty(taskProperty));
 	}
 
 	/**
@@ -63,11 +82,18 @@ public class TaskItem {
 		return userProperties.getArray();
 	}
 
-	public void run(Client client, TaskLog taskLog) throws SearchLibException {
-		task.execute(client, userProperties, taskLog);
+	public void run(Client client, TaskLog taskLog) throws SearchLibException,
+			IOException {
+		setRunningNow();
+		try {
+			task.execute(client, userProperties, taskLog);
+		} finally {
+			runningEnd();
+		}
 	}
 
-	public void writeXml(XmlWriter xmlWriter) throws SAXException {
+	public void writeXml(XmlWriter xmlWriter) throws SAXException,
+			UnsupportedEncodingException {
 		xmlWriter
 				.startElement("task", "class", task.getClass().getSimpleName());
 		userProperties.writeXml(xmlWriter);
@@ -88,10 +114,13 @@ public class TaskItem {
 		for (int i = 0; i < nodeList.getLength(); i++) {
 			Node propNode = nodeList.item(i);
 			String name = XPathParser.getAttributeString(propNode, "name");
-			String value = xpp.getNodeString(propNode);
+			String value = xpp.getNodeString(propNode, false);
 			TaskPropertyDef propDef = taskAbstract.findProperty(name);
-			if (propDef != null)
+			if (propDef != null) {
+				if (propDef.type == TaskPropertyType.password)
+					value = StringUtils.base64decode(value);
 				taskItem.userProperties.setValue(propDef, value);
+			}
 		}
 		return taskItem;
 	}

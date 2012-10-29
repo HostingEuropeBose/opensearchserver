@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2009 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -31,20 +31,30 @@ import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.cache.CacheKeyInterface;
 import com.jaeksoft.searchlib.index.ReaderLocal;
-import com.jaeksoft.searchlib.index.StringIndex;
-import com.jaeksoft.searchlib.schema.Field;
+import com.jaeksoft.searchlib.result.collector.DocIdInterface;
+import com.jaeksoft.searchlib.schema.AbstractField;
 import com.jaeksoft.searchlib.util.DomUtils;
 import com.jaeksoft.searchlib.util.XmlWriter;
 
-public class SortField extends Field implements CacheKeyInterface<Field> {
+public class SortField extends AbstractField<SortField> implements
+		CacheKeyInterface<SortField> {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 3269790150800596793L;
 
 	private boolean desc;
 
-	public SortField() {
+	public SortField(String requestSort) {
+		super();
+		int c = requestSort.charAt(0);
+		desc = (c == '-');
+		name = (c == '+' || c == '-') ? requestSort.substring(1) : requestSort;
 	}
 
-	public SortField(String name, boolean desc) {
-		super(name);
+	public SortField(String fieldName, boolean desc) {
+		super(fieldName);
 		this.desc = desc;
 	}
 
@@ -69,45 +79,36 @@ public class SortField extends Field implements CacheKeyInterface<Field> {
 	}
 
 	@Override
-	public Field duplicate() {
+	public SortField duplicate() {
 		return new SortField(name, desc);
 	}
 
-	protected static SortField newSortField(String requestSort) {
-		int c = requestSort.charAt(0);
-		boolean desc = (c == '-');
-		String name = (c == '+' || c == '-') ? requestSort.substring(1)
-				: requestSort;
-		return new SortField(name, desc);
+	final public boolean isScore() {
+		return name.equals("score");
 	}
 
-	public SorterAbstract getSorter() {
-		if (name.equals("score")) {
+	public SorterAbstract getSorter(DocIdInterface collector, ReaderLocal reader)
+			throws IOException {
+		if (isScore()) {
 			if (desc)
-				return new DescComparableSorter<Float>();
+				return new DescScoreSorter(collector);
 			else
-				return new AscComparableSorter<Float>();
+				return new AscScoreSorter(collector);
 		}
 		if (desc)
-			return new DescComparableSorter<String>();
+			return new DescStringIndexSorter(collector,
+					reader.getStringIndex(name));
 		else
-			return new AscComparableSorter<String>();
-	}
-
-	public StringIndex getStringIndex(ReaderLocal reader) throws IOException {
-		if (name.equals("score"))
-			return null;
-		else
-			return reader.getStringIndex(name);
+			return new AscStringIndexSorter(collector,
+					reader.getStringIndex(name));
 	}
 
 	@Override
-	public int compareTo(Field o) {
+	public int compareTo(SortField o) {
 		int c = super.compareTo(o);
 		if (c != 0)
 			return c;
-		SortField f = (SortField) o;
-		if (desc == f.desc)
+		if (desc == o.desc)
 			return 0;
 		return desc ? -1 : 1;
 	}

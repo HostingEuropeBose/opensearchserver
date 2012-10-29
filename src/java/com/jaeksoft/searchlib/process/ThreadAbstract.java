@@ -25,35 +25,38 @@
 package com.jaeksoft.searchlib.process;
 
 import java.lang.Thread.State;
+import java.util.Date;
 
 import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.config.Config;
+import com.jaeksoft.searchlib.streamlimiter.LimitException;
 import com.jaeksoft.searchlib.util.InfoCallback;
 import com.jaeksoft.searchlib.util.ReadWriteLock;
+import com.jaeksoft.searchlib.web.StartStopListener;
 
 public abstract class ThreadAbstract implements Runnable, InfoCallback {
 
 	final private ReadWriteLock rwl = new ReadWriteLock();
 
-	private Config config;
+	private volatile Config config;
 
-	private ThreadMasterAbstract threadMaster;
+	private volatile ThreadMasterAbstract threadMaster;
 
-	private String info;
+	private volatile String info;
 
 	private volatile boolean abort;
 
-	private Thread thread;
+	private volatile Thread thread;
 
 	private volatile boolean running;
 
-	private long startTime;
+	private volatile long startTime;
 
-	private long idleTime;
+	private volatile long idleTime;
 
-	private long endTime;
+	private volatile long endTime;
 
-	private Exception exception;
+	private volatile Exception exception;
 
 	protected ThreadAbstract(Config config, ThreadMasterAbstract threadMaster) {
 		this.config = config;
@@ -97,6 +100,8 @@ public abstract class ThreadAbstract implements Runnable, InfoCallback {
 	}
 
 	public boolean isAborted() {
+		if (StartStopListener.isShutdown())
+			abort();
 		rwl.r.lock();
 		try {
 			return abort;
@@ -151,6 +156,8 @@ public abstract class ThreadAbstract implements Runnable, InfoCallback {
 	public boolean waitForEnd(int secTimeOut) {
 		long finalTime = System.currentTimeMillis() + secTimeOut * 1000;
 		while (isRunning()) {
+			if (isAborted())
+				return false;
 			if (secTimeOut != 0)
 				if (System.currentTimeMillis() > finalTime)
 					return false;
@@ -225,6 +232,19 @@ public abstract class ThreadAbstract implements Runnable, InfoCallback {
 
 	public abstract void release();
 
+	final private String getThreadName() {
+		StringBuffer sb = new StringBuffer();
+		if (config != null) {
+			sb.append("Index: ");
+			sb.append(config.getIndexName());
+			sb.append(' ');
+		}
+		sb.append(getClass().getSimpleName());
+		sb.append(' ');
+		sb.append(new Date(startTime));
+		return sb.toString();
+	}
+
 	@Override
 	final public void run() {
 		rwl.w.lock();
@@ -233,6 +253,7 @@ public abstract class ThreadAbstract implements Runnable, InfoCallback {
 			idleTime = startTime;
 			abort = false;
 			thread = Thread.currentThread();
+			thread.setName(getThreadName());
 		} finally {
 			rwl.w.unlock();
 		}
@@ -241,7 +262,8 @@ public abstract class ThreadAbstract implements Runnable, InfoCallback {
 		} catch (Exception e) {
 			setException(e);
 			setInfo(e.getMessage());
-			Logging.error(e.getMessage(), e);
+			if (!(e instanceof LimitException))
+				Logging.error(e.getMessage(), e);
 		}
 		if (threadMaster != null) {
 			threadMaster.remove(this);

@@ -202,7 +202,8 @@ public class BrowserController extends CrawlerController implements
 		}
 	}
 
-	public void onRefresh() {
+	@Override
+	public void doRefresh() throws SearchLibException {
 		synchronized (this) {
 			refreshCurrentFileList();
 			reloadPage();

@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2010 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -27,6 +27,10 @@ package com.jaeksoft.searchlib.util;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.lang.StringEscapeUtils;
 
 import com.jaeksoft.searchlib.Logging;
 
@@ -36,46 +40,63 @@ public class Timer {
 	private long endTime;
 	private String info;
 	private String error;
+	final private List<Timer> childs;
 
 	public Timer(String info) {
 		reset();
 		setInfo(info);
+		childs = new ArrayList<Timer>(0);
 	}
 
-	public void reset() {
+	public Timer(Timer parent, String info) {
+		this(info);
+		if (parent != null)
+			parent.childs.add(this);
+	}
+
+	final public void reset() {
 		startTime = System.currentTimeMillis();
 		endTime = 0;
 		info = null;
 		error = null;
 	}
 
-	public long getStartTime() {
+	final public long getStartTime() {
 		return startTime;
 	}
 
-	public long getEndTime() {
+	final public long getEndTime() {
 		return endTime;
 	}
 
-	public void setEnd() {
-		this.endTime = System.currentTimeMillis();
-	}
-
-	public String getInfo() {
+	final public String getInfo() {
 		return info;
 	}
 
-	public void setInfo(String info) {
+	final public void setInfo(String info) {
 		this.info = info;
 	}
 
-	public long duration() {
-		if (this.endTime == 0)
-			this.setEnd();
+	final public void end(String info) {
+		duration();
+		if (info != null)
+			setInfo(info);
+	}
+
+	final public long tempDuration() {
+		return System.currentTimeMillis() - this.startTime;
+	}
+
+	final public long duration() {
+		if (this.endTime == 0) {
+			this.endTime = System.currentTimeMillis();
+			for (Timer timer : childs)
+				timer.duration();
+		}
 		return this.endTime - this.startTime;
 	}
 
-	public void setError(Exception exception) {
+	final public void setError(Exception exception) {
 		StringWriter sw = new StringWriter();
 		PrintWriter pw = new PrintWriter(sw);
 		exception.printStackTrace(pw);
@@ -88,8 +109,26 @@ public class Timer {
 		this.error = sw.toString();
 	}
 
-	public String getError() {
+	final public String getError() {
 		return this.error;
+	}
+
+	final public void writeXml(PrintWriter writer, int minTime, int maxLevel) {
+		if (maxLevel == 0)
+			return;
+		if (maxLevel > 0)
+			maxLevel--;
+		long d = duration();
+		if (d < minTime)
+			return;
+		writer.print("<timer info=\"");
+		writer.print(StringEscapeUtils.escapeXml(info));
+		writer.print("\" duration=\"");
+		writer.print(d);
+		writer.println("\">");
+		for (Timer timer : childs)
+			timer.writeXml(writer, minTime, maxLevel);
+		writer.println("</timer>");
 	}
 
 }

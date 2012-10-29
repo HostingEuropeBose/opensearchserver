@@ -24,8 +24,11 @@
 
 package com.jaeksoft.searchlib.parser;
 
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 
 import javax.xml.xpath.XPathExpressionException;
 
@@ -39,6 +42,7 @@ import com.jaeksoft.searchlib.analysis.ClassProperty;
 import com.jaeksoft.searchlib.analysis.ClassPropertyEnum;
 import com.jaeksoft.searchlib.config.Config;
 import com.jaeksoft.searchlib.crawler.web.database.UrlFilterItem;
+import com.jaeksoft.searchlib.util.StringUtils;
 import com.jaeksoft.searchlib.util.XPathParser;
 import com.jaeksoft.searchlib.util.XmlWriter;
 
@@ -48,6 +52,8 @@ public class ParserFactory extends ClassFactory implements
 	final private static String PARSER_PACKAGE = "com.jaeksoft.searchlib.parser";
 
 	private Set<String> mimeTypeList;
+
+	private Map<String, Pattern> urlPatternList;
 
 	private Set<String> extensionList;
 
@@ -71,6 +77,7 @@ public class ParserFactory extends ClassFactory implements
 	@Override
 	protected void initProperties() throws SearchLibException {
 		addProperty(ClassPropertyEnum.PARSER_NAME, "", null);
+		addProperty(ClassPropertyEnum.PARSER_FAIL_OVER_NAME, "", null);
 	}
 
 	public ParserFieldEnum[] getFieldList() {
@@ -79,6 +86,10 @@ public class ParserFactory extends ClassFactory implements
 
 	public String getParserName() {
 		return getProperty(ClassPropertyEnum.PARSER_NAME).getValue();
+	}
+
+	public String getFailOverParserName() {
+		return getProperty(ClassPropertyEnum.PARSER_FAIL_OVER_NAME).getValue();
 	}
 
 	public ParserType getParserType() throws SearchLibException {
@@ -93,6 +104,12 @@ public class ParserFactory extends ClassFactory implements
 
 	public void setParserName(String parserName) throws SearchLibException {
 		getProperty(ClassPropertyEnum.PARSER_NAME).setValue(parserName);
+	}
+
+	public void setFailOverParserName(String parserName)
+			throws SearchLibException {
+		getProperty(ClassPropertyEnum.PARSER_FAIL_OVER_NAME).setValue(
+				parserName);
 	}
 
 	protected int getSizeLimit() {
@@ -138,6 +155,28 @@ public class ParserFactory extends ClassFactory implements
 		}
 	}
 
+	public void addUrlPattern(String urlPattern) {
+		synchronized (this) {
+			if (urlPattern == null)
+				return;
+			urlPattern = urlPattern.trim();
+			Pattern pattern = StringUtils.wildcardPattern(urlPattern);
+			if (urlPatternList == null)
+				urlPatternList = new TreeMap<String, Pattern>();
+			urlPatternList.put(urlPattern, pattern);
+		}
+	}
+
+	public void removeUrlPattern(String urlPattern) {
+		synchronized (this) {
+			if (urlPattern == null)
+				return;
+			urlPattern = urlPattern.trim();
+			if (urlPatternList != null)
+				urlPatternList.remove(urlPattern);
+		}
+	}
+
 	/**
 	 * Create a new ParserFactory by reading the attributes of an XML node
 	 * 
@@ -159,14 +198,21 @@ public class ParserFactory extends ClassFactory implements
 		NodeList mimeNodes = xpp.getNodeList(parserNode, "contentType");
 		for (int j = 0; j < mimeNodes.getLength(); j++) {
 			Node mimeNode = mimeNodes.item(j);
-			String contentType = xpp.getNodeString(mimeNode);
+			String contentType = xpp.getNodeString(mimeNode, false);
 			parserFactory.addMimeType(contentType);
+		}
+
+		NodeList urlPatternNodes = xpp.getNodeList(parserNode, "urlPattern");
+		for (int j = 0; j < urlPatternNodes.getLength(); j++) {
+			Node urlPatternNode = urlPatternNodes.item(j);
+			String urlPattern = xpp.getNodeString(urlPatternNode, false);
+			parserFactory.addUrlPattern(urlPattern);
 		}
 
 		NodeList extensionNodes = xpp.getNodeList(parserNode, "extension");
 		for (int j = 0; j < extensionNodes.getLength(); j++) {
 			Node extensionNode = extensionNodes.item(j);
-			String extension = xpp.getNodeString(extensionNode);
+			String extension = xpp.getNodeString(extensionNode, false);
 			parserFactory.addExtension(extension);
 		}
 		return parserFactory;
@@ -201,6 +247,9 @@ public class ParserFactory extends ClassFactory implements
 			newParser.extensionList = new TreeSet<String>(parser.extensionList);
 		if (parser.mimeTypeList != null)
 			newParser.mimeTypeList = new TreeSet<String>(parser.mimeTypeList);
+		if (parser.urlPatternList != null)
+			newParser.urlPatternList = new TreeMap<String, Pattern>(
+					parser.urlPatternList);
 		return newParser;
 	}
 
@@ -210,6 +259,26 @@ public class ParserFactory extends ClassFactory implements
 
 	public Set<String> getMimeTypeSet() {
 		return mimeTypeList;
+	}
+
+	public Set<String> getUrlPatternSet() {
+		if (urlPatternList == null)
+			return null;
+		return urlPatternList.keySet();
+	}
+
+	public boolean matchUrlPattern(String url) {
+		if (url == null) {
+			if (urlPatternList == null)
+				return true;
+			return urlPatternList.size() == 0;
+		}
+		if (urlPatternList == null)
+			return false;
+		for (Pattern pattern : urlPatternList.values())
+			if (pattern.matcher(url).matches())
+				return true;
+		return false;
 	}
 
 	/**
@@ -243,6 +312,13 @@ public class ParserFactory extends ClassFactory implements
 			for (String mimeType : mimeTypeList) {
 				xmlWriter.startElement("contentType");
 				xmlWriter.textNode(mimeType);
+				xmlWriter.endElement();
+			}
+		}
+		if (urlPatternList != null) {
+			for (String urlPattern : urlPatternList.keySet()) {
+				xmlWriter.startElement("urlPattern");
+				xmlWriter.textNode(urlPattern);
 				xmlWriter.endElement();
 			}
 		}

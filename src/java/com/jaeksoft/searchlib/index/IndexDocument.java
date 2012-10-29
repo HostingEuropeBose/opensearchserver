@@ -52,6 +52,7 @@ import com.jaeksoft.searchlib.logreport.ErrorParserLogger;
 import com.jaeksoft.searchlib.parser.Parser;
 import com.jaeksoft.searchlib.parser.ParserSelector;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
+import com.jaeksoft.searchlib.schema.FieldValueOriginEnum;
 import com.jaeksoft.searchlib.util.DomUtils;
 import com.jaeksoft.searchlib.util.StringUtils;
 import com.jaeksoft.searchlib.util.XPathParser;
@@ -66,6 +67,13 @@ public class IndexDocument implements Iterable<FieldContent> {
 		fields = new TreeMap<String, FieldContent>();
 		this.lang = null;
 		fieldContentArray = null;
+	}
+
+	public IndexDocument(IndexDocument sourceDocument) {
+		this(sourceDocument.lang);
+		for (Map.Entry<String, FieldContent> entry : sourceDocument.fields
+				.entrySet())
+			add(entry.getKey(), entry.getValue());
 	}
 
 	public IndexDocument(LanguageEnum lang) {
@@ -218,12 +226,9 @@ public class IndexDocument implements Iterable<FieldContent> {
 		try {
 			DownloadItem downloadItem = httpDownloader.get(new URI(url),
 					credentialItem);
-			Parser parser = parserSelector.getParser(null,
-					downloadItem.getContentBaseType());
-			if (parser == null)
-				return null;
-			parser.parseContent(downloadItem.getContentInputStream(), lang);
-			return parser;
+			return parserSelector.parseStream(null, downloadItem.getFileName(),
+					downloadItem.getContentBaseType(), url,
+					downloadItem.getContentInputStream(), lang, null);
 		} catch (RuntimeException e) {
 			throw new SearchLibException(
 					"Parser error while getting binary from URL: " + url, e);
@@ -239,11 +244,8 @@ public class IndexDocument implements Iterable<FieldContent> {
 			String filename, String contentType, String content)
 			throws SearchLibException {
 		try {
-			Parser parser = parserSelector.getParser(filename, contentType);
-			if (parser == null)
-				return null;
-			parser.parseContentBase64(content, filename, lang);
-			return parser;
+			return parserSelector.parseBase64(null, filename, contentType,
+					null, content, lang);
 		} catch (RuntimeException e) {
 			throw new SearchLibException("Parser error while getting binary : "
 					+ filename + " /" + contentType, e);
@@ -257,14 +259,11 @@ public class IndexDocument implements Iterable<FieldContent> {
 			String filename, String contentType, String filePath)
 			throws SearchLibException {
 		try {
-			Parser parser = parserSelector.getParser(filename, contentType);
-			if (parser == null)
-				return null;
 			File f = new File(filePath);
 			if (f.isDirectory())
 				f = new File(f, filename);
-			parser.parseContent(f, lang);
-			return parser;
+			return parserSelector.parseFile(null, filename, contentType, null,
+					f, lang);
 		} catch (RuntimeException e) {
 			throw new SearchLibException(
 					"Parser error while getting binary from file : " + filePath
@@ -276,14 +275,7 @@ public class IndexDocument implements Iterable<FieldContent> {
 		}
 	}
 
-	public IndexDocument(IndexDocument sourceDocument) {
-		this.lang = sourceDocument.lang;
-		for (Map.Entry<String, FieldContent> entry : sourceDocument.fields
-				.entrySet())
-			add(entry.getKey(), entry.getValue());
-	}
-
-	private FieldContent getFieldContent(String field) {
+	public FieldContent getFieldContent(String field) {
 		FieldContent fc = fields.get(field);
 		if (fc == null) {
 			fc = new FieldContent(field);
@@ -301,7 +293,8 @@ public class IndexDocument implements Iterable<FieldContent> {
 	public void add(String field, String value, Float boost) {
 		if (value == null || value.length() == 0)
 			return;
-		add(field, new FieldValueItem(value, boost));
+		add(field, new FieldValueItem(FieldValueOriginEnum.EXTERNAL, value,
+				boost));
 	}
 
 	public void addObject(String field, Object object) {
@@ -313,10 +306,10 @@ public class IndexDocument implements Iterable<FieldContent> {
 	public void addString(String field, String value) {
 		if (value == null)
 			return;
-		add(field, new FieldValueItem(value));
+		add(field, new FieldValueItem(FieldValueOriginEnum.EXTERNAL, value));
 	}
 
-	public void addFieldValueList(String field, List<FieldValueItem> values) {
+	public void addFieldValueArray(String field, FieldValueItem[] values) {
 		if (values == null)
 			return;
 		for (FieldValueItem value : values)
@@ -340,7 +333,7 @@ public class IndexDocument implements Iterable<FieldContent> {
 	public void add(String field, FieldContent fieldContent) {
 		if (fieldContent == null)
 			return;
-		addFieldValueList(field, fieldContent.getValues());
+		addFieldValueArray(field, fieldContent.getValues());
 	}
 
 	private void addIfNotAlreadyHere(FieldContent fieldContent) {
@@ -381,11 +374,11 @@ public class IndexDocument implements Iterable<FieldContent> {
 		addStringList(field, values);
 	}
 
-	public void setFieldValueItems(String field, List<FieldValueItem> values) {
+	public void setFieldValueItems(String field, FieldValueItem[] values) {
 		FieldContent fc = fields.get(field);
 		if (fc != null)
 			fc.clear();
-		addFieldValueList(field, values);
+		addFieldValueArray(field, values);
 	}
 
 	public void setObjectList(String field, List<Object> values) {

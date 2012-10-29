@@ -31,7 +31,6 @@ import org.zkoss.zul.Messagebox;
 
 import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.schema.Field;
 import com.jaeksoft.searchlib.schema.Indexed;
 import com.jaeksoft.searchlib.schema.Schema;
 import com.jaeksoft.searchlib.schema.SchemaField;
@@ -52,12 +51,6 @@ public class FieldsController extends CommonController {
 
 	private transient SchemaField selectedField;
 
-	private transient List<String> indexedFields;
-
-	private transient List<SchemaField> schemaFieldList;
-
-	private transient List<String> analyzerNameList;
-
 	public FieldsController() throws SearchLibException {
 		super();
 	}
@@ -66,9 +59,6 @@ public class FieldsController extends CommonController {
 	protected void reset() {
 		field = new SchemaField();
 		selectedField = null;
-		schemaFieldList = null;
-		indexedFields = null;
-		analyzerNameList = null;
 	}
 
 	public SchemaField getField() {
@@ -83,7 +73,7 @@ public class FieldsController extends CommonController {
 		reloadComponent("editField");
 	}
 
-	public void onCancel() {
+	public void onCancel() throws SearchLibException {
 		field = new SchemaField();
 		selectedField = null;
 		reloadPage();
@@ -94,7 +84,7 @@ public class FieldsController extends CommonController {
 			throw new SearchLibException("Not allowed");
 		Client client = getClient();
 		Schema schema = client.getSchema();
-		schema.getFieldList().remove(selectedField);
+		schema.getFieldList().remove(selectedField.getName());
 		field = new SchemaField();
 		selectedField = null;
 		SchemaServlet.saveSchema(client, schema);
@@ -112,9 +102,9 @@ public class FieldsController extends CommonController {
 		Client client = getClient();
 		Schema schema = client.getSchema();
 		if (selectedField != null)
-			selectedField.copy(field);
+			selectedField.copyFrom(field);
 		else
-			schema.getFieldList().add(field);
+			schema.getFieldList().put(field);
 		field = new SchemaField();
 		selectedField = null;
 		SchemaServlet.saveSchema(client, schema);
@@ -122,7 +112,7 @@ public class FieldsController extends CommonController {
 
 	public void setSelectedField(SchemaField selectedField) {
 		this.selectedField = selectedField;
-		field.copy(selectedField);
+		field.copyFrom(selectedField);
 		reloadEditField();
 	}
 
@@ -146,28 +136,12 @@ public class FieldsController extends CommonController {
 		return TermVector.values();
 	}
 
-	public List<String> getAnalyzerNameList() throws SearchLibException {
-		Client client = getClient();
-		if (client == null)
-			return null;
-		if (analyzerNameList != null)
-			return analyzerNameList;
-		analyzerNameList = new ArrayList<String>();
-		analyzerNameList.add("");
-		for (String n : client.getSchema().getAnalyzerList().getNameSet())
-			analyzerNameList.add(n);
-		return analyzerNameList;
-	}
-
-	public List<SchemaField> getSortedList() throws SearchLibException {
+	public List<SchemaField> getList() throws SearchLibException {
 		synchronized (this) {
 			Client client = getClient();
 			if (client == null)
 				return null;
-			if (schemaFieldList == null)
-				schemaFieldList = client.getSchema().getFieldList()
-						.getSortedList();
-			return schemaFieldList;
+			return client.getSchema().getFieldList().getList();
 		}
 	}
 
@@ -181,9 +155,7 @@ public class FieldsController extends CommonController {
 			Client client = getClient();
 			if (client == null)
 				return null;
-			if (indexedFields != null)
-				return indexedFields;
-			indexedFields = new ArrayList<String>();
+			List<String> indexedFields = new ArrayList<String>(0);
 			indexedFields.add(null);
 			for (SchemaField field : client.getSchema().getFieldList())
 				if (field.isIndexed())
@@ -196,7 +168,7 @@ public class FieldsController extends CommonController {
 		Client client = getClient();
 		if (client == null)
 			return null;
-		Field field = client.getSchema().getFieldList().getUniqueField();
+		SchemaField field = client.getSchema().getFieldList().getUniqueField();
 		if (field == null)
 			return null;
 		return field.getName();
@@ -214,7 +186,7 @@ public class FieldsController extends CommonController {
 		Client client = getClient();
 		if (client == null)
 			return null;
-		Field field = client.getSchema().getFieldList().getDefaultField();
+		SchemaField field = client.getSchema().getFieldList().getDefaultField();
 		if (field == null)
 			return null;
 		return field.getName();
@@ -230,14 +202,11 @@ public class FieldsController extends CommonController {
 
 	@Override
 	public void eventSchemaChange() throws SearchLibException {
-		schemaFieldList = null;
-		indexedFields = null;
-		analyzerNameList = null;
 		super.reloadPage();
 	}
 
 	@Override
-	public void reloadPage() {
+	public void reloadPage() throws SearchLibException {
 		synchronized (this) {
 			reset();
 			super.reloadPage();

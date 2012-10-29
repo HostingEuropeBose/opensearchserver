@@ -24,7 +24,6 @@
 
 package com.jaeksoft.searchlib.crawler;
 
-import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.util.ExtensibleEnum;
@@ -50,8 +49,7 @@ public class ItemField extends ExtensibleEnumItem<ItemField> {
 		request.addFilter(sb.toString(), negative);
 	}
 
-	public void addSort(SearchRequest request, boolean desc)
-			throws SearchLibException {
+	public void addSort(SearchRequest request, boolean desc) {
 		request.addSort(name, desc);
 	}
 

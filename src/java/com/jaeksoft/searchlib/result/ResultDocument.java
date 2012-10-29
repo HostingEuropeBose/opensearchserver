@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -24,93 +24,106 @@
 
 package com.jaeksoft.searchlib.result;
 
-import java.io.Externalizable;
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.ReaderLocal;
 import com.jaeksoft.searchlib.query.ParseException;
-import com.jaeksoft.searchlib.request.DocumentsRequest;
-import com.jaeksoft.searchlib.schema.Field;
-import com.jaeksoft.searchlib.schema.FieldList;
+import com.jaeksoft.searchlib.request.RequestInterfaces;
+import com.jaeksoft.searchlib.request.ReturnField;
+import com.jaeksoft.searchlib.request.SearchRequest;
+import com.jaeksoft.searchlib.result.collector.CollapseDocInterface;
+import com.jaeksoft.searchlib.result.collector.DocIdInterface;
+import com.jaeksoft.searchlib.result.collector.ScoreDocInterface;
+import com.jaeksoft.searchlib.schema.AbstractField;
 import com.jaeksoft.searchlib.schema.FieldValue;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
 import com.jaeksoft.searchlib.snippet.SnippetField;
 import com.jaeksoft.searchlib.snippet.SnippetFieldValue;
-import com.jaeksoft.searchlib.util.External;
+import com.jaeksoft.searchlib.util.Timer;
 
-public class ResultDocument implements Externalizable {
+public class ResultDocument {
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 6099412341625264882L;
+	final private Map<String, FieldValue> returnFields;
+	final private Map<String, SnippetFieldValue> snippetFields;
+	final private int docId;
 
-	private FieldList<FieldValue> returnFields;
-	private FieldList<SnippetFieldValue> snippetFields;
+	public ResultDocument(SearchRequest searchRequest,
+			TreeSet<String> fieldSet, int docId, ReaderLocal reader, Timer timer)
+			throws IOException, ParseException, SyntaxError, SearchLibException {
 
-	public ResultDocument() {
-	}
+		this.docId = docId;
 
-	public ResultDocument(DocumentsRequest documentsRequest, int doc,
-			ReaderLocal reader) throws IOException, ParseException,
-			SyntaxError, SearchLibException {
+		returnFields = new TreeMap<String, FieldValue>();
+		snippetFields = new TreeMap<String, SnippetFieldValue>();
 
-		FieldList<FieldValue> documentFields = reader.getDocumentFields(doc,
-				documentsRequest.getDocumentFieldList());
+		Map<String, FieldValue> documentFields = reader.getDocumentFields(
+				docId, fieldSet, timer);
 
-		returnFields = new FieldList<FieldValue>();
-		snippetFields = new FieldList<SnippetFieldValue>();
-
-		for (Field field : documentsRequest.getReturnFieldList()) {
-			FieldValue fieldValue = documentFields.get(field);
+		for (ReturnField field : searchRequest.getReturnFieldList()) {
+			String fieldName = field.getName();
+			FieldValue fieldValue = documentFields.get(fieldName);
 			if (fieldValue != null)
-				returnFields.add(fieldValue);
+				returnFields.put(fieldName, fieldValue);
 		}
 
-		for (SnippetField field : documentsRequest.getSnippetFieldList()) {
+		for (SnippetField field : searchRequest.getSnippetFieldList()) {
+			String fieldName = field.getName();
+			field.initSearchTerms(searchRequest);
 			List<FieldValueItem> snippets = new ArrayList<FieldValueItem>();
-			boolean isSnippet = field.getSnippets(doc, reader, documentFields
-					.get(field).getValueArray(), snippets);
-			SnippetFieldValue fieldValue = new SnippetFieldValue(field,
+			boolean isSnippet = field.getSnippets(docId, reader, documentFields
+					.get(fieldName).getValueArray(), snippets);
+			SnippetFieldValue fieldValue = new SnippetFieldValue(fieldName,
 					snippets, isSnippet);
-			snippetFields.add(fieldValue);
+			snippetFields.put(fieldName, fieldValue);
 		}
 	}
 
-	public FieldList<FieldValue> getReturnFields() {
+	public ResultDocument(RequestInterfaces.ReturnedFieldInterface rfiRequest,
+			TreeSet<String> fieldSet, int docId, ReaderLocal reader, Timer timer)
+			throws IOException, ParseException, SyntaxError {
+		this.docId = docId;
+		returnFields = reader.getDocumentFields(docId, fieldSet, timer);
+		snippetFields = new TreeMap<String, SnippetFieldValue>();
+	}
+
+	public static <T> List<T> toList(Map<String, T> map) {
+		List<T> list = new ArrayList<T>(0);
+		for (T fv : map.values())
+			list.add(fv);
+		return list;
+	}
+
+	public Map<String, FieldValue> getReturnFields() {
 		return returnFields;
 	}
 
-	public FieldList<SnippetFieldValue> getSnippetFields() {
+	public Map<String, SnippetFieldValue> getSnippetFields() {
 		return snippetFields;
 	}
 
-	public FieldValueItem[] getValueArray(Field field) {
-		return returnFields.get(field).getValueArray();
-	}
-
-	public List<FieldValueItem> getValueList(Field field) {
-		return getValueList(field.getName());
+	public FieldValueItem[] getValueArray(AbstractField<?> field) {
+		if (field == null)
+			return null;
+		return getValueArray(field.getName());
 	}
 
 	public FieldValueItem[] getValueArray(String fieldName) {
-		return returnFields.get(fieldName).getValueArray();
-	}
-
-	public List<FieldValueItem> getValueList(String fieldName) {
+		if (fieldName == null)
+			return null;
 		FieldValue fieldValue = returnFields.get(fieldName);
 		if (fieldValue == null)
 			return null;
-		return fieldValue.getValueList();
+		return fieldValue.getValueArray();
 	}
 
-	public String getValueContent(Field field, int pos) {
+	public String getValueContent(AbstractField<?> field, int pos) {
 		FieldValueItem[] values = getValueArray(field);
 		if (values == null)
 			return null;
@@ -126,26 +139,35 @@ public class ResultDocument implements Externalizable {
 		return getValueContent(field, pos);
 	}
 
-	public FieldValueItem[] getSnippetArray(SnippetField field) {
-		return snippetFields.get(field).getValueArray();
+	final public FieldValueItem[] getSnippetArray(SnippetField field) {
+		if (field == null)
+			return null;
+		return getSnippetArray(field.getName());
 	}
 
-	public List<FieldValueItem> getSnippetValue(SnippetField field) {
-		return snippetFields.get(field).getValueList();
+	final public FieldValueItem[] getSnippetValue(SnippetField field) {
+		if (field == null)
+			return null;
+		return getSnippetArray(field.getName());
 	}
 
-	public FieldValueItem[] getSnippetArray(String fieldName) {
-		return snippetFields.get(fieldName).getValueArray();
+	final public FieldValueItem[] getSnippetArray(String fieldName) {
+		SnippetFieldValue fieldValue = snippetFields.get(fieldName);
+		if (fieldValue == null)
+			return null;
+		return fieldValue.getValueArray();
 	}
 
-	public List<FieldValueItem> getSnippetList(String fieldName) {
+	public FieldValueItem[] getSnippetList(String fieldName) {
 		SnippetFieldValue snippetFieldValue = snippetFields.get(fieldName);
 		if (snippetFieldValue == null)
 			return null;
-		return snippetFieldValue.getValueList();
+		return snippetFieldValue.getValueArray();
 	}
 
-	public List<FieldValueItem> getSnippetList(Field field) {
+	public FieldValueItem[] getSnippetList(AbstractField<?> field) {
+		if (field == null)
+			return null;
 		return getSnippetList(field.getName());
 	}
 
@@ -162,17 +184,45 @@ public class ResultDocument implements Externalizable {
 		return snippetFields.get(fieldName).isHighlighted();
 	}
 
-	@Override
-	public void readExternal(ObjectInput in) throws IOException,
-			ClassNotFoundException {
-		returnFields = External.readObject(in);
-		snippetFields = External.readObject(in);
+	public void appendIfStringDoesNotExist(ResultDocument rd) {
+		for (FieldValue newFieldValue : rd.returnFields.values()) {
+			String fieldName = newFieldValue.getName();
+			FieldValue fieldValue = returnFields.get(fieldName);
+			if (fieldValue == null)
+				returnFields.put(fieldName, fieldValue);
+			else
+				fieldValue.addIfStringDoesNotExist(newFieldValue
+						.getValueArray());
+		}
+		for (SnippetFieldValue newFieldValue : rd.snippetFields.values()) {
+			String fieldName = newFieldValue.getName();
+			SnippetFieldValue fieldValue = snippetFields.get(fieldName);
+			if (fieldValue == null)
+				snippetFields.put(fieldName, fieldValue);
+			else
+				fieldValue.addIfStringDoesNotExist(newFieldValue
+						.getValueArray());
+		}
 	}
 
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		External.writeObject(returnFields, out);
-		External.writeObject(snippetFields, out);
+	final public static float getScore(DocIdInterface docs, int pos) {
+		if (docs == null)
+			return 0;
+		if (!(docs instanceof ScoreDocInterface))
+			return 0;
+		return ((ScoreDocInterface) docs).getScores()[pos];
+	}
+
+	final public static int getCollapseCount(DocIdInterface docs, int pos) {
+		if (docs == null)
+			return 0;
+		if (!(docs instanceof CollapseDocInterface))
+			return 0;
+		return ((CollapseDocInterface) docs).getCollapseCounts()[pos];
+	}
+
+	public int getDocId() {
+		return docId;
 	}
 
 }

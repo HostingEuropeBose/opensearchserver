@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2010 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2010-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -26,6 +26,8 @@ package com.jaeksoft.searchlib.crawler.database;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.TreeMap;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPathExpressionException;
@@ -34,17 +36,19 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import com.jaeksoft.searchlib.crawler.UniqueNameSetGeneric;
+import com.jaeksoft.searchlib.util.ReadWriteLock;
 import com.jaeksoft.searchlib.util.XPathParser;
 import com.jaeksoft.searchlib.util.XmlWriter;
 
-public class DatabaseCrawlList extends UniqueNameSetGeneric<DatabaseCrawl> {
+public class DatabaseCrawlList {
 
-	private DatabaseCrawlMaster databaseCrawlMaster;
+	final private ReadWriteLock rwl = new ReadWriteLock();
 
-	private DatabaseCrawlList(DatabaseCrawlMaster databaseCrawlMaster) {
-		this.databaseCrawlMaster = databaseCrawlMaster;
-		init();
+	private TreeMap<String, DatabaseCrawl> map;
+	private DatabaseCrawl[] array;
+
+	private DatabaseCrawlList() {
+		map = new TreeMap<String, DatabaseCrawl>();
 	}
 
 	private final static String DBCRAWLLIST_ROOTNODE_NAME = "databaseCrawlList";
@@ -53,8 +57,7 @@ public class DatabaseCrawlList extends UniqueNameSetGeneric<DatabaseCrawl> {
 			DatabaseCrawlMaster databaseCrawlMaster, File file)
 			throws XPathExpressionException, ParserConfigurationException,
 			SAXException, IOException {
-		DatabaseCrawlList dbCrawlList = new DatabaseCrawlList(
-				databaseCrawlMaster);
+		DatabaseCrawlList dbCrawlList = new DatabaseCrawlList();
 		if (!file.exists())
 			return dbCrawlList;
 		XPathParser xpp = new XPathParser(file);
@@ -73,18 +76,60 @@ public class DatabaseCrawlList extends UniqueNameSetGeneric<DatabaseCrawl> {
 		return dbCrawlList;
 	}
 
-	public void writeXml(XmlWriter xmlWriter) throws SAXException {
-		writeXml(DBCRAWLLIST_ROOTNODE_NAME, xmlWriter);
+	public void add(DatabaseCrawl dbCrawl) {
+		rwl.w.lock();
+		try {
+			map.put(dbCrawl.getName(), dbCrawl);
+			buildArray();
+		} finally {
+			rwl.w.unlock();
+		}
 	}
 
-	@Override
-	protected DatabaseCrawl[] newArray(int size) {
-		return new DatabaseCrawl[size];
+	public DatabaseCrawl get(String name) {
+		rwl.r.lock();
+		try {
+			return map.get(name);
+		} finally {
+			rwl.r.unlock();
+		}
 	}
 
-	@Override
-	protected DatabaseCrawl newItem(String name) {
-		return new DatabaseCrawl(databaseCrawlMaster, name);
+	public void remove(DatabaseCrawl dbCrawl) {
+		rwl.w.lock();
+		try {
+			map.remove(dbCrawl.getName());
+			buildArray();
+		} finally {
+			rwl.w.unlock();
+		}
+	}
+
+	public void writeXml(XmlWriter xmlWriter) throws SAXException,
+			UnsupportedEncodingException {
+		rwl.r.lock();
+		try {
+			xmlWriter.startElement(DBCRAWLLIST_ROOTNODE_NAME);
+			for (DatabaseCrawl item : map.values())
+				item.writeXml(xmlWriter);
+			xmlWriter.endElement();
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	private void buildArray() {
+		array = new DatabaseCrawl[map.size()];
+		map.values().toArray(array);
+	}
+
+	public DatabaseCrawl[] getArray() {
+		rwl.r.lock();
+		try {
+			return array;
+		} finally {
+			rwl.r.unlock();
+		}
 	}
 
 }

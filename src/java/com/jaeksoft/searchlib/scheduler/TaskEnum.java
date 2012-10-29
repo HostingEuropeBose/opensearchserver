@@ -26,10 +26,15 @@ package com.jaeksoft.searchlib.scheduler;
 
 import com.jaeksoft.searchlib.scheduler.task.TaskBuildAutocompletion;
 import com.jaeksoft.searchlib.scheduler.task.TaskDatabaseCrawlerRun;
+import com.jaeksoft.searchlib.scheduler.task.TaskDeleteAll;
 import com.jaeksoft.searchlib.scheduler.task.TaskDeleteQuery;
 import com.jaeksoft.searchlib.scheduler.task.TaskFileCrawlerStart;
 import com.jaeksoft.searchlib.scheduler.task.TaskFileCrawlerStop;
+import com.jaeksoft.searchlib.scheduler.task.TaskFlushCrawlCache;
+import com.jaeksoft.searchlib.scheduler.task.TaskFtpXmlFeed;
 import com.jaeksoft.searchlib.scheduler.task.TaskOptimizeIndex;
+import com.jaeksoft.searchlib.scheduler.task.TaskPullFields;
+import com.jaeksoft.searchlib.scheduler.task.TaskPullTerms;
 import com.jaeksoft.searchlib.scheduler.task.TaskReplicationRun;
 import com.jaeksoft.searchlib.scheduler.task.TaskUploadMonitor;
 import com.jaeksoft.searchlib.scheduler.task.TaskWebCrawlerStart;
@@ -46,6 +51,8 @@ public class TaskEnum extends ExtensibleEnum<TaskEnumItem> {
 
 		new TaskEnumItem(this, TaskDeleteQuery.class);
 
+		new TaskEnumItem(this, TaskDeleteAll.class);
+
 		new TaskEnumItem(this, TaskFileCrawlerStart.class);
 
 		new TaskEnumItem(this, TaskFileCrawlerStop.class);
@@ -61,6 +68,14 @@ public class TaskEnum extends ExtensibleEnum<TaskEnumItem> {
 		new TaskEnumItem(this, TaskWebCrawlerStop.class);
 
 		new TaskEnumItem(this, TaskXmlLoad.class);
+
+		new TaskEnumItem(this, TaskFtpXmlFeed.class);
+
+		new TaskEnumItem(this, TaskPullTerms.class);
+
+		new TaskEnumItem(this, TaskPullFields.class);
+
+		new TaskEnumItem(this, TaskFlushCrawlCache.class);
 
 	}
 

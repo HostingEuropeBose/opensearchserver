@@ -24,36 +24,40 @@
 
 package com.jaeksoft.searchlib.result;
 
-import javax.servlet.http.HttpServletRequest;
+import java.util.Iterator;
 
+import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.collapse.CollapseAbstract;
 import com.jaeksoft.searchlib.facet.FacetList;
+import com.jaeksoft.searchlib.join.JoinResult;
 import com.jaeksoft.searchlib.render.Render;
-import com.jaeksoft.searchlib.render.RenderJsp;
+import com.jaeksoft.searchlib.render.RenderCSV;
+import com.jaeksoft.searchlib.render.RenderSearchJson;
 import com.jaeksoft.searchlib.render.RenderSearchXml;
 import com.jaeksoft.searchlib.request.SearchRequest;
+import com.jaeksoft.searchlib.result.collector.DocIdCollector;
+import com.jaeksoft.searchlib.result.collector.DocIdInterface;
+import com.jaeksoft.searchlib.util.Timer;
 
 public abstract class AbstractResultSearch extends
-		AbstractResult<SearchRequest> {
+		AbstractResult<SearchRequest> implements
+		ResultDocumentsInterface<SearchRequest> {
 
 	transient protected CollapseAbstract collapse;
 	protected FacetList facetList;
-	private ResultScoreDoc[] docs;
+	protected DocIdInterface docs;
 	protected int numFound;
 	protected float maxScore;
 	protected int collapsedDocCount;
-	private ResultDocument[] resultDocuments;
-
-	private final static ResultDocument[] noDocuments = new ResultDocument[0];
-	private final static ResultScoreDoc[] noResultScoreDocs = new ResultScoreDoc[0];
+	private JoinResult[] joinResults;
 
 	protected AbstractResultSearch(SearchRequest searchRequest) {
 		super(searchRequest);
-		this.resultDocuments = noDocuments;
 		this.numFound = 0;
 		this.maxScore = 0;
 		this.collapsedDocCount = 0;
-		this.docs = noResultScoreDocs;
+		this.docs = DocIdCollector.EMPTY;
+		this.joinResults = JoinResult.EMPTY_ARRAY;
 		if (searchRequest.getFacetFieldList().size() > 0)
 			this.facetList = new FacetList();
 		collapse = CollapseAbstract.newInstance(searchRequest);
@@ -63,39 +67,59 @@ public abstract class AbstractResultSearch extends
 		return this.facetList;
 	}
 
-	protected void setDocuments(ResultDocument[] resultDocuments) {
-		this.resultDocuments = resultDocuments == null ? noDocuments
-				: resultDocuments;
+	protected void setJoinResults(JoinResult[] joinResults) {
+		this.joinResults = joinResults == null ? JoinResult.EMPTY_ARRAY
+				: joinResults;
 	}
 
-	public ResultDocument getDocument(int pos) {
-		if (pos < request.getStart())
-			return null;
-		if (pos >= request.getEnd())
-			return null;
-		if (pos >= getDocLength())
-			return null;
-		return resultDocuments[pos - request.getStart()];
+	public ResultDocument getDocument(int pos) throws SearchLibException {
+		return getDocument(pos, null);
 	}
 
+	@Override
+	public abstract ResultDocument getDocument(int pos, Timer timer)
+			throws SearchLibException;
+
+	public Iterator<ResultDocument> iterator(Timer timer) {
+		return new ResultDocumentIterator(this, timer);
+	}
+
+	@Override
+	public Iterator<ResultDocument> iterator() {
+		return new ResultDocumentIterator(this, null);
+	}
+
+	@Override
 	public float getMaxScore() {
 		return maxScore;
 	}
 
+	@Override
 	public int getNumFound() {
 		return numFound;
 	}
 
-	protected void setDocs(ResultScoreDoc[] docs) {
-		this.docs = docs == null ? noResultScoreDocs : docs;
+	@Override
+	public int getRequestStart() {
+		return request.getStart();
+	}
+
+	@Override
+	public int getRequestRows() {
+		return request.getRows();
+	}
+
+	protected void setDocs(DocIdInterface docs) {
+		this.docs = docs == null ? DocIdCollector.EMPTY : docs;
 	}
 
 	public int getDocLength() {
 		if (docs == null)
 			return 0;
-		return docs.length;
+		return docs.getSize();
 	}
 
+	@Override
 	public int getDocumentCount() {
 		int end = request.getEnd();
 		int len = getDocLength();
@@ -104,11 +128,12 @@ public abstract class AbstractResultSearch extends
 		return end - request.getStart();
 	}
 
-	public ResultDocument[] getDocuments() {
-		return resultDocuments;
+	public JoinResult[] getJoinResult() {
+		return joinResults;
 	}
 
-	public ResultScoreDoc[] getDocs() {
+	@Override
+	public DocIdInterface getDocs() {
 		return docs;
 	}
 
@@ -116,20 +141,19 @@ public abstract class AbstractResultSearch extends
 		return collapse;
 	}
 
-	public int getCollapseDocCount() {
+	@Override
+	public int getCollapsedDocCount() {
 		return collapsedDocCount;
 	}
 
+	@Override
 	public float getScore(int pos) {
-		if (docs == null)
-			return 0;
-		return docs[pos].score;
+		return ResultDocument.getScore(docs, pos);
 	}
 
+	@Override
 	public int getCollapseCount(int pos) {
-		if (docs == null)
-			return 0;
-		return docs[pos].collapseCount;
+		return ResultDocument.getCollapseCount(docs, pos);
 	}
 
 	@Override
@@ -139,13 +163,8 @@ public abstract class AbstractResultSearch extends
 		sb.append(" founds.");
 		if (docs != null) {
 			sb.append(' ');
-			sb.append(docs.length);
+			sb.append(docs.getSize());
 			sb.append(" docs.");
-		}
-		if (resultDocuments != null) {
-			sb.append(' ');
-			sb.append(resultDocuments.length);
-			sb.append("resultDocuments.");
 		}
 		sb.append(" MaxScore: ");
 		sb.append(maxScore);
@@ -156,19 +175,19 @@ public abstract class AbstractResultSearch extends
 		return sb.toString();
 	}
 
-	public Render getRender(HttpServletRequest request) {
-
-		Render render = null;
-
-		String p;
-		if ((p = request.getParameter("render")) != null) {
-			if ("jsp".equals(p))
-				render = new RenderJsp(request.getParameter("jsp"), this);
-		}
-
-		if (render == null)
-			render = new RenderSearchXml(this);
-
-		return render;
+	@Override
+	protected Render getRenderXml() {
+		return new RenderSearchXml(this);
 	}
+
+	@Override
+	protected Render getRenderCsv() {
+		return new RenderCSV(this);
+	}
+
+	@Override
+	protected Render getRenderJson(boolean indent) {
+		return new RenderSearchJson(this, indent);
+	}
+
 }

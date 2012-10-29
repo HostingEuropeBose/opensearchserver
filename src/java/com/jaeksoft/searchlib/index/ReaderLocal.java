@@ -30,20 +30,21 @@ import java.io.PrintWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
-
-import org.apache.commons.io.FileUtils;
+import java.util.Map;
+import java.util.Set;
 
 import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.Analyzer;
-import com.jaeksoft.searchlib.analysis.filter.stop.WordArray;
 import com.jaeksoft.searchlib.cache.FieldCache;
 import com.jaeksoft.searchlib.cache.FilterCache;
 import com.jaeksoft.searchlib.cache.SearchCache;
 import com.jaeksoft.searchlib.cache.SpellCheckerCache;
-import com.jaeksoft.searchlib.filter.Filter;
+import com.jaeksoft.searchlib.filter.FilterAbstract;
 import com.jaeksoft.searchlib.filter.FilterHits;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.term.Term;
@@ -56,18 +57,18 @@ import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.remote.UriWriteStream;
 import com.jaeksoft.searchlib.request.AbstractRequest;
-import com.jaeksoft.searchlib.request.DocumentRequest;
-import com.jaeksoft.searchlib.request.DocumentsRequest;
 import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.result.AbstractResult;
-import com.jaeksoft.searchlib.result.ResultDocument;
-import com.jaeksoft.searchlib.schema.Field;
-import com.jaeksoft.searchlib.schema.FieldList;
+import com.jaeksoft.searchlib.result.collector.AbstractCollector;
 import com.jaeksoft.searchlib.schema.FieldValue;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
+import com.jaeksoft.searchlib.schema.FieldValueOriginEnum;
 import com.jaeksoft.searchlib.schema.Schema;
-import com.jaeksoft.searchlib.sort.SortList;
+import com.jaeksoft.searchlib.schema.SchemaField;
+import com.jaeksoft.searchlib.sort.SortFieldList;
 import com.jaeksoft.searchlib.util.ReadWriteLock;
+import com.jaeksoft.searchlib.util.Timer;
+import com.jaeksoft.searchlib.web.controller.query.ResultDocumentController.Document;
 
 public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 
@@ -83,39 +84,19 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 	private File rootDir;
 	private File dataDir;
 
-	private boolean readOnly;
-	private String similarityClass;
-
-	private ReaderLocal(File rootDir, File dataDir, String similarityClass,
-			boolean readOnly) throws IOException, InstantiationException,
-			IllegalAccessException, ClassNotFoundException {
-		this.similarityClass = similarityClass;
-		this.readOnly = readOnly;
-		init(rootDir, dataDir);
-	}
-
-	private void init(File rootDir, File dataDir) throws IOException,
-			InstantiationException, IllegalAccessException,
+	private ReaderLocal(IndexConfig indexConfig, File rootDir, File dataDir)
+			throws IOException, InstantiationException, IllegalAccessException,
 			ClassNotFoundException {
-		rwl.w.lock();
-		try {
-			this.rootDir = rootDir;
-			this.dataDir = dataDir;
-			this.indexReader = new IndexReader(dataDir);
-		} finally {
-			rwl.w.unlock();
-		}
+		super(indexConfig);
+		indexReader = null;
+		this.rootDir = rootDir;
+		this.dataDir = dataDir;
+		init();
 	}
 
-	private void init(ReaderLocal r) {
-		rwl.w.lock();
-		try {
-			this.rootDir = r.rootDir;
-			this.dataDir = r.dataDir;
-			this.indexReader = r.indexReader;
-		} finally {
-			rwl.w.unlock();
-		}
+	private void init() throws InstantiationException, IllegalAccessException,
+			ClassNotFoundException, IOException {
+		this.indexReader = null;
 	}
 
 	private void initCache(IndexConfig indexConfig) {
@@ -195,9 +176,7 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 	public int getDocFreq(Term term) throws SearchLibException {
 		rwl.r.lock();
 		try {
-			return indexReader.docFreq(term);
-		} catch (IOException e) {
-			throw new SearchLibException(e);
+			return 0;
 		} finally {
 			rwl.r.unlock();
 		}
@@ -260,16 +239,18 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 		}
 	}
 
-	public void close(boolean bDeleteDirectory) {
+	private void closeNoLock() throws IOException {
+		if (indexReader != null) {
+			indexReader.close();
+			indexReader = null;
+		}
+	}
+
+	@Override
+	public void close() {
 		rwl.w.lock();
 		try {
-			if (indexReader != null) {
-				indexReader.close();
-				indexReader = null;
-			}
-			if (bDeleteDirectory)
-				if (dataDir.exists())
-					FileUtils.deleteDirectory(dataDir);
+			closeNoLock();
 		} catch (IOException e) {
 			Logging.warn(e.getMessage(), e);
 		} finally {
@@ -277,15 +258,10 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 		}
 	}
 
-	@Override
-	public void close() {
-		close(false);
-	}
-
 	public int maxDoc() throws IOException {
 		rwl.r.lock();
 		try {
-			return indexReader.maxDoc();
+			return 0;
 		} finally {
 			rwl.r.unlock();
 		}
@@ -300,31 +276,25 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 		}
 	}
 
-	public TopDocs search(Query query, Filter filter, SortList sort, int nTop)
-			throws IOException {
+	public TopDocs search(Query query, FilterAbstract<?> filter,
+			SortFieldList sort, int nTop) throws IOException {
 		rwl.r.lock();
 		try {
-			if (sort == null) {
-				if (filter == null)
-					return indexReader.search(query, nTop);
-				else
-					return indexReader.search(query, filter, nTop);
-			} else {
-				return indexReader.search(query, filter, nTop, sort);
-			}
+			return null;
 		} finally {
 			rwl.r.unlock();
 		}
 	}
 
 	@Override
-	public String explain(SearchRequest searchRequest, int docId, boolean bHtml)
+	public String explain(AbstractRequest request, int docId, boolean bHtml)
 			throws SearchLibException {
 		rwl.r.lock();
 		try {
-			Explanation explanation = indexReader.explain(
-					searchRequest.getQuery(), docId);
-			return explanation.toString();
+			Query query = request.getQuery();
+			if (query == null)
+				return "No explanation available";
+			return null;
 		} catch (IOException e) {
 			throw new SearchLibException(e);
 		} catch (ParseException e) {
@@ -336,44 +306,31 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 		}
 	}
 
-	public void search(Query query, Filter filter, Collector collector)
-			throws IOException {
+	public void search(Query query, BitSet filterBitSet,
+			AbstractCollector collector) throws IOException {
 		rwl.r.lock();
 		try {
-			if (filter == null)
-				indexReader.search(query, collector);
-			else
-				indexReader.search(query, filter, collector);
 		} finally {
 			rwl.r.unlock();
 		}
 	}
 
-	public FilterHits getFilterHits(Field defaultField, Analyzer analyzer,
-			com.jaeksoft.searchlib.filter.Filter filter) throws ParseException,
-			IOException {
+	public FilterHits getFilterHits(SchemaField defaultField,
+			Analyzer analyzer, FilterAbstract<?> filter, Timer timer)
+			throws ParseException, IOException {
 		rwl.r.lock();
 		try {
-			return filterCache.get(this, defaultField, analyzer, filter);
+			return filterCache.get(this, filter, defaultField, analyzer, timer);
 		} finally {
 			rwl.r.unlock();
 		}
 	}
 
-	protected void fastDeleteDocument(int docNum) throws IOException {
-		indexReader.deleteDocument(docNum);
-	}
-
-	protected void fastDeleteDocument(String fieldName, String value)
-			throws IOException {
-		indexReader.deleteDocuments(new Term(fieldName, value));
-	}
-
-	public IndexDocument getDocFields(int docId, FieldSelector selector)
+	public Document getDocFields(int docId, Set<String> fieldNameSet)
 			throws IOException {
 		rwl.r.lock();
 		try {
-			return indexReader.document(docId, selector);
+			return indexReader.document(docId, fieldNameSet);
 		} catch (IllegalArgumentException e) {
 			throw e;
 		} finally {
@@ -384,16 +341,7 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 	public StringIndex getStringIndex(String fieldName) throws IOException {
 		rwl.r.lock();
 		try {
-			return indexReader.getStringIndex(fieldName);
-		} finally {
-			rwl.r.unlock();
-		}
-	}
-
-	public WordArray getWordArray(String fieldName) {
-		rwl.r.lock();
-		try {
-			return indexReader.getWordArray(fieldName);
+			return null;
 		} finally {
 			rwl.r.unlock();
 		}
@@ -403,21 +351,20 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 		rwl.r.lock();
 		try {
 			writer.println("<index name=\"" + dataDir.getName() + "\" path=\""
-					+ dataDir.getAbsolutePath() + "\"/>");
+					+ dataDir.getPath() + "\"/>");
 		} finally {
 			rwl.r.unlock();
 		}
 	}
 
 	private static ReaderLocal findMostRecent(File rootDir,
-			String similarityClass, boolean readOnly) {
+			IndexConfig indexConfig) {
 		ReaderLocal reader = null;
 		for (File f : rootDir.listFiles()) {
 			if (f.getName().startsWith("."))
 				continue;
 			try {
-				ReaderLocal r = new ReaderLocal(rootDir, f, similarityClass,
-						readOnly);
+				ReaderLocal r = new ReaderLocal(indexConfig, rootDir, f);
 				if (reader == null)
 					reader = r;
 				else if (r.getVersion() > reader.getVersion())
@@ -435,39 +382,6 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 		return reader;
 	}
 
-	private static ReaderLocal findVersion(File rootDir, long version,
-			String similarityClass, boolean readOnly) {
-		for (File f : rootDir.listFiles()) {
-			if (f.getName().startsWith("."))
-				continue;
-			try {
-				ReaderLocal reader = new ReaderLocal(rootDir, f,
-						similarityClass, readOnly);
-				if (reader.getVersion() == version)
-					return reader;
-			} catch (IOException e) {
-				Logging.error(e.getMessage(), e);
-			} catch (InstantiationException e) {
-				Logging.error(e.getMessage(), e);
-			} catch (IllegalAccessException e) {
-				Logging.error(e.getMessage(), e);
-			} catch (ClassNotFoundException e) {
-				Logging.error(e.getMessage(), e);
-			}
-		}
-		return null;
-	}
-
-	private void deleteAllOthers() throws IOException {
-		for (File f : rootDir.listFiles()) {
-			if (f.getName().startsWith("."))
-				continue;
-			if (f.equals(dataDir))
-				continue;
-			FileUtils.deleteDirectory(f);
-		}
-	}
-
 	public static ReaderLocal fromConfig(File configDir,
 			IndexConfig indexConfig, boolean createIfNotExists)
 			throws IOException, InstantiationException, IllegalAccessException,
@@ -480,15 +394,13 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 		if (!indexDir.exists() && createIfNotExists)
 			indexDir.mkdirs();
 
-		ReaderLocal reader = ReaderLocal.findMostRecent(indexDir,
-				indexConfig.getSimilarityClass(), indexConfig.getReadOnly());
+		ReaderLocal reader = ReaderLocal.findMostRecent(indexDir, indexConfig);
 
 		if (reader == null) {
 			if (!createIfNotExists)
 				return null;
 			File dataDir = WriterLocal.createIndex(indexDir);
-			reader = new ReaderLocal(indexDir, dataDir,
-					indexConfig.getSimilarityClass(), indexConfig.getReadOnly());
+			reader = new ReaderLocal(indexConfig, indexDir, dataDir);
 		}
 
 		reader.initCache(indexConfig);
@@ -499,49 +411,23 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 	public void reload() throws SearchLibException {
 		rwl.w.lock();
 		try {
-			close(false);
-			init(rootDir, dataDir);
+			closeNoLock();
+			init();
 			resetCache();
+		} catch (IOException e) {
+			throw new SearchLibException(e);
 		} catch (InstantiationException e) {
 			throw new SearchLibException(e);
 		} catch (IllegalAccessException e) {
 			throw new SearchLibException(e);
 		} catch (ClassNotFoundException e) {
 			throw new SearchLibException(e);
-		} catch (IOException e) {
-			throw new SearchLibException(e);
 		} finally {
 			rwl.w.unlock();
 		}
 	}
 
-	@Override
-	public void swap(long version, boolean deleteOld) throws SearchLibException {
-		ReaderLocal newReader = null;
-		if (version > 0)
-			newReader = ReaderLocal.findVersion(rootDir, version,
-					similarityClass, readOnly);
-		else
-			newReader = ReaderLocal.findMostRecent(rootDir, similarityClass,
-					readOnly);
-		if (newReader == null)
-			return;
-		rwl.w.lock();
-		try {
-			close(false);
-			init(newReader);
-			resetCache();
-			if (deleteOld)
-				deleteAllOthers();
-		} catch (IOException e) {
-			throw new SearchLibException(e);
-		} finally {
-			rwl.w.unlock();
-		}
-
-	}
-
-	public DocSetHits searchDocSet(SearchRequest searchRequest)
+	public DocSetHits searchDocSet(SearchRequest searchRequest, Timer timer)
 			throws IOException, ParseException, SyntaxError,
 			SearchLibException, InstantiationException, IllegalAccessException,
 			ClassNotFoundException {
@@ -549,9 +435,10 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 		try {
 
 			Schema schema = searchRequest.getConfig().getSchema();
-			Field defaultField = schema.getFieldList().getDefaultField();
+			SchemaField defaultField = schema.getFieldList().getDefaultField();
 
-			return searchCache.get(this, searchRequest, schema, defaultField);
+			return searchCache.get(this, searchRequest, schema, defaultField,
+					timer);
 
 		} finally {
 			rwl.r.unlock();
@@ -559,45 +446,49 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 	}
 
 	public DocSetHits newDocSetHits(SearchRequest searchRequest, Schema schema,
-			Field defaultField, Analyzer analyzer) throws IOException,
-			ParseException, SyntaxError, InstantiationException,
-			IllegalAccessException, ClassNotFoundException, SearchLibException {
+			SchemaField defaultField, Analyzer analyzer, Timer timer)
+			throws IOException, ParseException, SyntaxError,
+			InstantiationException, IllegalAccessException,
+			ClassNotFoundException, SearchLibException {
 
-		boolean isFacet = searchRequest.isFacet();
-
-		FilterHits filterHits = searchRequest.getFilterList().getFilterHits(
-				this, defaultField, analyzer);
+		BitSet openBitSet = searchRequest.getFilterList().getOpenBitSet(this,
+				defaultField, analyzer, timer);
 
 		DocSetHits dsh = new DocSetHits(this, searchRequest.getQuery(),
-				filterHits, searchRequest.getSortList(), isFacet);
+				openBitSet, searchRequest.getSortFieldList(), timer);
 		return dsh;
 	}
 
-	public FieldList<FieldValue> getDocumentFields(int docId,
-			FieldList<Field> fieldList) throws IOException, ParseException,
-			SyntaxError, SearchLibException {
+	public Map<String, FieldValue> getDocumentFields(int docId,
+			Set<String> fieldNameSet, Timer timer) throws IOException,
+			ParseException, SyntaxError {
 		rwl.r.lock();
 		try {
-			return fieldCache.get(this, docId, fieldList);
+			return fieldCache.get(this, docId, fieldNameSet, timer);
 		} finally {
 			rwl.r.unlock();
 		}
 	}
 
-	public FieldList<FieldValue> getTermsVectorFields(int docId,
-			FieldList<Field> fieldList) throws IOException, SearchLibException {
+	public Set<FieldValue> getTermsVectorFields(int docId,
+			Set<String> fieldNameSet) throws IOException {
 		rwl.r.lock();
 		try {
-			FieldList<FieldValue> fieldValueList = new FieldList<FieldValue>();
-			for (Field field : fieldList) {
+			Set<FieldValue> fieldValueList = new HashSet<FieldValue>();
+			for (String fieldName : fieldNameSet) {
 				TermFreqVector termFreqVector = indexReader.getTermFreqVector(
-						docId, field.getName());
+						docId, fieldName);
 				if (termFreqVector == null)
 					continue;
-				FieldValueItem[] fieldValueItem = termFreqVector.getTerms();
-				if (fieldValueItem == null)
+				String[] terms = termFreqVector.getTerms();
+				if (terms == null)
 					continue;
-				fieldValueList.add(new FieldValue(field, fieldValueItem));
+				FieldValueItem[] fieldValueItem = new FieldValueItem[terms.length];
+				int i = 0;
+				for (String term : terms)
+					fieldValueItem[i++] = new FieldValueItem(
+							FieldValueOriginEnum.TERM_VECTOR, term);
+				fieldValueList.add(new FieldValue(fieldName, fieldValueItem));
 			}
 			return fieldValueList;
 		} finally {
@@ -605,14 +496,13 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 		}
 	}
 
-	public FieldList<FieldValue> getTerms(int docId, FieldList<Field> fieldList)
-			throws IOException, SearchLibException {
+	public Set<FieldValue> getTerms(int docId, Set<String> fieldNameSet)
+			throws IOException {
 		rwl.r.lock();
 		try {
 			TermPositions termPosition = indexReader.termPositions();
-			FieldList<FieldValue> fieldValueList = new FieldList<FieldValue>();
-			for (Field field : fieldList) {
-				String fieldName = field.getName();
+			Set<FieldValue> fieldValueSet = new HashSet<FieldValue>();
+			for (String fieldName : fieldNameSet) {
 				List<FieldValueItem> fieldValueItemList = new ArrayList<FieldValueItem>();
 				TermEnum termEnum = indexReader.terms(new Term(fieldName, ""));
 				Term term = termEnum.term();
@@ -626,40 +516,15 @@ public class ReaderLocal extends ReaderAbstract implements ReaderInterface {
 					if (!termPosition.skipTo(docId)
 							|| termPosition.doc() != docId)
 						continue;
-					fieldValueItemList.add(new FieldValueItem(term.text()));
+					fieldValueItemList.add(new FieldValueItem(
+							FieldValueOriginEnum.TERM_ENUM, term.text()));
 				} while (termEnum.next());
 				termEnum.close();
 				if (fieldValueItemList.size() > 0)
-					fieldValueList
-							.add(new FieldValue(field, fieldValueItemList));
+					fieldValueSet.add(new FieldValue(fieldName,
+							fieldValueItemList));
 			}
-			return fieldValueList;
-		} finally {
-			rwl.r.unlock();
-		}
-	}
-
-	@Override
-	public ResultDocument[] documents(DocumentsRequest documentsRequest)
-			throws SearchLibException {
-		rwl.r.lock();
-		try {
-			DocumentRequest[] requestedDocuments = documentsRequest
-					.getRequestedDocuments();
-			if (requestedDocuments == null)
-				return null;
-			ResultDocument[] documents = new ResultDocument[requestedDocuments.length];
-			int i = 0;
-			for (DocumentRequest documentRequest : requestedDocuments)
-				documents[i++] = new ResultDocument(documentsRequest,
-						documentRequest.doc, this);
-			return documents;
-		} catch (IOException e) {
-			throw new SearchLibException(e);
-		} catch (ParseException e) {
-			throw new SearchLibException(e);
-		} catch (SyntaxError e) {
-			throw new SearchLibException(e);
+			return fieldValueSet;
 		} finally {
 			rwl.r.unlock();
 		}

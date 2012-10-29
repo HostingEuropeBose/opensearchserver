@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -27,54 +27,51 @@ package com.jaeksoft.searchlib.filter;
 import java.io.IOException;
 import java.util.BitSet;
 
-import com.jaeksoft.searchlib.index.Collector;
-import com.jaeksoft.searchlib.index.IndexReader;
 import com.jaeksoft.searchlib.index.ReaderLocal;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.query.Query;
+import com.jaeksoft.searchlib.result.collector.AbstractCollector;
+import com.jaeksoft.searchlib.util.Timer;
 
-public class FilterHits extends Filter {
+public class FilterHits {
 
 	protected BitSet docSet;
 
+	protected int count;
+
 	protected FilterHits() {
 		docSet = null;
+		count = 0;
 	}
 
-	protected void and(FilterHits filterHits) {
+	protected void and(BitSet targetDocSet) {
 		if (docSet == null)
-			docSet = (BitSet) filterHits.docSet.clone();
-		else
-			docSet.and(filterHits.docSet);
+			return;
+		targetDocSet.and(docSet);
 	}
 
-	public FilterHits(Query query, boolean negative, ReaderLocal reader)
-			throws IOException, ParseException {
-		FilterCollector collector = new FilterCollector(reader.maxDoc());
+	public FilterHits(Query query, boolean negative, ReaderLocal reader,
+			Timer timer) throws IOException, ParseException {
+		Timer t = new Timer(timer, "Filter hit: " + query.toString());
+		docSet = new BitSet(reader.maxDoc());
+		FilterCollector collector = new FilterCollector();
 		reader.search(query, null, collector);
-		docSet = collector.bitSet;
 		if (negative)
 			docSet.flip(0, docSet.size());
-
+		t.duration();
 	}
 
-	private class FilterCollector extends Collector {
+	private class FilterCollector extends AbstractCollector {
 
-		private BitSet bitSet;
-
-		private FilterCollector(int size) {
-			this.bitSet = new BitSet(size);
+		private FilterCollector() {
 		}
 
 		@Override
 		public void collect(int docId) {
-			bitSet.set(docId);
+			docSet.set(docId);
+			count++;
 		}
 
-	}
-
-	public BitSet getDocIdSet(IndexReader reader) throws IOException {
-		return this.docSet;
 	}
 
 }

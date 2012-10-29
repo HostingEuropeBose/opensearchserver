@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+ * Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -110,9 +110,9 @@ public class UrlItem implements Serializable {
 	protected void init(ResultDocument doc, UrlItemFieldEnum urlItemFieldEnum) {
 		setUrl(doc.getValueContent(urlItemFieldEnum.url.getName(), 0));
 		setHost(doc.getValueContent(urlItemFieldEnum.host.getName(), 0));
-		setSubHost(doc.getValueList(urlItemFieldEnum.subhost.getName()));
-		addOutLinks(doc.getValueList(urlItemFieldEnum.outlink.getName()));
-		addInLinks(doc.getValueList(urlItemFieldEnum.inlink.getName()));
+		setSubHost(doc.getValueArray(urlItemFieldEnum.subhost.getName()));
+		addOutLinks(doc.getValueArray(urlItemFieldEnum.outlink.getName()));
+		addInLinks(doc.getValueArray(urlItemFieldEnum.inlink.getName()));
 		setContentDispositionFilename(doc.getValueContent(
 				urlItemFieldEnum.contentDispositionFilename.getName(), 0));
 		setContentBaseType(doc.getValueContent(
@@ -159,7 +159,7 @@ public class UrlItem implements Serializable {
 		return inLinks;
 	}
 
-	public void setSubHost(List<FieldValueItem> subhostlist) {
+	public void setSubHost(FieldValueItem[] subhostlist) {
 		this.subhost = null;
 		if (subhostlist == null)
 			return;
@@ -174,7 +174,7 @@ public class UrlItem implements Serializable {
 		outLinks.clear();
 	}
 
-	public void addOutLinks(List<FieldValueItem> linkList) {
+	public void addOutLinks(FieldValueItem[] linkList) {
 		if (linkList == null)
 			return;
 		if (outLinks == null)
@@ -195,7 +195,7 @@ public class UrlItem implements Serializable {
 		inLinks.clear();
 	}
 
-	public void addInLinks(List<FieldValueItem> linkList) {
+	public void addInLinks(FieldValueItem[] linkList) {
 		if (linkList == null)
 			return;
 		if (inLinks == null)
@@ -408,8 +408,10 @@ public class UrlItem implements Serializable {
 	}
 
 	public void setUrl(String url) {
-		this.url = url;
-		cachedUrl = null;
+		synchronized (this) {
+			this.url = url;
+			cachedUrl = null;
+		}
 	}
 
 	public String getParentUrl() {
@@ -489,12 +491,6 @@ public class UrlItem implements Serializable {
 		return Integer.toString(count);
 	}
 
-	public boolean isStatusFull() {
-		return fetchStatus == FetchStatus.FETCHED
-				&& parserStatus == ParserStatus.PARSED
-				&& indexStatus == IndexStatus.INDEXED;
-	}
-
 	public static List<String> buildSubHost(String host) {
 		if (host == null)
 			return null;
@@ -511,17 +507,21 @@ public class UrlItem implements Serializable {
 	}
 
 	public void populate(IndexDocument indexDocument,
-			UrlItemFieldEnum urlItemFieldEnum) throws MalformedURLException {
+			UrlItemFieldEnum urlItemFieldEnum) {
 		SimpleDateFormat df = getWhenDateFormat();
 		indexDocument.setString(urlItemFieldEnum.url.getName(), getUrl());
 		indexDocument.setString(urlItemFieldEnum.when.getName(),
 				df.format(when));
-		URL url = getURL();
-		if (url != null) {
-			indexDocument.setString(urlItemFieldEnum.host.getName(),
-					url.getHost());
-			indexDocument.setStringList(urlItemFieldEnum.subhost.getName(),
-					buildSubHost(url.getHost()));
+		try {
+			URL url = getURL();
+			if (url != null) {
+				indexDocument.setString(urlItemFieldEnum.host.getName(),
+						url.getHost());
+				indexDocument.setStringList(urlItemFieldEnum.subhost.getName(),
+						buildSubHost(url.getHost()));
+			}
+		} catch (MalformedURLException e) {
+			Logging.warn(e);
 		}
 		if (inLinks != null)
 			indexDocument.setStringList(urlItemFieldEnum.inlink.getName(),
@@ -623,4 +623,13 @@ public class UrlItem implements Serializable {
 		this.md5size = md5size;
 	}
 
+	public boolean isLinkDiscoverable() {
+		if (fetchStatus != FetchStatus.FETCHED)
+			return false;
+		if (indexStatus == IndexStatus.INDEXED)
+			return true;
+		if (indexStatus == IndexStatus.META_NOINDEX)
+			return true;
+		return false;
+	}
 }

@@ -26,17 +26,21 @@ package com.jaeksoft.searchlib.replication;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.jaeksoft.searchlib.Client;
-import com.jaeksoft.searchlib.ClientCatalog;
 import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.index.IndexMode;
 import com.jaeksoft.searchlib.process.ThreadAbstract;
 import com.jaeksoft.searchlib.scheduler.TaskLog;
 import com.jaeksoft.searchlib.util.FilesUtils;
+import com.jaeksoft.searchlib.util.LastModifiedAndSize;
 import com.jaeksoft.searchlib.util.ReadWriteLock;
 import com.jaeksoft.searchlib.util.RecursiveDirectoryBrowser;
+import com.jaeksoft.searchlib.web.ActionServlet;
 import com.jaeksoft.searchlib.web.PushServlet;
 
 public class ReplicationThread extends ThreadAbstract implements
@@ -44,28 +48,29 @@ public class ReplicationThread extends ThreadAbstract implements
 
 	final private ReadWriteLock rwl = new ReadWriteLock();
 
-	private Client client;
+	private volatile Client client;
 
-	private ReplicationItem replicationItem;
+	private volatile ReplicationItem replicationItem;
 
-	private double totalSize;
+	private volatile double totalSize;
 
-	private double sendSize;
+	private volatile double sendSize;
 
-	private TaskLog taskLog;
+	private volatile TaskLog taskLog;
 
-	private List<File> filesNotPushed;
+	private volatile List<File> filesNotPushed;
 
-	private List<File> dirsNotPushed;
+	private volatile List<File> dirsNotPushed;
 
-	private final static String[] NOT_PUSHED_PATH = { "replication.xml",
-			"replication_old.xml", "jobs.xml", "jobs_old.xml", "report" };
+	private volatile File sourceDirectory;
 
 	protected ReplicationThread(Client client,
 			ReplicationMaster replicationMaster,
-			ReplicationItem replicationItem, TaskLog taskLog) {
+			ReplicationItem replicationItem, TaskLog taskLog)
+			throws SearchLibException {
 		super(client, replicationMaster);
 		this.replicationItem = replicationItem;
+		this.sourceDirectory = replicationItem.getDirectory(client);
 		this.client = client;
 		totalSize = 0;
 		sendSize = 0;
@@ -87,16 +92,10 @@ public class ReplicationThread extends ThreadAbstract implements
 	}
 
 	private void initNotPushedList() {
-		File clientDir = client.getDirectory();
 		filesNotPushed = new ArrayList<File>(0);
 		dirsNotPushed = new ArrayList<File>(0);
-		for (String path : NOT_PUSHED_PATH) {
-			File f = new File(clientDir, path);
-			if (f.isFile())
-				filesNotPushed.add(f);
-			else if (f.isDirectory())
-				dirsNotPushed.add(f);
-		}
+		replicationItem.getReplicationType().addNotPushedPath(sourceDirectory,
+				filesNotPushed, dirsNotPushed);
 	}
 
 	@Override
@@ -122,13 +121,22 @@ public class ReplicationThread extends ThreadAbstract implements
 		return replicationItem;
 	}
 
-	public void push() throws SearchLibException {
-		setTotalSize(ClientCatalog
-				.getLastModifiedAndSize(client.getIndexName()).getSize());
-		addSendSize(client.getDirectory());
+	public void push() throws SearchLibException, MalformedURLException,
+			URISyntaxException {
+		setTotalSize(new LastModifiedAndSize(sourceDirectory, false).getSize());
+		addSendSize(sourceDirectory);
 		PushServlet.call_init(replicationItem);
-		new RecursiveDirectoryBrowser(client.getDirectory(), this);
+		new RecursiveDirectoryBrowser(sourceDirectory, this);
 		PushServlet.call_switch(replicationItem);
+		IndexMode mode = replicationItem.getReadWriteMode();
+		if (mode == IndexMode.READ_WRITE)
+			ActionServlet.readWrite(replicationItem.getInstanceUrl().toURI(),
+					replicationItem.getIndexName(), replicationItem.getLogin(),
+					replicationItem.getApiKey());
+		else if (mode == IndexMode.READ_ONLY)
+			ActionServlet.readOnly(replicationItem.getInstanceUrl().toURI(),
+					replicationItem.getIndexName(), replicationItem.getLogin(),
+					replicationItem.getApiKey());
 	}
 
 	private void setTotalSize(long size) {

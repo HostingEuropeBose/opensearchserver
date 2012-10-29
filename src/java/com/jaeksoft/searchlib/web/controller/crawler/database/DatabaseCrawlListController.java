@@ -40,11 +40,14 @@ import org.zkoss.zul.Messagebox;
 import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.crawler.database.DatabaseCrawl;
+import com.jaeksoft.searchlib.crawler.database.DatabaseCrawl.SqlUpdateMode;
 import com.jaeksoft.searchlib.crawler.database.DatabaseCrawlList;
 import com.jaeksoft.searchlib.crawler.database.DatabaseCrawlMaster;
 import com.jaeksoft.searchlib.crawler.database.DatabaseDriverNames;
 import com.jaeksoft.searchlib.crawler.database.DatabaseFieldTarget;
+import com.jaeksoft.searchlib.crawler.database.IsolationLevelEnum;
 import com.jaeksoft.searchlib.util.map.GenericLink;
+import com.jaeksoft.searchlib.util.map.SourceField;
 import com.jaeksoft.searchlib.web.controller.AlertController;
 import com.jaeksoft.searchlib.web.controller.crawler.CrawlerController;
 
@@ -81,7 +84,7 @@ public class DatabaseCrawlListController extends CrawlerController {
 
 	private transient DatabaseCrawl selectedCrawl;
 
-	private transient GenericLink<String, DatabaseFieldTarget> selectedField;
+	private transient GenericLink<SourceField, DatabaseFieldTarget> selectedField;
 
 	private transient DatabaseFieldTarget currentFieldTarget;
 
@@ -180,7 +183,8 @@ public class DatabaseCrawlListController extends CrawlerController {
 			throw new SearchLibException("Error");
 		if (selectedField != null)
 			currentCrawl.getFieldMap().remove(selectedField);
-		currentCrawl.getFieldMap().add(sqlColumn, currentFieldTarget);
+		currentCrawl.getFieldMap().add(new SourceField(sqlColumn),
+				currentFieldTarget);
 		onCancelField();
 	}
 
@@ -189,7 +193,7 @@ public class DatabaseCrawlListController extends CrawlerController {
 			InterruptedException {
 		if (comp == null)
 			return;
-		GenericLink<String, DatabaseFieldTarget> fieldLink = (GenericLink<String, DatabaseFieldTarget>) comp
+		GenericLink<SourceField, DatabaseFieldTarget> fieldLink = (GenericLink<SourceField, DatabaseFieldTarget>) comp
 				.getAttribute("fieldlink");
 		if (fieldLink == null)
 			return;
@@ -228,7 +232,7 @@ public class DatabaseCrawlListController extends CrawlerController {
 		reloadPage();
 	}
 
-	public void onTimer() {
+	public void onTimer() throws SearchLibException {
 		super.reloadPage();
 	}
 
@@ -312,7 +316,7 @@ public class DatabaseCrawlListController extends CrawlerController {
 	}
 
 	@Override
-	public void reloadPage() {
+	public void reloadPage() throws SearchLibException {
 		dbCrawlList = null;
 		super.reloadPage();
 	}
@@ -342,18 +346,20 @@ public class DatabaseCrawlListController extends CrawlerController {
 	/**
 	 * @return the selectedField
 	 */
-	public GenericLink<String, DatabaseFieldTarget> getSelectedField() {
+	public GenericLink<SourceField, DatabaseFieldTarget> getSelectedField() {
 		return selectedField;
 	}
 
 	/**
 	 * @param selectedField
 	 *            the selectedField to set
+	 * @throws SearchLibException
 	 */
 	public void setSelectedField(
-			GenericLink<String, DatabaseFieldTarget> selectedField) {
+			GenericLink<SourceField, DatabaseFieldTarget> selectedField)
+			throws SearchLibException {
 		this.selectedField = selectedField;
-		this.sqlColumn = selectedField.getSource();
+		this.sqlColumn = selectedField.getSource().getUniqueName();
 		currentFieldTarget = new DatabaseFieldTarget(selectedField.getTarget());
 		reloadPage();
 	}
@@ -364,6 +370,14 @@ public class DatabaseCrawlListController extends CrawlerController {
 
 	public boolean isNoFieldSelected() {
 		return !isFieldSelected();
+	}
+
+	public IsolationLevelEnum[] getIsolationLevels() {
+		return IsolationLevelEnum.values();
+	}
+
+	public SqlUpdateMode[] getSqlUpdateModes() {
+		return DatabaseCrawl.SqlUpdateMode.values();
 	}
 
 }

@@ -25,16 +25,16 @@ package com.jaeksoft.searchlib.render;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.List;
 
 import org.apache.commons.lang.StringEscapeUtils;
 
+import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.query.ParseException;
+import com.jaeksoft.searchlib.request.ReturnField;
 import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.result.AbstractResultSearch;
 import com.jaeksoft.searchlib.result.ResultDocument;
-import com.jaeksoft.searchlib.schema.Field;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
 import com.jaeksoft.searchlib.snippet.SnippetField;
 import com.jaeksoft.searchlib.web.ServletTransaction;
@@ -56,7 +56,7 @@ public class RenderCSV implements Render {
 	}
 
 	private void renderDocuments() throws IOException, ParseException,
-			SyntaxError {
+			SyntaxError, SearchLibException {
 		SearchRequest searchRequest = result.getRequest();
 		int start = searchRequest.getStart();
 		int end = result.getDocumentCount() + searchRequest.getStart();
@@ -65,9 +65,10 @@ public class RenderCSV implements Render {
 			this.renderDocument(i);
 	}
 
-	private void renderDocument(int i) {
-		ResultDocument doc = result.getDocument(i);
-		for (Field field : searchRequest.getReturnFieldList()) {
+	private void renderDocument(int i) throws IOException, ParseException,
+			SyntaxError, SearchLibException {
+		ResultDocument doc = result.getDocument(i, null);
+		for (ReturnField field : searchRequest.getReturnFieldList()) {
 			renderField(doc, field);
 			if (field.getName() != null && !field.getName().equals(""))
 				writer.print(',');
@@ -90,8 +91,8 @@ public class RenderCSV implements Render {
 			writer.print(StringEscapeUtils.escapeCsv(snippet.getValue()));
 	}
 
-	private void renderField(ResultDocument doc, Field field) {
-		List<FieldValueItem> values = doc.getValueList(field);
+	private void renderField(ResultDocument doc, ReturnField field) {
+		FieldValueItem[] values = doc.getValueArray(field);
 		if (values == null)
 			return;
 		for (FieldValueItem v : values)
