@@ -26,7 +26,7 @@ package com.jaeksoft.searchlib.cache;
 
 import java.io.IOException;
 
-import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.index.ReaderInterface;
 import com.jaeksoft.searchlib.index.SpellChecker;
 
 public class SpellCheckerCache extends LRUCache<FieldNameKey, SpellChecker> {
@@ -35,7 +35,7 @@ public class SpellCheckerCache extends LRUCache<FieldNameKey, SpellChecker> {
 		super("Spellchecker cache", maxSize);
 	}
 
-	public SpellChecker get(ReaderLocal reader, String field)
+	public SpellChecker get(ReaderInterface reader, String field)
 			throws IOException {
 		rwl.w.lock();
 		try {

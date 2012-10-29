@@ -24,19 +24,23 @@
 
 package com.jaeksoft.searchlib.query;
 
-import com.jaeksoft.searchlib.analysis.Analyzer;
+import com.jaeksoft.searchlib.schema.AnalyzerSelector;
 
 /*
  * TODO Full implementation
  */
 public class QueryParser {
 
+	private String defaultField;
+
+	private AnalyzerSelector analyzerSelector;
+
 	public enum Operator {
 		AND, OR
 	}
 
-	public QueryParser(String defaultField, Analyzer analyzer) {
-		// TODO Auto-generated constructor stub
+	public QueryParser(String defaultField, AnalyzerSelector analyzerSelector) {
+		this.defaultField = defaultField;
 	}
 
 	public Query parse(String query) {

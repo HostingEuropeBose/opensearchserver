@@ -24,20 +24,13 @@
 
 package com.jaeksoft.searchlib.schema;
 
-import java.util.Map;
-import java.util.TreeMap;
-
 import javax.xml.xpath.XPathExpressionException;
 
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.analysis.Analyzer;
 import com.jaeksoft.searchlib.analysis.AnalyzerList;
-import com.jaeksoft.searchlib.analysis.KeywordAnalyzer;
-import com.jaeksoft.searchlib.analysis.LanguageEnum;
-import com.jaeksoft.searchlib.analysis.PerFieldAnalyzerWrapper;
 import com.jaeksoft.searchlib.config.Config;
 import com.jaeksoft.searchlib.util.ReadWriteLock;
 import com.jaeksoft.searchlib.util.XPathParser;
@@ -49,17 +42,14 @@ public class Schema {
 
 	private AnalyzerList analyzers;
 
-	private Map<String, PerFieldAnalyzerWrapper> langQueryAnalyzers;
-
-	private Map<String, PerFieldAnalyzerWrapper> langIndexAnalyzers;
+	private AnalyzerSelector analyzerSelector;
 
 	private ReadWriteLock rwl = new ReadWriteLock();
 
 	private Schema() {
 		fieldList = null;
 		analyzers = null;
-		langQueryAnalyzers = new TreeMap<String, PerFieldAnalyzerWrapper>();
-		langIndexAnalyzers = new TreeMap<String, PerFieldAnalyzerWrapper>();
+		analyzerSelector = null;
 	}
 
 	public static Schema fromXmlConfig(Config config, Node parentNode,
@@ -97,95 +87,23 @@ public class Schema {
 		return fieldList;
 	}
 
-	public void recompileAnalyzers() {
+	public void recompileAnalyzers() throws SearchLibException {
 		rwl.w.lock();
 		try {
-			analyzers.recompile();
-			langQueryAnalyzers.clear();
-			langIndexAnalyzers.clear();
+			analyzerSelector = new AnalyzerSelector(fieldList);
+			analyzers.recompile(analyzerSelector);
 		} finally {
 			rwl.w.unlock();
 		}
 	}
 
-	public Analyzer getAnalyzer(SchemaField schemaField, LanguageEnum lang) {
+	public AnalyzerSelector getAnalyzerSelector() {
 		rwl.r.lock();
 		try {
-			String analyzerName = schemaField.getIndexAnalyzer();
-			if (analyzerName == null)
-				return null;
-			if (analyzers == null)
-				return null;
-			Analyzer analyzer = analyzers.get(analyzerName, lang);
-			if (analyzer == null)
-				analyzer = analyzers.get(analyzerName, null);
-			return analyzer;
+			return analyzerSelector;
 		} finally {
 			rwl.r.unlock();
 		}
 	}
 
-	public PerFieldAnalyzerWrapper getQueryPerFieldAnalyzer(LanguageEnum lang)
-			throws SearchLibException {
-		if (lang == null)
-			lang = LanguageEnum.UNDEFINED;
-		rwl.r.lock();
-		try {
-			PerFieldAnalyzerWrapper pfa = langQueryAnalyzers
-					.get(lang.getCode());
-			if (pfa != null)
-				return pfa;
-		} finally {
-			rwl.r.unlock();
-		}
-		rwl.w.lock();
-		try {
-			PerFieldAnalyzerWrapper pfa = langQueryAnalyzers
-					.get(lang.getCode());
-			if (pfa != null)
-				return pfa;
-			pfa = new PerFieldAnalyzerWrapper(new KeywordAnalyzer());
-			for (SchemaField field : fieldList) {
-				Analyzer analyzer = getAnalyzer(field, lang);
-				if (analyzer != null)
-					pfa.addAnalyzer(field.name, analyzer.getQueryAnalyzer());
-			}
-			langQueryAnalyzers.put(lang.getCode(), pfa);
-			return pfa;
-		} finally {
-			rwl.w.unlock();
-		}
-	}
-
-	public PerFieldAnalyzerWrapper getIndexPerFieldAnalyzer(LanguageEnum lang)
-			throws SearchLibException {
-		if (lang == null)
-			lang = LanguageEnum.UNDEFINED;
-		rwl.r.lock();
-		try {
-			PerFieldAnalyzerWrapper pfa = langIndexAnalyzers
-					.get(lang.getCode());
-			if (pfa != null)
-				return pfa;
-		} finally {
-			rwl.r.unlock();
-		}
-		rwl.w.lock();
-		try {
-			PerFieldAnalyzerWrapper pfa = langIndexAnalyzers
-					.get(lang.getCode());
-			if (pfa != null)
-				return pfa;
-			pfa = new PerFieldAnalyzerWrapper(new KeywordAnalyzer());
-			for (SchemaField field : fieldList) {
-				Analyzer analyzer = getAnalyzer(field, lang);
-				if (analyzer != null)
-					pfa.addAnalyzer(field.name, analyzer.getIndexAnalyzer());
-			}
-			langIndexAnalyzers.put(lang.getCode(), pfa);
-			return pfa;
-		} finally {
-			rwl.w.unlock();
-		}
-	}
 }

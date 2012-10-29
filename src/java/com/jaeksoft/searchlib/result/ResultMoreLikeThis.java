@@ -32,7 +32,7 @@ import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.filter.FilterAbstract;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.DocSetHits;
-import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.index.ReaderInterface;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.render.Render;
 import com.jaeksoft.searchlib.render.RenderMoreLikeThisJson;
@@ -45,7 +45,7 @@ import com.jaeksoft.searchlib.util.Timer;
 public class ResultMoreLikeThis extends AbstractResult<MoreLikeThisRequest>
 		implements ResultDocumentsInterface<MoreLikeThisRequest> {
 
-	transient private ReaderLocal reader = null;
+	transient private ReaderInterface reader = null;
 
 	private DocIdInterface docs = null;
 
@@ -53,10 +53,10 @@ public class ResultMoreLikeThis extends AbstractResult<MoreLikeThisRequest>
 
 	final private TreeSet<String> fieldNameSet;
 
-	public ResultMoreLikeThis(ReaderLocal reader, MoreLikeThisRequest request)
-			throws SearchLibException, IOException, ParseException,
-			SyntaxError, InstantiationException, IllegalAccessException,
-			ClassNotFoundException {
+	public ResultMoreLikeThis(ReaderInterface reader,
+			MoreLikeThisRequest request) throws SearchLibException,
+			IOException, ParseException, SyntaxError, InstantiationException,
+			IllegalAccessException, ClassNotFoundException {
 		super(request);
 		this.reader = reader;
 		SearchRequest searchRequest = new SearchRequest(request.getConfig());

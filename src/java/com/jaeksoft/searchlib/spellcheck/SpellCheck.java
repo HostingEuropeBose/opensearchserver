@@ -33,7 +33,7 @@ import java.util.Set;
 
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
-import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.index.ReaderInterface;
 import com.jaeksoft.searchlib.index.SpellChecker;
 import com.jaeksoft.searchlib.index.term.Term;
 import com.jaeksoft.searchlib.query.ParseException;
@@ -45,7 +45,7 @@ public class SpellCheck implements Iterable<SpellCheckItem> {
 
 	private String fieldName;
 
-	public SpellCheck(ReaderLocal reader, SpellCheckRequest request,
+	public SpellCheck(ReaderInterface reader, SpellCheckRequest request,
 			SpellCheckField spellCheckField) throws ParseException,
 			SyntaxError, IOException, SearchLibException {
 		fieldName = spellCheckField.getName();

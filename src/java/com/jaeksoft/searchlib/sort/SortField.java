@@ -29,8 +29,9 @@ import java.io.IOException;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
+import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.cache.CacheKeyInterface;
-import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.index.ReaderInterface;
 import com.jaeksoft.searchlib.result.collector.DocIdInterface;
 import com.jaeksoft.searchlib.schema.AbstractField;
 import com.jaeksoft.searchlib.util.DomUtils;
@@ -38,11 +39,6 @@ import com.jaeksoft.searchlib.util.XmlWriter;
 
 public class SortField extends AbstractField<SortField> implements
 		CacheKeyInterface<SortField> {
-
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 3269790150800596793L;
 
 	private boolean desc;
 
@@ -87,8 +83,8 @@ public class SortField extends AbstractField<SortField> implements
 		return name.equals("score");
 	}
 
-	public SorterAbstract getSorter(DocIdInterface collector, ReaderLocal reader)
-			throws IOException {
+	public SorterAbstract getSorter(DocIdInterface collector,
+			ReaderInterface reader) throws IOException, SearchLibException {
 		if (isScore()) {
 			if (desc)
 				return new DescScoreSorter(collector);

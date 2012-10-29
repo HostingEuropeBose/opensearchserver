@@ -26,7 +26,8 @@ package com.jaeksoft.searchlib.spellcheck;
 
 import java.io.IOException;
 
-import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.index.ReaderInterface;
 
 public class SpellCheckItem {
 
@@ -46,8 +47,8 @@ public class SpellCheckItem {
 		return suggestions;
 	}
 
-	public void computeFrequency(ReaderLocal reader, String fieldName)
-			throws IOException {
+	public void computeFrequency(ReaderInterface reader, String fieldName)
+			throws IOException, SearchLibException {
 		if (suggestions == null)
 			return;
 		for (SuggestionItem suggestionItem : suggestions)

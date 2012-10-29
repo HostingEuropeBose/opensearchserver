@@ -26,16 +26,30 @@ package com.jaeksoft.searchlib.index;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.BitSet;
 import java.util.Collection;
+import java.util.Map;
+import java.util.TreeSet;
 
 import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.analysis.Analyzer;
+import com.jaeksoft.searchlib.filter.FilterAbstract;
+import com.jaeksoft.searchlib.filter.FilterHits;
 import com.jaeksoft.searchlib.index.term.Term;
+import com.jaeksoft.searchlib.index.term.TermDocs;
 import com.jaeksoft.searchlib.index.term.TermEnum;
 import com.jaeksoft.searchlib.index.term.TermFreqVector;
 import com.jaeksoft.searchlib.query.MoreLikeThis;
 import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.request.AbstractRequest;
+import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.result.AbstractResult;
+import com.jaeksoft.searchlib.result.collector.AbstractCollector;
+import com.jaeksoft.searchlib.schema.AnalyzerSelector;
+import com.jaeksoft.searchlib.schema.FieldValue;
+import com.jaeksoft.searchlib.schema.Schema;
+import com.jaeksoft.searchlib.schema.SchemaField;
+import com.jaeksoft.searchlib.util.Timer;
 
 public interface ReaderInterface {
 
@@ -73,5 +87,35 @@ public interface ReaderInterface {
 	public void push(URI dest) throws SearchLibException;
 
 	public long getVersion() throws SearchLibException;
+
+	public abstract int numDocs() throws IOException, SearchLibException;
+
+	public abstract void search(Query query, BitSet filter,
+			AbstractCollector collector) throws SearchLibException;
+
+	public abstract StringIndex getStringIndex(String name)
+			throws SearchLibException;
+
+	public abstract TermDocs getTermDocs(Term t) throws SearchLibException;
+
+	public abstract int maxDoc() throws IOException, SearchLibException;
+
+	public abstract FilterHits getFilterHits(SchemaField defaultField,
+			Analyzer analyzer, FilterAbstract<?> filter, Timer timer)
+			throws SearchLibException;
+
+	public abstract DocSetHits newDocSetHits(SearchRequest searchRequest,
+			Schema schema, SchemaField defaultField,
+			AnalyzerSelector analyzerSelector, Timer timer)
+			throws SearchLibException;
+
+	public abstract Map<String, FieldValue> getDocumentFields(int docId,
+			TreeSet<String> fieldSet, Timer timer) throws SearchLibException;
+
+	public abstract DocSetHits searchDocSet(SearchRequest searchRequest,
+			Timer timer) throws SearchLibException;
+
+	public abstract SpellChecker getSpellChecker(String fieldName)
+			throws SearchLibException;
 
 }

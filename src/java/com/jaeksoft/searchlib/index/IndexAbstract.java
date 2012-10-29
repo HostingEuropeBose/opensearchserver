@@ -24,6 +24,8 @@
 
 package com.jaeksoft.searchlib.index;
 
+import java.io.IOException;
+
 import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.SearchLibException;
@@ -54,6 +56,16 @@ public abstract class IndexAbstract implements ReaderInterface, WriterInterface 
 
 	protected abstract void writeXmlConfigIndex(XmlWriter xmlWriter)
 			throws SAXException;
+
+	@Override
+	public int numDocs() throws IOException, SearchLibException {
+		return getStatistics().getNumDocs();
+	}
+
+	@Override
+	public int maxDoc() throws IOException, SearchLibException {
+		return getStatistics().getMaxDoc();
+	}
 
 	public void writeXmlConfig(XmlWriter xmlWriter) throws SAXException {
 		xmlWriter.startElement("indices");

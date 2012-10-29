@@ -26,7 +26,8 @@ package com.jaeksoft.searchlib.sort;
 
 import java.io.IOException;
 
-import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.index.ReaderInterface;
 import com.jaeksoft.searchlib.result.collector.DocIdInterface;
 import com.jaeksoft.searchlib.schema.AbstractFieldList;
 
@@ -49,8 +50,8 @@ public class SortFieldList extends AbstractFieldList<SortField> {
 		return false;
 	}
 
-	public SorterAbstract getSorter(DocIdInterface collector, ReaderLocal reader)
-			throws IOException {
+	public SorterAbstract getSorter(DocIdInterface collector,
+			ReaderInterface reader) throws IOException, SearchLibException {
 		if (size() == 0)
 			return new DescScoreSorter(collector);
 		return new SortListSorter(this, collector, reader);

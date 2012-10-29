@@ -24,8 +24,6 @@
 
 package com.jaeksoft.searchlib.join;
 
-import java.io.IOException;
-
 import javax.naming.NamingException;
 import javax.xml.xpath.XPathExpressionException;
 
@@ -36,7 +34,7 @@ import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.ClientCatalog;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.cache.CacheKeyInterface;
-import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.index.ReaderInterface;
 import com.jaeksoft.searchlib.index.StringIndex;
 import com.jaeksoft.searchlib.request.AbstractRequest;
 import com.jaeksoft.searchlib.request.SearchRequest;
@@ -231,7 +229,7 @@ public class JoinItem implements CacheKeyInterface<JoinItem> {
 		this.returnFields = returnFields;
 	}
 
-	public DocIdInterface apply(ReaderLocal reader, DocIdInterface docs,
+	public DocIdInterface apply(ReaderInterface reader, DocIdInterface docs,
 			int joinResultSize, JoinResult joinResult, Timer timer)
 			throws SearchLibException {
 		try {
@@ -276,8 +274,6 @@ public class JoinItem implements CacheKeyInterface<JoinItem> {
 			t.duration();
 			return joinDocs;
 		} catch (NamingException e) {
-			throw new SearchLibException(e);
-		} catch (IOException e) {
 			throw new SearchLibException(e);
 		}
 	}

@@ -26,7 +26,8 @@ package com.jaeksoft.searchlib.spellcheck;
 
 import java.io.IOException;
 
-import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.index.ReaderInterface;
 import com.jaeksoft.searchlib.index.term.Term;
 import com.jaeksoft.searchlib.index.term.TermDocs;
 
@@ -55,8 +56,8 @@ public class SuggestionItem {
 		return freq;
 	}
 
-	public void computeFrequency(ReaderLocal reader, String field)
-			throws IOException {
+	public void computeFrequency(ReaderInterface reader, String field)
+			throws IOException, SearchLibException {
 		TermDocs termDocs = reader.getTermDocs(new Term(field, term));
 		if (termDocs == null)
 			return;

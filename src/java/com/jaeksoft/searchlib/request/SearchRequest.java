@@ -36,7 +36,6 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.analysis.Analyzer;
 import com.jaeksoft.searchlib.analysis.LanguageEnum;
 import com.jaeksoft.searchlib.collapse.CollapseParameters;
 import com.jaeksoft.searchlib.config.Config;
@@ -48,13 +47,13 @@ import com.jaeksoft.searchlib.filter.GeoFilter;
 import com.jaeksoft.searchlib.filter.QueryFilter;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.ReaderInterface;
-import com.jaeksoft.searchlib.index.ReaderLocal;
 import com.jaeksoft.searchlib.join.JoinList;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.query.QueryParser;
 import com.jaeksoft.searchlib.result.AbstractResult;
 import com.jaeksoft.searchlib.result.ResultSearchSingle;
+import com.jaeksoft.searchlib.schema.AnalyzerSelector;
 import com.jaeksoft.searchlib.schema.Schema;
 import com.jaeksoft.searchlib.schema.SchemaField;
 import com.jaeksoft.searchlib.schema.SchemaFieldList;
@@ -77,7 +76,7 @@ public class SearchRequest extends AbstractRequest implements
 	private transient Query snippetComplexQuery;
 	private transient Query primitiveQuery;
 
-	private transient Analyzer analyzer;
+	private transient AnalyzerSelector analyzerSelector;
 
 	private FilterList filterList;
 	private JoinList joinList;
@@ -135,7 +134,7 @@ public class SearchRequest extends AbstractRequest implements
 		this.snippetComplexQuery = null;
 		this.boostedComplexQuery = null;
 		this.primitiveQuery = null;
-		this.analyzer = null;
+		this.analyzerSelector = null;
 		this.queryString = null;
 		this.patternQuery = null;
 		this.advancedScore = null;
@@ -176,7 +175,7 @@ public class SearchRequest extends AbstractRequest implements
 		this.snippetComplexQuery = null;
 		this.boostedComplexQuery = null;
 		this.primitiveQuery = null;
-		this.analyzer = null;
+		this.analyzerSelector = null;
 		this.queryString = searchRequest.queryString;
 		this.patternQuery = searchRequest.patternQuery;
 		this.advancedScore = AdvancedScore.copy(searchRequest.advancedScore);
@@ -192,30 +191,30 @@ public class SearchRequest extends AbstractRequest implements
 			this.boostedComplexQuery = null;
 			this.primitiveQuery = null;
 			this.queryParser = null;
-			this.analyzer = null;
+			this.analyzerSelector = null;
 		} finally {
 			rwl.w.unlock();
 		}
 	}
 
-	private Analyzer checkAnalyzer() throws SearchLibException {
-		if (analyzer == null)
-			analyzer = config.getSchema().getQueryPerFieldAnalyzer(lang);
-		return analyzer;
+	private AnalyzerSelector checkAnalyzer() throws SearchLibException {
+		if (analyzerSelector == null)
+			analyzerSelector = config.getSchema().getAnalyzerSelector();
+		return analyzerSelector;
 	}
 
-	public Analyzer getAnalyzer() throws SearchLibException {
+	public AnalyzerSelector getAnalyzerSelector() throws SearchLibException {
 		rwl.r.lock();
 		try {
-			if (analyzer != null)
-				return analyzer;
+			if (analyzerSelector != null)
+				return analyzerSelector;
 		} finally {
 			rwl.r.unlock();
 		}
 		rwl.w.lock();
 		try {
 			checkAnalyzer();
-			return analyzer;
+			return analyzerSelector;
 		} finally {
 			rwl.w.unlock();
 		}
@@ -334,7 +333,7 @@ public class SearchRequest extends AbstractRequest implements
 		if (field == null)
 			throw new SearchLibException(
 					"Please select a default field in the schema");
-		queryParser = new QueryParser(field.getName(), checkAnalyzer());
+		queryParser = new QueryParser(field.getName(), analyzerSelector);
 		queryParser.setAllowLeadingWildcard(allowLeadingWildcard);
 		queryParser.setPhraseSlop(phraseSlop);
 		queryParser.setDefaultOperator(defaultOperator);
@@ -689,7 +688,6 @@ public class SearchRequest extends AbstractRequest implements
 			if (this.lang == lang)
 				return;
 			this.lang = lang;
-			analyzer = null;
 		} finally {
 			rwl.w.unlock();
 		}
@@ -1150,7 +1148,7 @@ public class SearchRequest extends AbstractRequest implements
 	public AbstractResult<?> execute(ReaderInterface reader)
 			throws SearchLibException {
 		try {
-			return new ResultSearchSingle((ReaderLocal) reader, this);
+			return new ResultSearchSingle(reader, this);
 		} catch (IOException e) {
 			throw new SearchLibException(e);
 		} catch (ParseException e) {

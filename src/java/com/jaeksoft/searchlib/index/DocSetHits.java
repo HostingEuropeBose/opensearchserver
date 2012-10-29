@@ -27,6 +27,7 @@ package com.jaeksoft.searchlib.index;
 import java.io.IOException;
 import java.util.BitSet;
 
+import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.result.collector.DocIdCollector;
 import com.jaeksoft.searchlib.result.collector.DocIdInterface;
@@ -42,7 +43,7 @@ public class DocSetHits {
 
 	final private ReadWriteLock rwl = new ReadWriteLock();
 
-	private ReaderLocal reader;
+	private ReaderInterface reader;
 	private Query query;
 	private BitSet filter;
 	private SortFieldList sortFieldList;
@@ -51,8 +52,9 @@ public class DocSetHits {
 	private DocIdCollector docIdCollector;
 	private ScoreDocCollector scoreDocCollector;
 
-	protected DocSetHits(ReaderLocal reader, Query query, BitSet filterBitSet,
-			SortFieldList sortFieldList, Timer timer) throws IOException {
+	protected DocSetHits(ReaderInterface reader, Query query,
+			BitSet filterBitSet, SortFieldList sortFieldList, Timer timer)
+			throws IOException, SearchLibException {
 		rwl.w.lock();
 		try {
 			this.query = query;
@@ -106,7 +108,8 @@ public class DocSetHits {
 	// }
 	// }
 
-	private void sort(DocIdInterface collector, Timer timer) throws IOException {
+	private void sort(DocIdInterface collector, Timer timer)
+			throws IOException, SearchLibException {
 		if (sortFieldList == null)
 			return;
 		SorterAbstract sorter = sortFieldList.getSorter(collector, reader);
@@ -114,7 +117,7 @@ public class DocSetHits {
 	}
 
 	private ScoreDocCollector getScoreDocCollectorNoLock(Timer timer)
-			throws IOException {
+			throws IOException, SearchLibException {
 		if (scoreDocCollector != null)
 			return scoreDocCollector;
 		Timer tAllDocs = new Timer(timer, "Get Score Doc Collector ");
@@ -130,7 +133,7 @@ public class DocSetHits {
 	}
 
 	public ScoreDocCollector getScoreDocCollector(Timer timer)
-			throws IOException {
+			throws IOException, SearchLibException {
 		rwl.r.lock();
 		try {
 			if (scoreDocCollector != null)
@@ -150,7 +153,7 @@ public class DocSetHits {
 	}
 
 	private MaxScoreCollector getMaxScoreCollectorNoLock(Timer timer)
-			throws IOException {
+			throws IOException, SearchLibException {
 		if (maxScoreCollector != null)
 			return maxScoreCollector;
 		Timer t = new Timer(timer, "Get Max Score Collector ");
@@ -160,7 +163,8 @@ public class DocSetHits {
 		return maxScoreCollector;
 	}
 
-	public float getMaxScore(Timer timer) throws IOException {
+	public float getMaxScore(Timer timer) throws IOException,
+			SearchLibException {
 		rwl.r.lock();
 		try {
 			if (scoreDocCollector != null)
@@ -192,7 +196,7 @@ public class DocSetHits {
 	}
 
 	private DocIdCollector getDocIdCollectorNoLock(Timer timer)
-			throws IOException {
+			throws IOException, SearchLibException {
 		if (docIdCollector != null)
 			return docIdCollector;
 		Timer tAllDocs = new Timer(timer, "Get Doc Id Collector: ");
@@ -207,7 +211,8 @@ public class DocSetHits {
 		return docIdCollector;
 	}
 
-	public DocIdInterface getDocIdInterface(Timer timer) throws IOException {
+	public DocIdInterface getDocIdInterface(Timer timer) throws IOException,
+			SearchLibException {
 		rwl.r.lock();
 		try {
 			if (docIdCollector != null)
@@ -227,11 +232,11 @@ public class DocSetHits {
 		}
 	}
 
-	public int[] getIds(Timer timer) throws IOException {
+	public int[] getIds(Timer timer) throws IOException, SearchLibException {
 		return getDocIdInterface(timer).getIds();
 	}
 
-	public BitSet getBitSet(Timer timer) throws IOException {
+	public BitSet getBitSet(Timer timer) throws IOException, SearchLibException {
 		rwl.r.lock();
 		try {
 			if (docIdCollector != null)

@@ -38,6 +38,7 @@ import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.config.Config;
+import com.jaeksoft.searchlib.schema.AnalyzerSelector;
 import com.jaeksoft.searchlib.util.ReadWriteLock;
 import com.jaeksoft.searchlib.util.XPathParser;
 import com.jaeksoft.searchlib.util.XmlWriter;
@@ -45,25 +46,11 @@ import com.jaeksoft.searchlib.util.XmlWriter;
 public class AnalyzerList {
 
 	private Map<String, List<Analyzer>> nameListMap;
-	private Map<String, Analyzer> nameLangMap;
 
 	private final ReadWriteLock rwl = new ReadWriteLock();
 
 	public AnalyzerList() {
-		nameLangMap = new TreeMap<String, Analyzer>();
 		nameListMap = new TreeMap<String, List<Analyzer>>();
-	}
-
-	final private static String getAnalyzerLangKey(String analyzerName,
-			LanguageEnum lang) {
-		StringBuffer sb = new StringBuffer(analyzerName);
-		sb.append('_');
-		sb.append(lang.getCode());
-		return sb.toString();
-	}
-
-	final private static String getAnalyzerLangKey(Analyzer analyzer) {
-		return getAnalyzerLangKey(analyzer.getName(), analyzer.getLang());
 	}
 
 	public boolean add(Analyzer analyzer) {
@@ -75,7 +62,6 @@ public class AnalyzerList {
 				nameListMap.put(analyzer.getName(), alist);
 			}
 			alist.add(analyzer);
-			nameLangMap.put(getAnalyzerLangKey(analyzer), analyzer);
 			return true;
 		} finally {
 			rwl.w.unlock();
@@ -91,7 +77,6 @@ public class AnalyzerList {
 				if (alist.size() == 0)
 					nameListMap.remove(analyzer.getName());
 			}
-			nameLangMap.remove(getAnalyzerLangKey(analyzer));
 		} finally {
 			rwl.w.unlock();
 		}
@@ -99,13 +84,17 @@ public class AnalyzerList {
 
 	/**
 	 * Recompile the analyzers
+	 * 
+	 * @throws SearchLibException
 	 */
-	public void recompile() {
+	public void recompile(AnalyzerSelector selector) throws SearchLibException {
 		rwl.r.lock();
 		try {
 			for (List<Analyzer> alist : nameListMap.values())
-				for (Analyzer a : alist)
+				for (Analyzer a : alist) {
 					a.recompile();
+					selector.add(a);
+				}
 		} finally {
 			rwl.r.unlock();
 		}
@@ -124,17 +113,6 @@ public class AnalyzerList {
 		rwl.r.lock();
 		try {
 			return nameListMap.get(name);
-		} finally {
-			rwl.r.unlock();
-		}
-	}
-
-	public Analyzer get(String name, LanguageEnum lang) {
-		rwl.r.lock();
-		try {
-			if (lang == null)
-				lang = LanguageEnum.UNDEFINED;
-			return nameLangMap.get(getAnalyzerLangKey(name, lang));
 		} finally {
 			rwl.r.unlock();
 		}
@@ -160,8 +138,9 @@ public class AnalyzerList {
 			if (nameListMap.size() == 0)
 				return;
 			writer.startElement("analyzers");
-			for (Analyzer analyzer : nameLangMap.values())
-				analyzer.writeXmlConfig(writer);
+			for (List<Analyzer> analyzerList : nameListMap.values())
+				for (Analyzer analyzer : analyzerList)
+					analyzer.writeXmlConfig(writer);
 			writer.endElement();
 		} finally {
 			rwl.r.unlock();

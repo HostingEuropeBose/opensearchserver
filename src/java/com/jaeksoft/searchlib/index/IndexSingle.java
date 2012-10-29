@@ -28,16 +28,23 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.BitSet;
 import java.util.Collection;
+import java.util.Map;
+import java.util.TreeSet;
 
 import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.analysis.Analyzer;
 import com.jaeksoft.searchlib.cache.FieldCache;
 import com.jaeksoft.searchlib.cache.FilterCache;
 import com.jaeksoft.searchlib.cache.SearchCache;
+import com.jaeksoft.searchlib.filter.FilterAbstract;
+import com.jaeksoft.searchlib.filter.FilterHits;
 import com.jaeksoft.searchlib.index.osse.OsseIndex;
 import com.jaeksoft.searchlib.index.term.Term;
+import com.jaeksoft.searchlib.index.term.TermDocs;
 import com.jaeksoft.searchlib.index.term.TermEnum;
 import com.jaeksoft.searchlib.index.term.TermFreqVector;
 import com.jaeksoft.searchlib.query.MoreLikeThis;
@@ -45,9 +52,14 @@ import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.request.AbstractRequest;
 import com.jaeksoft.searchlib.request.SearchRequest;
 import com.jaeksoft.searchlib.result.AbstractResult;
+import com.jaeksoft.searchlib.result.collector.AbstractCollector;
+import com.jaeksoft.searchlib.schema.AnalyzerSelector;
+import com.jaeksoft.searchlib.schema.FieldValue;
 import com.jaeksoft.searchlib.schema.Schema;
+import com.jaeksoft.searchlib.schema.SchemaField;
 import com.jaeksoft.searchlib.schema.SchemaFieldList;
 import com.jaeksoft.searchlib.util.ReadWriteLock;
+import com.jaeksoft.searchlib.util.Timer;
 import com.jaeksoft.searchlib.util.XmlWriter;
 
 public class IndexSingle extends IndexAbstract {
@@ -67,16 +79,10 @@ public class IndexSingle extends IndexAbstract {
 			ClassNotFoundException, SearchLibException {
 		super(indexConfig);
 		online = true;
-		if (indexConfig.getNativeOSSE() || true == Boolean.TRUE) {
-			osseIndex = new OsseIndex(new File(configDir, "index"), null,
-					createIfNotExists);
-			reader = new ReaderNativeOSSE(indexConfig, osseIndex);
-			writer = new WriterNativeOSSE(osseIndex, indexConfig);
-		} else {
-			reader = ReaderLocal.fromConfig(configDir, indexConfig,
-					createIfNotExists);
-			writer = new WriterLocal(indexConfig, (ReaderLocal) reader);
-		}
+		osseIndex = new OsseIndex(new File(configDir, "index"), null,
+				createIfNotExists);
+		reader = new ReaderNativeOSSE(indexConfig, osseIndex);
+		writer = new WriterNativeOSSE(osseIndex, indexConfig);
 	}
 
 	@Override
@@ -449,9 +455,6 @@ public class IndexSingle extends IndexAbstract {
 		rwl.r.lock();
 		try {
 			checkOnline(true);
-			if (reader != null)
-				if (reader instanceof ReaderLocal)
-					return ((ReaderLocal) reader).getSearchCache();
 			return null;
 		} finally {
 			rwl.r.unlock();
@@ -462,9 +465,6 @@ public class IndexSingle extends IndexAbstract {
 		rwl.r.lock();
 		try {
 			checkOnline(true);
-			if (reader != null)
-				if (reader instanceof ReaderLocal)
-					return ((ReaderLocal) reader).getFilterCache();
 			return null;
 		} finally {
 			rwl.r.unlock();
@@ -475,9 +475,6 @@ public class IndexSingle extends IndexAbstract {
 		rwl.r.lock();
 		try {
 			checkOnline(true);
-			if (reader != null)
-				if (reader instanceof ReaderLocal)
-					return ((ReaderLocal) reader).getFieldCache();
 			return null;
 		} finally {
 			rwl.r.unlock();
@@ -522,6 +519,119 @@ public class IndexSingle extends IndexAbstract {
 			checkOnline(true);
 			if (reader != null)
 				return reader.getMoreLikeThis();
+			return null;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	@Override
+	public void search(Query query, BitSet filter, AbstractCollector collector)
+			throws SearchLibException {
+		rwl.r.lock();
+		try {
+			checkOnline(true);
+			if (reader != null)
+				reader.search(query, filter, collector);
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	@Override
+	public StringIndex getStringIndex(String name) throws SearchLibException {
+		rwl.r.lock();
+		try {
+			checkOnline(true);
+			if (reader != null)
+				return reader.getStringIndex(name);
+			return null;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	@Override
+	public TermDocs getTermDocs(Term term) throws SearchLibException {
+		rwl.r.lock();
+		try {
+			checkOnline(true);
+			if (reader != null)
+				return reader.getTermDocs(term);
+			return null;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	@Override
+	public FilterHits getFilterHits(SchemaField defaultField,
+			Analyzer analyzer, FilterAbstract<?> filter, Timer timer)
+			throws SearchLibException {
+		rwl.r.lock();
+		try {
+			checkOnline(true);
+			if (reader != null)
+				return reader.getFilterHits(defaultField, analyzer, filter,
+						timer);
+			return null;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	@Override
+	public DocSetHits newDocSetHits(SearchRequest searchRequest, Schema schema,
+			SchemaField defaultField, AnalyzerSelector analyzerSelector,
+			Timer timer) throws SearchLibException {
+		rwl.r.lock();
+		try {
+			checkOnline(true);
+			if (reader != null)
+				return reader.newDocSetHits(searchRequest, schema,
+						defaultField, analyzerSelector, timer);
+			return null;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	@Override
+	public Map<String, FieldValue> getDocumentFields(int docId,
+			TreeSet<String> fieldSet, Timer timer) throws SearchLibException {
+		rwl.r.lock();
+		try {
+			checkOnline(true);
+			if (reader != null)
+				return reader.getDocumentFields(docId, fieldSet, timer);
+			return null;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	@Override
+	public DocSetHits searchDocSet(SearchRequest searchRequest, Timer timer)
+			throws SearchLibException {
+		rwl.r.lock();
+		try {
+			checkOnline(true);
+			if (reader != null)
+				return searchDocSet(searchRequest, timer);
+			return null;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	@Override
+	public SpellChecker getSpellChecker(String fieldName)
+			throws SearchLibException {
+		rwl.r.lock();
+		try {
+			checkOnline(true);
+			if (reader != null)
+				return reader.getSpellChecker(fieldName);
 			return null;
 		} finally {
 			rwl.r.unlock();

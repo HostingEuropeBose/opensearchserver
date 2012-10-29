@@ -50,7 +50,7 @@ public class Analyzer {
 	private CompiledAnalyzer queryAnalyzer;
 	private CompiledAnalyzer indexAnalyzer;
 
-	public Analyzer(Config config) throws SearchLibException {
+	public Analyzer(Config config) {
 		name = null;
 		this.config = config;
 		lang = LanguageEnum.UNDEFINED;

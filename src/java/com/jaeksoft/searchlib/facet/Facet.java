@@ -30,7 +30,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 
-import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.index.ReaderInterface;
 import com.jaeksoft.searchlib.index.StringIndex;
 import com.jaeksoft.searchlib.index.term.Term;
 import com.jaeksoft.searchlib.index.term.TermDocs;
@@ -124,9 +125,9 @@ public class Facet implements Iterable<FacetItem>,
 		return get(i).count;
 	}
 
-	final static protected Facet facetMultivalued(ReaderLocal reader,
+	final static protected Facet facetMultivalued(ReaderInterface reader,
 			DocIdInterface collector, FacetField facetField, Timer timer)
-			throws IOException {
+			throws IOException, SearchLibException {
 		String fieldName = facetField.getName();
 		StringIndex stringIndex = reader.getStringIndex(fieldName);
 		int[] countIndex = computeMultivalued(reader, fieldName, stringIndex,
@@ -134,9 +135,9 @@ public class Facet implements Iterable<FacetItem>,
 		return new Facet(facetField, stringIndex.lookup, countIndex);
 	}
 
-	final static protected Facet facetSingleValue(ReaderLocal reader,
+	final static protected Facet facetSingleValue(ReaderInterface reader,
 			DocIdInterface collector, FacetField facetField, Timer timer)
-			throws IOException {
+			throws IOException, SearchLibException {
 		String fieldName = facetField.getName();
 		StringIndex stringIndex = reader.getStringIndex(fieldName);
 		int[] countIndex = computeSinglevalued(stringIndex, collector.getIds());
@@ -148,9 +149,9 @@ public class Facet implements Iterable<FacetItem>,
 		facetMap.put(facetItem.term, facetItem);
 	}
 
-	final private static int[] computeMultivalued(ReaderLocal reader,
+	final private static int[] computeMultivalued(ReaderInterface reader,
 			String fieldName, StringIndex stringIndex, BitSet bitset)
-			throws IOException {
+			throws IOException, SearchLibException {
 		int[] countIndex = new int[stringIndex.lookup.length];
 		int i = 0;
 		for (String term : stringIndex.lookup) {

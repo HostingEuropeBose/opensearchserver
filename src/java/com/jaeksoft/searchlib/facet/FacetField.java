@@ -31,8 +31,9 @@ import java.util.List;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
+import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
-import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.index.ReaderInterface;
 import com.jaeksoft.searchlib.index.StringIndex;
 import com.jaeksoft.searchlib.result.collector.CollapseDocInterface;
 import com.jaeksoft.searchlib.result.collector.DocIdInterface;
@@ -109,9 +110,10 @@ public class FacetField extends AbstractField<FacetField> {
 				|| "1".equalsIgnoreCase(value);
 	}
 
-	final public Facet getFacet(ReaderLocal reader,
+	final public Facet getFacet(ReaderInterface reader,
 			DocIdInterface notCollapsedDocs,
-			CollapseDocInterface collapsedDocs, Timer timer) throws IOException {
+			CollapseDocInterface collapsedDocs, Timer timer)
+			throws IOException, SearchLibException {
 		// Two conditions for use postCollapsing
 		boolean useCollapsing = postCollapsing && collapsedDocs != null;
 		if (multivalued) {
@@ -193,7 +195,8 @@ public class FacetField extends AbstractField<FacetField> {
 		return postCollapsing == f.postCollapsing ? 0 : -1;
 	}
 
-	public StringIndex getStringIndex(ReaderLocal reader) throws IOException {
+	public StringIndex getStringIndex(ReaderInterface reader)
+			throws IOException, SearchLibException {
 		if (name.equals("score"))
 			return null;
 		else
@@ -201,8 +204,8 @@ public class FacetField extends AbstractField<FacetField> {
 	}
 
 	public static StringIndex[] newStringIndexArrayForCollapsing(
-			FacetFieldList facetFieldList, ReaderLocal reader, Timer timer)
-			throws IOException {
+			FacetFieldList facetFieldList, ReaderInterface reader, Timer timer)
+			throws IOException, SearchLibException {
 		if (facetFieldList.size() == 0)
 			return null;
 		List<StringIndex> facetFieldArray = new ArrayList<StringIndex>(0);

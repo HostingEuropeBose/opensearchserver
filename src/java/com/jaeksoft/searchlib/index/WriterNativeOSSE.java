@@ -33,7 +33,6 @@ import java.util.List;
 import org.apache.commons.io.IOUtils;
 
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.analysis.Analyzer;
 import com.jaeksoft.searchlib.analysis.CompiledAnalyzer;
 import com.jaeksoft.searchlib.analysis.LanguageEnum;
 import com.jaeksoft.searchlib.analysis.TokenStream;
@@ -43,6 +42,7 @@ import com.jaeksoft.searchlib.index.osse.OsseLibrary;
 import com.jaeksoft.searchlib.index.osse.OsseTermOffset;
 import com.jaeksoft.searchlib.index.osse.OsseTransaction;
 import com.jaeksoft.searchlib.request.SearchRequest;
+import com.jaeksoft.searchlib.schema.AnalyzerSelector;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
 import com.jaeksoft.searchlib.schema.Schema;
 import com.jaeksoft.searchlib.schema.SchemaField;
@@ -117,6 +117,7 @@ public class WriterNativeOSSE extends WriterAbstract {
 		System.out.println("FIELD DELETE: " + fieldName);
 	}
 
+	@Override
 	public void checkSchemaFieldList(SchemaFieldList schemaFieldList)
 			throws SearchLibException {
 		OsseTransaction transaction = null;
@@ -236,35 +237,28 @@ public class WriterNativeOSSE extends WriterAbstract {
 			throws SearchLibException {
 		OsseTransaction transaction = null;
 		try {
+			AnalyzerSelector analyzerSelector = schema.getAnalyzerSelector();
 			transaction = new OsseTransaction(index);
 			Pointer documentPtr = OsseLibrary.INSTANCE
 					.OSSCLib_Transact_Document_New(transaction.getPointer(),
 							transaction.getErrorPointer());
 			LanguageEnum lang = document.getLang();
 			for (FieldContent fieldContent : document) {
-				SchemaField schemaField = schema.getFieldList().get(
-						fieldContent.getField());
-				if (schemaField != null) {
-					Analyzer analyzer = schema.getAnalyzer(schemaField, lang);
-					CompiledAnalyzer compiledAnalyzer = null;
-					if (analyzer != null)
-						compiledAnalyzer = analyzer.getIndexAnalyzer();
-					WString wFieldName = new WString(fieldContent.getField());
-					Pointer fieldPtr = OsseLibrary.INSTANCE
-							.OSSCLib_Transact_GetField(
-									transaction.getPointer(), wFieldName,
-									transaction.getErrorPointer());
-					if (fieldPtr == null)
-						transaction.throwError();
-					for (FieldValueItem valueItem : fieldContent.getValues()) {
-						String value = valueItem.getValue();
-						if (compiledAnalyzer != null)
-							updateTerms(transaction, documentPtr, fieldPtr,
-									compiledAnalyzer, value);
-						else
-							updateTerm(transaction, documentPtr, fieldPtr,
-									value);
-					}
+				CompiledAnalyzer compiledAnalyzer = analyzerSelector
+						.getIndexByFieldName(fieldContent.getField(), lang);
+				WString wFieldName = new WString(fieldContent.getField());
+				Pointer fieldPtr = OsseLibrary.INSTANCE
+						.OSSCLib_Transact_GetField(transaction.getPointer(),
+								wFieldName, transaction.getErrorPointer());
+				if (fieldPtr == null)
+					transaction.throwError();
+				for (FieldValueItem valueItem : fieldContent.getValues()) {
+					String value = valueItem.getValue();
+					if (compiledAnalyzer != null)
+						updateTerms(transaction, documentPtr, fieldPtr,
+								compiledAnalyzer, value);
+					else
+						updateTerm(transaction, documentPtr, fieldPtr, value);
 				}
 			}
 			transaction.commit();

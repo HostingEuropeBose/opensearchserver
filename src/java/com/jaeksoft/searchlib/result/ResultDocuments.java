@@ -32,7 +32,7 @@ import java.util.TreeSet;
 
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
-import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.index.ReaderInterface;
 import com.jaeksoft.searchlib.index.term.Term;
 import com.jaeksoft.searchlib.index.term.TermDocs;
 import com.jaeksoft.searchlib.query.ParseException;
@@ -47,11 +47,11 @@ import com.jaeksoft.searchlib.util.Timer;
 public class ResultDocuments extends AbstractResult<DocumentsRequest> implements
 		ResultDocumentsInterface<DocumentsRequest> {
 
-	transient private ReaderLocal reader = null;
+	transient private ReaderInterface reader = null;
 	final private TreeSet<String> fieldNameSet;
 	final private List<Integer> docList;
 
-	public ResultDocuments(ReaderLocal reader, DocumentsRequest request)
+	public ResultDocuments(ReaderInterface reader, DocumentsRequest request)
 			throws SearchLibException, IOException, ParseException,
 			SyntaxError, InstantiationException, IllegalAccessException,
 			ClassNotFoundException {

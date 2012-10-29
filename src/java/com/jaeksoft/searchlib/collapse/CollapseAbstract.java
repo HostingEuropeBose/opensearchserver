@@ -26,8 +26,9 @@ package com.jaeksoft.searchlib.collapse;
 
 import java.io.IOException;
 
+import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
-import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.index.ReaderInterface;
 import com.jaeksoft.searchlib.index.StringIndex;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.request.SearchRequest;
@@ -157,10 +158,11 @@ public abstract class CollapseAbstract {
 	 * @throws IOException
 	 * @throws SyntaxError
 	 * @throws ParseException
+	 * @throws SearchLibException
 	 */
-	private CollapseDocInterface collapseOptimized(ReaderLocal reader,
+	private CollapseDocInterface collapseOptimized(ReaderInterface reader,
 			DocIdInterface collector, Timer timer) throws IOException,
-			ParseException, SyntaxError {
+			ParseException, SyntaxError, SearchLibException {
 
 		int searchRows = searchRequest.getRows();
 		int end = searchRequest.getEnd();
@@ -170,9 +172,9 @@ public abstract class CollapseAbstract {
 				collapseFieldStringIndex, timer);
 	}
 
-	private CollapseDocInterface collapseFull(ReaderLocal reader,
+	private CollapseDocInterface collapseFull(ReaderInterface reader,
 			DocIdInterface collector, Timer timer) throws IOException,
-			ParseException, SyntaxError {
+			ParseException, SyntaxError, SearchLibException {
 		StringIndex collapseFieldStringIndex = reader
 				.getStringIndex(searchRequest.getCollapseField());
 		collapsedDocs = run(collector, collector.getSize(),
@@ -180,9 +182,9 @@ public abstract class CollapseAbstract {
 		return collapsedDocs;
 	}
 
-	final public CollapseDocInterface collapse(ReaderLocal reader,
+	final public CollapseDocInterface collapse(ReaderInterface reader,
 			DocIdInterface collector, Timer timer) throws IOException,
-			ParseException, SyntaxError {
+			ParseException, SyntaxError, SearchLibException {
 		Timer collapseTimer = new Timer(timer, "collapse "
 				+ collapseMode.getLabel() + " " + collapseType.getLabel());
 		try {

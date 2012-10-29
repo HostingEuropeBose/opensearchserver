@@ -36,7 +36,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.analysis.Analyzer;
+import com.jaeksoft.searchlib.analysis.CompiledAnalyzer;
 import com.jaeksoft.searchlib.analysis.LanguageEnum;
 import com.jaeksoft.searchlib.analysis.filter.stop.WordArray;
 import com.jaeksoft.searchlib.config.Config;
@@ -46,7 +46,6 @@ import com.jaeksoft.searchlib.filter.QueryFilter;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.IndexAbstract;
 import com.jaeksoft.searchlib.index.ReaderInterface;
-import com.jaeksoft.searchlib.index.ReaderLocal;
 import com.jaeksoft.searchlib.query.MoreLikeThis;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.query.Query;
@@ -156,10 +155,11 @@ public class MoreLikeThisRequest extends AbstractRequest implements
 			mlt.setFieldNames(fieldList.toArrayName());
 
 			if (analyzerName != null) {
-				Analyzer analyzer = config.getSchema().getAnalyzerList()
-						.get(analyzerName, lang);
+				CompiledAnalyzer analyzer = config.getSchema()
+						.getAnalyzerSelector()
+						.getQueryByAnalyzerName(analyzerName, lang);
 				if (analyzer != null)
-					mlt.setAnalyzer(analyzer.getQueryAnalyzer());
+					mlt.setAnalyzer(analyzer);
 			}
 			if (stopWords != null && stopWords.length() > 0) {
 				WordArray wordArray = getConfig().getStopWordsManager()
@@ -662,7 +662,7 @@ public class MoreLikeThisRequest extends AbstractRequest implements
 	public AbstractResult<MoreLikeThisRequest> execute(ReaderInterface reader)
 			throws SearchLibException {
 		try {
-			return new ResultMoreLikeThis((ReaderLocal) reader, this);
+			return new ResultMoreLikeThis(reader, this);
 		} catch (IOException e) {
 			throw new SearchLibException(e);
 		} catch (ParseException e) {

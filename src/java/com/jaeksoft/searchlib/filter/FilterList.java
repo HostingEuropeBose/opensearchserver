@@ -32,9 +32,10 @@ import java.util.List;
 
 import org.xml.sax.SAXException;
 
+import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.Analyzer;
 import com.jaeksoft.searchlib.config.Config;
-import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.index.ReaderInterface;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.schema.SchemaField;
 import com.jaeksoft.searchlib.util.Timer;
@@ -89,8 +90,9 @@ public class FilterList implements Iterable<FilterAbstract<?>> {
 		return filterList.iterator();
 	}
 
-	public BitSet getOpenBitSet(ReaderLocal reader, SchemaField defaultField,
-			Analyzer analyzer, Timer timer) throws IOException, ParseException {
+	public BitSet getOpenBitSet(ReaderInterface reader,
+			SchemaField defaultField, Analyzer analyzer, Timer timer)
+			throws IOException, ParseException, SearchLibException {
 
 		if (size() == 0)
 			return null;

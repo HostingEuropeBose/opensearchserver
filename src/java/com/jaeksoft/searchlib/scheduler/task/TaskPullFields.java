@@ -89,8 +89,8 @@ public class TaskPullFields extends TaskPullAbstract {
 			ExecutionData executionData = new ExecutionData(properties, client);
 
 			FieldMap sourceFieldMap = new FieldMap(sourceMappedFields, ',', '|');
-			sourceFieldMap.cacheAnalyzers(client.getSchema().getAnalyzerList(),
-					LanguageEnum.UNDEFINED);
+			sourceFieldMap.cacheAnalyzers(client.getSchema()
+					.getAnalyzerSelector(), LanguageEnum.UNDEFINED);
 
 			SearchRequest searchRequest = new SearchRequest(
 					executionData.sourceClient);

@@ -38,13 +38,14 @@ import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.analysis.Analyzer;
+import com.jaeksoft.searchlib.analysis.CompiledAnalyzer;
 import com.jaeksoft.searchlib.analysis.LanguageEnum;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.FieldContent;
 import com.jaeksoft.searchlib.index.IndexDocument;
 import com.jaeksoft.searchlib.index.MemoryIndex;
 import com.jaeksoft.searchlib.query.ParseException;
+import com.jaeksoft.searchlib.schema.AnalyzerSelector;
 import com.jaeksoft.searchlib.util.ReadWriteLock;
 import com.jaeksoft.searchlib.util.XPathParser;
 import com.jaeksoft.searchlib.util.XmlWriter;
@@ -365,11 +366,13 @@ public class Classifier implements Comparable<Classifier> {
 		try {
 			MemoryIndex index = new MemoryIndex();
 			LanguageEnum lang = document.getLang();
-			Analyzer analyzer = client.getSchema().getIndexPerFieldAnalyzer(
-					lang);
+			AnalyzerSelector analyzerSelector = client.getSchema()
+					.getAnalyzerSelector();
 			for (FieldContent fieldContent : document.getFieldContentArray()) {
 				String fieldName = fieldContent.getField();
 				String concatValues = fieldContent.getMergedValues(" ");
+				CompiledAnalyzer analyzer = analyzerSelector
+						.getIndexByFieldName(fieldName, lang);
 				index.addField(fieldName, concatValues, analyzer);
 			}
 			if (method == ClassificationMethodEnum.MULTIVALUED)

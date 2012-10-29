@@ -33,7 +33,7 @@ import java.util.TreeSet;
 
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
-import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.index.ReaderInterface;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.request.RequestInterfaces;
 import com.jaeksoft.searchlib.request.ReturnField;
@@ -55,8 +55,9 @@ public class ResultDocument {
 	final private int docId;
 
 	public ResultDocument(SearchRequest searchRequest,
-			TreeSet<String> fieldSet, int docId, ReaderLocal reader, Timer timer)
-			throws IOException, ParseException, SyntaxError, SearchLibException {
+			TreeSet<String> fieldSet, int docId, ReaderInterface reader,
+			Timer timer) throws IOException, ParseException, SyntaxError,
+			SearchLibException {
 
 		this.docId = docId;
 
@@ -86,8 +87,9 @@ public class ResultDocument {
 	}
 
 	public ResultDocument(RequestInterfaces.ReturnedFieldInterface rfiRequest,
-			TreeSet<String> fieldSet, int docId, ReaderLocal reader, Timer timer)
-			throws IOException, ParseException, SyntaxError {
+			TreeSet<String> fieldSet, int docId, ReaderInterface reader,
+			Timer timer) throws IOException, ParseException, SyntaxError,
+			SearchLibException {
 		this.docId = docId;
 		returnFields = reader.getDocumentFields(docId, fieldSet, timer);
 		snippetFields = new TreeMap<String, SnippetFieldValue>();

@@ -39,7 +39,6 @@ import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.config.Config;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.ReaderInterface;
-import com.jaeksoft.searchlib.index.ReaderLocal;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.result.AbstractResult;
@@ -236,7 +235,7 @@ public class DocumentsRequest extends AbstractRequest implements
 	public AbstractResult<DocumentsRequest> execute(ReaderInterface reader)
 			throws SearchLibException {
 		try {
-			return new ResultDocuments((ReaderLocal) reader, this);
+			return new ResultDocuments(reader, this);
 		} catch (IOException e) {
 			throw new SearchLibException(e);
 		} catch (ParseException e) {

@@ -27,13 +27,13 @@ package com.jaeksoft.searchlib.index;
 import java.io.IOException;
 
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.analysis.Analyzer;
 import com.jaeksoft.searchlib.cache.CacheKeyInterface;
 import com.jaeksoft.searchlib.filter.FilterListCacheKey;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.request.BoostQuery;
 import com.jaeksoft.searchlib.request.SearchRequest;
+import com.jaeksoft.searchlib.schema.AnalyzerSelector;
 import com.jaeksoft.searchlib.schema.SchemaField;
 import com.jaeksoft.searchlib.scoring.AdvancedScore;
 
@@ -47,13 +47,13 @@ public class DocSetHitCacheKey implements CacheKeyInterface<DocSetHitCacheKey> {
 	private String advancedScoreCacheKey;
 
 	public DocSetHitCacheKey(SearchRequest searchRequest,
-			SchemaField defaultField, Analyzer analyzer) throws ParseException,
-			SyntaxError, SearchLibException, IOException {
+			SchemaField defaultField, AnalyzerSelector analyzerSelector)
+			throws ParseException, SyntaxError, SearchLibException, IOException {
 		query = searchRequest.getQuery().toString();
 		facet = searchRequest.isFacet();
 		sortListCacheKey = searchRequest.getSortFieldList().getCacheKey();
 		filterListCacheKey = new FilterListCacheKey(
-				searchRequest.getFilterList(), defaultField, analyzer);
+				searchRequest.getFilterList(), defaultField, analyzerSelector);
 		boostQueryCacheKey = BoostQuery.getCacheKey(searchRequest
 				.getBoostingQueries());
 		advancedScoreCacheKey = AdvancedScore.getCacheKey(searchRequest

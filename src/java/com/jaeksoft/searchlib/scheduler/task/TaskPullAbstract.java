@@ -150,8 +150,8 @@ public abstract class TaskPullAbstract extends TaskAbstract {
 			targetField = properties.getValue(propTargetField);
 			bufferSize = Integer.parseInt(properties.getValue(propBufferSize));
 			targetFieldMap = new FieldMap(targetMappedFields, ',', '|');
-			targetFieldMap.cacheAnalyzers(client.getSchema().getAnalyzerList(),
-					lang);
+			targetFieldMap.cacheAnalyzers(client.getSchema()
+					.getAnalyzerSelector(), lang);
 			buffer = new ArrayList<IndexDocument>(bufferSize);
 			totalCount = 0;
 			String login = properties.getValue(propLogin);

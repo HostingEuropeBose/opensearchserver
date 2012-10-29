@@ -30,7 +30,7 @@ import java.util.List;
 
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
-import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.index.ReaderInterface;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.render.Render;
 import com.jaeksoft.searchlib.render.RenderSpellCheckJson;
@@ -43,7 +43,7 @@ public class ResultSpellCheck extends AbstractResult<SpellCheckRequest> {
 
 	private List<SpellCheck> spellCheckList;
 
-	public ResultSpellCheck(ReaderLocal reader, SpellCheckRequest request)
+	public ResultSpellCheck(ReaderInterface reader, SpellCheckRequest request)
 			throws SearchLibException, ParseException, SyntaxError, IOException {
 		super(request);
 		spellCheckList = new ArrayList<SpellCheck>(0);

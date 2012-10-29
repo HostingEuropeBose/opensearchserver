@@ -27,7 +27,6 @@ package com.jaeksoft.searchlib.index;
 import java.io.File;
 import java.io.IOException;
 
-import com.jaeksoft.searchlib.analysis.PerFieldAnalyzerWrapper;
 import com.jaeksoft.searchlib.index.term.Term;
 import com.jaeksoft.searchlib.query.Query;
 
@@ -43,17 +42,6 @@ public class IndexWriter {
 	}
 
 	public void addDocument(IndexDocument document) {
-		// TODO Auto-generated method stub
-
-	}
-
-	public void updateDocument(Term term, IndexDocument document,
-			PerFieldAnalyzerWrapper pfa) {
-		// TODO Auto-generated method stub
-
-	}
-
-	public void addDocument(IndexDocument document, PerFieldAnalyzerWrapper pfa) {
 		// TODO Auto-generated method stub
 
 	}

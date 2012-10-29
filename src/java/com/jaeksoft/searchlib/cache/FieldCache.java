@@ -30,10 +30,11 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.FieldContentCacheKey;
 import com.jaeksoft.searchlib.index.IndexConfig;
-import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.index.ReaderInterface;
 import com.jaeksoft.searchlib.index.StringIndex;
 import com.jaeksoft.searchlib.index.term.TermFreqVector;
 import com.jaeksoft.searchlib.query.ParseException;
@@ -52,9 +53,9 @@ public class FieldCache extends
 		this.indexConfig = indexConfig;
 	}
 
-	public Map<String, FieldValue> get(ReaderLocal reader, int docId,
+	public Map<String, FieldValue> get(ReaderInterface reader, int docId,
 			Set<String> fieldNameSet, Timer timer) throws IOException,
-			ParseException, SyntaxError {
+			ParseException, SyntaxError, SearchLibException {
 		Map<String, FieldValue> documentFields = new TreeMap<String, FieldValue>();
 		Set<String> storeField = new TreeSet<String>();
 		Set<String> indexedField = new TreeSet<String>();

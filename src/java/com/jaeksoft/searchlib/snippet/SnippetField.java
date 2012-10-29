@@ -39,7 +39,7 @@ import org.xml.sax.SAXException;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.Analyzer;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
-import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.index.ReaderInterface;
 import com.jaeksoft.searchlib.index.term.Term;
 import com.jaeksoft.searchlib.index.term.TermPositionVector;
 import com.jaeksoft.searchlib.index.term.TermVectorOffsetInfo;
@@ -54,11 +54,6 @@ import com.jaeksoft.searchlib.util.XPathParser;
 import com.jaeksoft.searchlib.util.XmlWriter;
 
 public class SnippetField extends AbstractField<SnippetField> {
-
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1989504404725110730L;
 
 	private FragmenterAbstract fragmenterTemplate;
 	private String tag;
@@ -189,7 +184,7 @@ public class SnippetField extends AbstractField<SnippetField> {
 	}
 
 	private Iterator<TermVectorOffsetInfo> extractTermVectorIterator(int docId,
-			ReaderLocal reader) throws IOException, ParseException,
+			ReaderInterface reader) throws IOException, ParseException,
 			SyntaxError, SearchLibException {
 		if (searchTerms == null)
 			return null;
@@ -234,7 +229,8 @@ public class SnippetField extends AbstractField<SnippetField> {
 			if (searchTerms != null)
 				return;
 			this.query = searchRequest.getSnippetQuery();
-			this.analyzer = searchRequest.getAnalyzer();
+			this.analyzer = searchRequest.getAnalyzerSelector()
+					.getQueryByFieldName(this.name, searchRequest.getLang());
 			Set<Term> terms = new HashSet<Term>();
 			query.extractTerms(terms);
 			String[] tempTerms = new String[terms.size()];
@@ -300,7 +296,7 @@ public class SnippetField extends AbstractField<SnippetField> {
 		return currentVector;
 	}
 
-	public boolean getSnippets(int docId, ReaderLocal reader,
+	public boolean getSnippets(int docId, ReaderInterface reader,
 			FieldValueItem[] values, List<FieldValueItem> snippets)
 			throws IOException, ParseException, SyntaxError, SearchLibException {
 

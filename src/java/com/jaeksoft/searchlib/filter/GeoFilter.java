@@ -30,12 +30,13 @@ import java.text.NumberFormat;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
-import com.jaeksoft.searchlib.analysis.Analyzer;
+import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.analysis.filter.DegreesRadiansFilter;
-import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.index.ReaderInterface;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.query.QueryParser;
+import com.jaeksoft.searchlib.schema.AnalyzerSelector;
 import com.jaeksoft.searchlib.schema.SchemaField;
 import com.jaeksoft.searchlib.util.Geospatial;
 import com.jaeksoft.searchlib.util.Timer;
@@ -259,10 +260,10 @@ public class GeoFilter extends FilterAbstract<GeoFilter> {
 	}
 
 	@Override
-	public String getCacheKey(SchemaField defaultField, Analyzer analyzer)
-			throws ParseException {
+	public String getCacheKey(SchemaField defaultField,
+			AnalyzerSelector analyzerSelector) throws ParseException {
 		String key = "GeoFilter - "
-				+ getQuery(defaultField, analyzer).toString();
+				+ getQuery(defaultField, analyzerSelector).toString();
 		return key;
 	}
 
@@ -291,22 +292,22 @@ public class GeoFilter extends FilterAbstract<GeoFilter> {
 		return sb.toString();
 	}
 
-	private Query getQuery(SchemaField defaultField, Analyzer analyzer)
-			throws ParseException {
+	private Query getQuery(SchemaField defaultField,
+			AnalyzerSelector analyzerSelector) throws ParseException {
 		if (query != null)
 			return query;
 		QueryParser queryParser = new QueryParser(defaultField.getName(),
-				analyzer);
+				analyzerSelector);
 		queryParser.setLowercaseExpandedTerms(false);
 		query = queryParser.parse(getQueryString());
 		return query;
 	}
 
 	@Override
-	public FilterHits getFilterHits(ReaderLocal reader,
-			SchemaField defaultField, Analyzer analyzer, Timer timer)
-			throws ParseException, IOException {
-		Query query = getQuery(defaultField, analyzer);
+	public FilterHits getFilterHits(ReaderInterface reader,
+			SchemaField defaultField, AnalyzerSelector analyzerSelector,
+			Timer timer) throws ParseException, IOException, SearchLibException {
+		Query query = getQuery(defaultField, analyzerSelector);
 		FilterHits filterHits = new FilterHits(query, isNegative(), reader,
 				timer);
 		return filterHits;

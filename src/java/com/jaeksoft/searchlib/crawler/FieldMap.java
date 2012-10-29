@@ -38,11 +38,11 @@ import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.analysis.AnalyzerList;
 import com.jaeksoft.searchlib.analysis.LanguageEnum;
 import com.jaeksoft.searchlib.index.FieldContent;
 import com.jaeksoft.searchlib.index.IndexDocument;
 import com.jaeksoft.searchlib.result.ResultDocument;
+import com.jaeksoft.searchlib.schema.AnalyzerSelector;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
 import com.jaeksoft.searchlib.schema.FieldValueOriginEnum;
 import com.jaeksoft.searchlib.util.XPathParser;
@@ -156,14 +156,14 @@ public class FieldMap extends FieldMapGeneric<SourceField, TargetField> {
 		}
 	}
 
-	public void cacheAnalyzers(AnalyzerList analyzerList, LanguageEnum lang)
-			throws SearchLibException {
+	public void cacheAnalyzers(AnalyzerSelector analyzerSelector,
+			LanguageEnum lang) throws SearchLibException {
 		for (GenericLink<SourceField, TargetField> link : getList()) {
 			TargetField target = link.getTarget();
 			if (target == null)
 				throw new SearchLibException("No target field for "
 						+ link.getSource());
-			target.setCachedAnalyzer(analyzerList, lang);
+			target.setCachedAnalyzer(analyzerSelector, lang);
 		}
 	}
 

@@ -24,9 +24,9 @@
 
 package com.jaeksoft.searchlib.filter;
 
-import com.jaeksoft.searchlib.analysis.Analyzer;
 import com.jaeksoft.searchlib.cache.CacheKeyInterface;
 import com.jaeksoft.searchlib.query.ParseException;
+import com.jaeksoft.searchlib.schema.AnalyzerSelector;
 import com.jaeksoft.searchlib.schema.SchemaField;
 
 public class FilterCacheKey implements CacheKeyInterface<FilterCacheKey> {
@@ -36,8 +36,8 @@ public class FilterCacheKey implements CacheKeyInterface<FilterCacheKey> {
 	private boolean isNegative;
 
 	public FilterCacheKey(FilterAbstract<?> filter, SchemaField defaultField,
-			Analyzer analyzer) throws ParseException {
-		key = filter.getCacheKey(defaultField, analyzer);
+			AnalyzerSelector analyzerSelector) throws ParseException {
+		key = filter.getCacheKey(defaultField, analyzerSelector);
 		isNegative = filter.isNegative();
 	}
 

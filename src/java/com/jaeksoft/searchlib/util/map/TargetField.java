@@ -27,11 +27,10 @@ package com.jaeksoft.searchlib.util.map;
 import java.io.IOException;
 
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.analysis.Analyzer;
-import com.jaeksoft.searchlib.analysis.AnalyzerList;
 import com.jaeksoft.searchlib.analysis.CompiledAnalyzer;
 import com.jaeksoft.searchlib.analysis.LanguageEnum;
 import com.jaeksoft.searchlib.index.IndexDocument;
+import com.jaeksoft.searchlib.schema.AnalyzerSelector;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
 
 public class TargetField implements Comparable<TargetField> {
@@ -104,17 +103,13 @@ public class TargetField implements Comparable<TargetField> {
 		this.cachedAnalyzer = null;
 	}
 
-	final public void setCachedAnalyzer(AnalyzerList analyzerList,
+	final public void setCachedAnalyzer(AnalyzerSelector analyzerSelector,
 			LanguageEnum lang) throws SearchLibException {
 		cachedAnalyzer = null;
 		if (analyzer == null)
 			return;
-		Analyzer a = analyzerList.get(analyzer, lang);
-		if (a == null)
-			a = analyzerList.get(analyzer, null);
-		if (a == null)
-			return;
-		cachedAnalyzer = a.getIndexAnalyzer();
+		cachedAnalyzer = analyzerSelector
+				.getIndexByAnalyzerName(analyzer, lang);
 	}
 
 	final public void add(FieldValueItem fvi, IndexDocument document)

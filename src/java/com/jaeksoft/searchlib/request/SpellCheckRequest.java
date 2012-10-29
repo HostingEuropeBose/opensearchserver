@@ -40,7 +40,6 @@ import com.jaeksoft.searchlib.analysis.LanguageEnum;
 import com.jaeksoft.searchlib.config.Config;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.ReaderInterface;
-import com.jaeksoft.searchlib.index.ReaderLocal;
 import com.jaeksoft.searchlib.index.term.Term;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.query.Query;
@@ -48,7 +47,6 @@ import com.jaeksoft.searchlib.query.QueryParser;
 import com.jaeksoft.searchlib.result.AbstractResult;
 import com.jaeksoft.searchlib.result.ResultSpellCheck;
 import com.jaeksoft.searchlib.schema.Schema;
-import com.jaeksoft.searchlib.schema.SchemaField;
 import com.jaeksoft.searchlib.schema.SchemaFieldList;
 import com.jaeksoft.searchlib.spellcheck.SpellCheckField;
 import com.jaeksoft.searchlib.spellcheck.SpellCheckFieldList;
@@ -173,7 +171,7 @@ public class SpellCheckRequest extends AbstractRequest {
 	public AbstractResult<SpellCheckRequest> execute(ReaderInterface reader)
 			throws SearchLibException {
 		try {
-			return new ResultSpellCheck((ReaderLocal) reader, this);
+			return new ResultSpellCheck(reader, this);
 		} catch (ParseException e) {
 			throw new SearchLibException(e);
 		} catch (SyntaxError e) {
@@ -187,10 +185,8 @@ public class SpellCheckRequest extends AbstractRequest {
 			ParseException {
 		Set<Term> set = new LinkedHashSet<Term>();
 		Schema schema = config.getSchema();
-		SchemaFieldList schemaFieldList = schema.getFieldList();
-		SchemaField schemaField = schemaFieldList.get(fieldName);
-		QueryParser queryParser = new QueryParser(fieldName, schema
-				.getAnalyzer(schemaField, lang).getQueryAnalyzer());
+		QueryParser queryParser = new QueryParser(fieldName,
+				schema.getAnalyzerSelector());
 		queryParser.parse(queryString).extractTerms(set);
 		return set;
 	}

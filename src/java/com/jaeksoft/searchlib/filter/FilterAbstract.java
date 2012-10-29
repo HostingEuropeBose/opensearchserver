@@ -28,9 +28,10 @@ import java.io.IOException;
 
 import org.xml.sax.SAXException;
 
-import com.jaeksoft.searchlib.analysis.Analyzer;
-import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.index.ReaderInterface;
 import com.jaeksoft.searchlib.query.ParseException;
+import com.jaeksoft.searchlib.schema.AnalyzerSelector;
 import com.jaeksoft.searchlib.schema.SchemaField;
 import com.jaeksoft.searchlib.util.Timer;
 import com.jaeksoft.searchlib.util.XmlWriter;
@@ -84,14 +85,14 @@ public abstract class FilterAbstract<T extends FilterAbstract<?>> {
 	public abstract String getDescription();
 
 	public abstract String getCacheKey(SchemaField defaultField,
-			Analyzer analyzer) throws ParseException;
+			AnalyzerSelector analyzerSelector) throws ParseException;
 
 	public abstract void writeXmlConfig(XmlWriter xmlWriter)
 			throws SAXException;
 
-	public abstract FilterHits getFilterHits(ReaderLocal reader,
-			SchemaField defaultField, Analyzer analyzer, Timer timer)
-			throws ParseException, IOException;
+	public abstract FilterHits getFilterHits(ReaderInterface reader,
+			SchemaField defaultField, AnalyzerSelector analyzerSelector,
+			Timer timer) throws ParseException, IOException, SearchLibException;
 
 	public abstract T duplicate();
 

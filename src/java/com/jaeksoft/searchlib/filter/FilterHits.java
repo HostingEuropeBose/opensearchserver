@@ -27,7 +27,8 @@ package com.jaeksoft.searchlib.filter;
 import java.io.IOException;
 import java.util.BitSet;
 
-import com.jaeksoft.searchlib.index.ReaderLocal;
+import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.index.ReaderInterface;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.result.collector.AbstractCollector;
@@ -50,8 +51,8 @@ public class FilterHits {
 		targetDocSet.and(docSet);
 	}
 
-	public FilterHits(Query query, boolean negative, ReaderLocal reader,
-			Timer timer) throws IOException, ParseException {
+	public FilterHits(Query query, boolean negative, ReaderInterface reader,
+			Timer timer) throws IOException, ParseException, SearchLibException {
 		Timer t = new Timer(timer, "Filter hit: " + query.toString());
 		docSet = new BitSet(reader.maxDoc());
 		FilterCollector collector = new FilterCollector();
