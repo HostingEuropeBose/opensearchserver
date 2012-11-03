@@ -25,7 +25,6 @@
 package com.jaeksoft.searchlib.index;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Map;
@@ -91,12 +90,6 @@ public class ReaderNativeOSSE extends ReaderAbstract {
 	public long getVersion() {
 		// TODO Auto-generated method stub
 		return 0;
-	}
-
-	@Override
-	public void push(URI dest) {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override

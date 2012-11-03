@@ -165,7 +165,7 @@ public class FtpFileInstance extends FileInstanceAbstract {
 		FTPClient f = null;
 		try {
 			f = ftpConnect();
-			FTPFile[] files = f.listFiles(getPath());
+			FTPFile[] files = f.listFiles(getPath(), new IgnoreHiddenFilter());
 			return buildFileInstanceArray(files);
 		} catch (SocketException e) {
 			throw new SearchLibException(e);

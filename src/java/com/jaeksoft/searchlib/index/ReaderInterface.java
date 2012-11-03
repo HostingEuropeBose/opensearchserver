@@ -84,8 +84,6 @@ public interface ReaderInterface {
 
 	public void reload() throws SearchLibException;
 
-	public void push(URI dest) throws SearchLibException;
-
 	public long getVersion() throws SearchLibException;
 
 	public abstract int numDocs() throws IOException, SearchLibException;

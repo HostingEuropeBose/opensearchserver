@@ -26,7 +26,6 @@ package com.jaeksoft.searchlib.index;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.BitSet;
 import java.util.Collection;
@@ -377,21 +376,6 @@ public class IndexSingle extends IndexAbstract {
 		} finally {
 			rwl.r.unlock();
 		}
-	}
-
-	@Override
-	public void push(URI dest) throws SearchLibException {
-		if (reader == null)
-			return;
-		IndexMode oldMode = indexConfig.getReadWriteMode();
-		setReadWriteMode(IndexMode.READ_ONLY);
-		rwl.r.lock();
-		try {
-			reader.push(dest);
-		} finally {
-			rwl.r.unlock();
-		}
-		setReadWriteMode(oldMode);
 	}
 
 	@Override
