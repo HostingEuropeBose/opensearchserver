@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
 <!-- License Agreement for OpenSearchServer -->
 <!-- -->
-<!-- Copyright (C) 2008-2009 Emmanuel Keller / Jaeksoft -->
+<!-- Copyright (C) 2012 Emmanuel Keller / Jaeksoft -->
 <!-- -->
 <!-- This file is part of OpenSearchServer. -->
 <!-- http://www.open-search-server.com -->
@@ -18,13 +19,7 @@
 <!-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. -->
 <!-- -->
 <!-- See the GNU General Public License for more details. -->
-<map>
-	<link source="contentBaseType" target="contentBaseType" />
-	<link source="host" target="host" />
-	<link source="subhost" target="subhost" />
-	<link source="lang" target="lang" />
-	<link source="url" target="url" />
-	<link source="url" target="urlSplit" />
-	<link source="url" target="urlExact" />
-	<link source="url" target="urlPhonetic" />
-</map>
+<properties>
+	<comment />
+	<entry key="schedulerAfterSession">Optimize</entry>
+</properties>
