@@ -24,7 +24,6 @@
 
 package com.jaeksoft.searchlib.filter;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Iterator;
@@ -33,10 +32,9 @@ import java.util.List;
 import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.analysis.Analyzer;
 import com.jaeksoft.searchlib.config.Config;
 import com.jaeksoft.searchlib.index.ReaderInterface;
-import com.jaeksoft.searchlib.query.ParseException;
+import com.jaeksoft.searchlib.schema.AnalyzerSelector;
 import com.jaeksoft.searchlib.schema.SchemaField;
 import com.jaeksoft.searchlib.util.Timer;
 import com.jaeksoft.searchlib.util.XmlWriter;
@@ -90,9 +88,9 @@ public class FilterList implements Iterable<FilterAbstract<?>> {
 		return filterList.iterator();
 	}
 
-	public BitSet getOpenBitSet(ReaderInterface reader,
-			SchemaField defaultField, Analyzer analyzer, Timer timer)
-			throws IOException, ParseException, SearchLibException {
+	public BitSet getBitSet(ReaderInterface reader, SchemaField defaultField,
+			AnalyzerSelector analyzerSelector, Timer timer)
+			throws SearchLibException {
 
 		if (size() == 0)
 			return null;
@@ -100,7 +98,7 @@ public class FilterList implements Iterable<FilterAbstract<?>> {
 		BitSet docSet = null;
 		for (FilterAbstract<?> filter : filterList) {
 			FilterHits filterHits = reader.getFilterHits(defaultField,
-					analyzer, filter, timer);
+					analyzerSelector, filter, timer);
 			if (docSet == null)
 				docSet = (BitSet) filterHits.docSet.clone();
 			else

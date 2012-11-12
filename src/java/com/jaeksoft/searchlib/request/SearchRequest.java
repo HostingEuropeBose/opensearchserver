@@ -51,6 +51,7 @@ import com.jaeksoft.searchlib.join.JoinList;
 import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.query.QueryParser;
+import com.jaeksoft.searchlib.query.parser.Expression.QueryOperator;
 import com.jaeksoft.searchlib.result.AbstractResult;
 import com.jaeksoft.searchlib.result.ResultSearchSingle;
 import com.jaeksoft.searchlib.schema.AnalyzerSelector;
@@ -82,7 +83,7 @@ public class SearchRequest extends AbstractRequest implements
 	private JoinList joinList;
 	private boolean allowLeadingWildcard;
 	private int phraseSlop;
-	private QueryParser.Operator defaultOperator;
+	private QueryOperator defaultOperator;
 	private SnippetFieldList snippetFieldList;
 	private ReturnFieldList returnFieldList;
 	private FacetFieldList facetFieldList;
@@ -116,7 +117,7 @@ public class SearchRequest extends AbstractRequest implements
 		this.queryParser = null;
 		this.allowLeadingWildcard = false;
 		this.phraseSlop = 10;
-		this.defaultOperator = QueryParser.Operator.OR;
+		this.defaultOperator = QueryOperator.OR;
 		this.snippetFieldList = new SnippetFieldList();
 		this.returnFieldList = new ReturnFieldList();
 		this.sortFieldList = new SortFieldList();
@@ -281,8 +282,8 @@ public class SearchRequest extends AbstractRequest implements
 	}
 
 	@Override
-	public Query getQuery() throws ParseException, SyntaxError,
-			SearchLibException, IOException {
+	public Query getQuery() throws ParseException, SearchLibException,
+			IOException {
 		rwl.r.lock();
 		try {
 			if (boostedComplexQuery != null)
@@ -706,9 +707,9 @@ public class SearchRequest extends AbstractRequest implements
 		rwl.w.lock();
 		try {
 			if ("and".equalsIgnoreCase(value))
-				defaultOperator = QueryParser.Operator.AND;
+				defaultOperator = QueryOperator.AND;
 			else if ("or".equalsIgnoreCase(value))
-				defaultOperator = QueryParser.Operator.OR;
+				defaultOperator = QueryOperator.OR;
 		} finally {
 			rwl.w.unlock();
 		}

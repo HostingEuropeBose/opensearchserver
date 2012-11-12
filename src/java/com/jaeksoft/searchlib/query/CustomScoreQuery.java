@@ -33,16 +33,16 @@ import com.jaeksoft.searchlib.scoring.CustomScoreProvider;
 public class CustomScoreQuery extends Query {
 
 	public CustomScoreQuery(Query subQuery) {
-		// TODO Auto-generated constructor stub
+		super(null);
 	}
 
 	public CustomScoreQuery(Query subQuery, ValueSourceQuery valueSourceQuery) {
-		// TODO Auto-generated constructor stub
+		super(null);
 	}
 
 	public CustomScoreQuery(Query subQuery,
 			ValueSourceQuery[] valueSourceQueries) {
-		// TODO Auto-generated constructor stub
+		super(null);
 	}
 
 	public float customScore(int doc, float subQueryScore, float valSrcScore) {

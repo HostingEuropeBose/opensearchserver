@@ -101,8 +101,6 @@ public class SelectImpl extends CommonServicesImpl implements Select {
 			throw new WebServiceException(e);
 		} catch (ClassNotFoundException e) {
 			throw new WebServiceException(e);
-		} catch (ParseException e) {
-			throw new WebServiceException(e);
 		} catch (URISyntaxException e) {
 			throw new WebServiceException(e);
 		} catch (InterruptedException e) {

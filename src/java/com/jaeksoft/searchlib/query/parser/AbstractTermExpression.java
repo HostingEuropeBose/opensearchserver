@@ -26,15 +26,12 @@ package com.jaeksoft.searchlib.query.parser;
 
 public abstract class AbstractTermExpression extends Expression {
 
-	protected TermOperator operator = null;
-
 	protected String field = null;
 
 	protected float boost = 1.0F;
 
 	public AbstractTermExpression(Expression parent, ExpressionContext context) {
-		super(parent);
-		this.operator = ResolveOp(context.termOp, context.queryOp);
+		super(parent, context);
 		this.field = context.field;
 	}
 

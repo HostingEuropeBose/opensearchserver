@@ -26,6 +26,7 @@ package com.jaeksoft.searchlib.query.parser;
 
 import com.jaeksoft.searchlib.query.parser.Expression.QueryOperator;
 import com.jaeksoft.searchlib.query.parser.Expression.TermOperator;
+import com.jaeksoft.searchlib.schema.AnalyzerSelector;
 
 public class ExpressionContext {
 
@@ -33,32 +34,40 @@ public class ExpressionContext {
 	final protected TermOperator termOp;
 	final protected String field;
 	final protected int phraseSlop;
+	final protected AnalyzerSelector analyzerSelector;
 
 	private ExpressionContext(QueryOperator queryOp, TermOperator termOp,
-			String field, int phraseSlop) {
+			String field, int phraseSlop, AnalyzerSelector analyzerSelector) {
 		this.queryOp = queryOp;
 		this.termOp = termOp;
 		this.field = field;
 		this.phraseSlop = phraseSlop;
+		this.analyzerSelector = analyzerSelector;
 	}
 
-	public ExpressionContext(QueryOperator queryOp, String field, int phraseSlop) {
-		this(queryOp, TermOperator.ORUNDEFINED, field, phraseSlop);
+	public ExpressionContext(QueryOperator queryOp, String field,
+			int phraseSlop, AnalyzerSelector analyzerSelector) {
+		this(queryOp, TermOperator.ORUNDEFINED, field, phraseSlop,
+				analyzerSelector);
 	}
 
 	final public ExpressionContext setTermOperator(TermOperator termOp) {
-		return new ExpressionContext(queryOp, termOp, field, phraseSlop);
+		return new ExpressionContext(queryOp, termOp, field, phraseSlop,
+				analyzerSelector);
 	}
 
 	final public ExpressionContext setField(String field) {
-		return new ExpressionContext(queryOp, termOp, field, phraseSlop);
+		return new ExpressionContext(queryOp, termOp, field, phraseSlop,
+				analyzerSelector);
 	}
 
 	final public ExpressionContext setQueryOperator(QueryOperator queryOp) {
-		return new ExpressionContext(queryOp, termOp, field, phraseSlop);
+		return new ExpressionContext(queryOp, termOp, field, phraseSlop,
+				analyzerSelector);
 	}
 
 	final public ExpressionContext setPhraseSlop(int phraseSlop) {
-		return new ExpressionContext(queryOp, termOp, field, phraseSlop);
+		return new ExpressionContext(queryOp, termOp, field, phraseSlop,
+				analyzerSelector);
 	}
 }

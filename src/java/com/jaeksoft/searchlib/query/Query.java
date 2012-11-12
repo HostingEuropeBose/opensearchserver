@@ -27,10 +27,23 @@ package com.jaeksoft.searchlib.query;
 import java.io.IOException;
 import java.util.Set;
 
+import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.index.IndexReader;
+import com.jaeksoft.searchlib.index.osse.OsseQuery;
 import com.jaeksoft.searchlib.index.term.Term;
+import com.jaeksoft.searchlib.query.parser.RootExpression;
 
 public class Query {
+
+	private final RootExpression rootExpression;
+
+	public Query(RootExpression rootExpression) {
+		this.rootExpression = rootExpression;
+	}
+
+	public RootExpression getRootExpression() {
+		return this.rootExpression;
+	}
 
 	public Query rewrite(IndexReader indexReader) throws IOException {
 		// TODO Auto-generated method stub
@@ -39,7 +52,10 @@ public class Query {
 
 	public void extractTerms(Set<Term> terms) {
 		// TODO Auto-generated method stub
+	}
 
+	public void execute(OsseQuery osseQuery) throws SearchLibException {
+		rootExpression.execute(osseQuery);
 	}
 
 }

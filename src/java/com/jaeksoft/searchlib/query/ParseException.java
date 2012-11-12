@@ -24,11 +24,21 @@
 
 package com.jaeksoft.searchlib.query;
 
-public class ParseException extends Exception {
+import com.jaeksoft.searchlib.function.expression.SyntaxError;
+
+public class ParseException extends SyntaxError {
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 7699251034538990487L;
+
+	public ParseException(String msg, char[] exp, int pos) {
+		super(msg, exp, pos);
+	}
+
+	public ParseException(String msg) {
+		super(msg);
+	}
 
 }

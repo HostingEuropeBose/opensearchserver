@@ -66,8 +66,6 @@ public class DocSetHits {
 			maxScoreCollector = null;
 			scoreDocCollector = null;
 			numFoundCollector = new NumFoundCollector();
-			if (reader.numDocs() == 0)
-				return;
 			Timer t = new Timer(timer, "DocSetHits: " + query.toString());
 			reader.search(query, filter, numFoundCollector);
 			t.duration();

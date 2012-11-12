@@ -32,7 +32,7 @@ import com.jaeksoft.searchlib.function.source.ValueSource;
 public class ValueSourceQuery extends Query {
 
 	public ValueSourceQuery(ValueSource valueSource) {
-		// TODO Auto-generated constructor stub
+		super(null);
 	}
 
 }

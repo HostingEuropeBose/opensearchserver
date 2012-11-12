@@ -40,7 +40,7 @@ public class OsseIndex {
 		err = new OsseErrorHandler(err);
 		try {
 			WString path = new WString(indexDirectory.getPath());
-			if (!indexDirectory.exists() && createIfNotExists) {
+			if (!indexDirectory.exists()) {
 				indexDirectory.mkdir();
 				indexPtr = OsseLibrary.INSTANCE.OSSCLib_Index_Create(path,
 						null, err.getPointer());

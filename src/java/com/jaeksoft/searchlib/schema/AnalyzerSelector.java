@@ -44,7 +44,7 @@ public class AnalyzerSelector {
 
 		final private String name;
 
-		private LanguageEnum lang;
+		final private LanguageEnum lang;
 
 		private NameLang(Analyzer analyzer) {
 			this.name = analyzer.getName();
@@ -92,11 +92,14 @@ public class AnalyzerSelector {
 	}
 
 	final private CompiledPair getByAnalyzerName(String name, LanguageEnum lang) {
-		NameLang nameLang = new NameLang(name, lang);
-		CompiledPair pair = nameLangMap.get(nameLang);
-		if (pair != null)
-			return pair;
-		nameLang.lang = LanguageEnum.UNDEFINED;
+		NameLang nameLang;
+		if (lang != null) {
+			nameLang = new NameLang(name, lang);
+			CompiledPair pair = nameLangMap.get(nameLang);
+			if (pair != null)
+				return pair;
+		}
+		nameLang = new NameLang(name, LanguageEnum.UNDEFINED);
 		return nameLangMap.get(nameLang);
 	}
 

@@ -212,6 +212,8 @@ public abstract class Config {
 			schema = Schema.fromXmlConfig(this,
 					xppConfig.getNode("/configuration/schema"), xppConfig);
 
+			index.checkSchemaFieldList(schema.getFieldList());
+
 			configFiles = new ConfigFiles();
 
 			urlManagerClass = xppConfig.getAttributeString(

@@ -37,6 +37,11 @@ public interface OsseLibrary extends Library {
 	final public static int OSSCLIB_FIELD_UI32FIELDFLAGS_POSITION = 0x00000004;
 	final public static int OSSCLIB_FIELD_UI32FIELDFLAGS_VSM1 = 0x00000040;
 
+	final public static int OSSCLIB_QCURSOR_UI32BOP_OR = 0x00000000;
+	final public static int OSSCLIB_QCURSOR_UI32BOP_AND = 0x00000001;
+	final public static int OSSCLIB_QCURSOR_UI32BOP_INVERTED_OR = 0x00000002;
+	final public static int OSSCLIB_QCURSOR_UI32BOP_INVERTED_AND = 0x00000003;
+
 	public OsseLibrary INSTANCE = (OsseLibrary) Native.loadLibrary(
 			"OpenSearchServer_CLib", OsseLibrary.class);
 
@@ -92,4 +97,22 @@ public interface OsseLibrary extends Library {
 			Pointer hExtErrInfo);
 
 	void OSSCLib_Index_GetFieldNameAndProperties_Free(Pointer hFieldName);
+
+	Pointer OSSCLib_QCursor_Create(Pointer hIndex, WString lpwszFieldName,
+			WString[] lplpwszTerm, int ui32NumberOfTerms, int ui32Bop,
+			Pointer hExtErrInfo);
+
+	void OSSCLib_QCursor_Delete(Pointer hCursor);
+
+	Pointer OSSCLib_QCursor_CreateCombinedCursor(Pointer[] lphCursor,
+			int ui32NumberOfCursors, int ui32Bop, Pointer hExtErrInfo);
+
+	long OSSCLib_QCursor_GetDocumentIds(
+			Pointer hCursor, // Cursor handle
+			long[] lpui64DocId, long ui64NumberOfDocsToRetrieve,
+			long ui64DocPosition, boolean bPosMeasuredFromEnd,
+			Pointer lpbSuccess, Pointer hExtErrInfo);
+
+	long OSSCLib_QCursor_GetNumberOfDocuments(Pointer hCursor,
+			Pointer lpbSuccess, Pointer hExtErrInfo);
 }

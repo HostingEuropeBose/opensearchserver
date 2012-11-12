@@ -24,8 +24,11 @@
 
 package com.jaeksoft.searchlib.query.parser;
 
-import com.jaeksoft.searchlib.function.expression.SyntaxError;
+import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.function.token.NoSpaceNoControlToken;
+import com.jaeksoft.searchlib.index.osse.OsseQuery;
+import com.jaeksoft.searchlib.query.ParseException;
+import com.sun.jna.Pointer;
 
 public class TermExpression extends AbstractTermExpression {
 
@@ -35,12 +38,12 @@ public class TermExpression extends AbstractTermExpression {
 			':' };
 
 	protected TermExpression(Expression parent, char[] chars, int pos,
-			ExpressionContext context) throws SyntaxError {
+			ExpressionContext context) throws ParseException {
 		super(parent, context);
 		NoSpaceNoControlToken token = new NoSpaceNoControlToken(chars, pos,
 				null, forbiddenChars);
 		if (token.size == 0)
-			throw new SyntaxError("Term expression expected");
+			throw new ParseException("Term expression expected");
 		term = token.word;
 		nextPos = pos + token.size;
 	}
@@ -57,6 +60,11 @@ public class TermExpression extends AbstractTermExpression {
 
 	@Override
 	public void setPhraseSlop(int phraseSlop) {
+	}
+
+	@Override
+	public Pointer execute(OsseQuery osseQuery) throws SearchLibException {
+		return osseQuery.createTermCursor(field, term);
 	}
 
 }

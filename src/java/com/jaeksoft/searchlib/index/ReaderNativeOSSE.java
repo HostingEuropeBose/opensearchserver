@@ -31,16 +31,19 @@ import java.util.Map;
 import java.util.TreeSet;
 
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.analysis.Analyzer;
+import com.jaeksoft.searchlib.cache.SearchCache;
 import com.jaeksoft.searchlib.filter.FilterAbstract;
 import com.jaeksoft.searchlib.filter.FilterHits;
+import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.osse.OsseErrorHandler;
 import com.jaeksoft.searchlib.index.osse.OsseIndex;
+import com.jaeksoft.searchlib.index.osse.OsseQuery;
 import com.jaeksoft.searchlib.index.term.Term;
 import com.jaeksoft.searchlib.index.term.TermDocs;
 import com.jaeksoft.searchlib.index.term.TermEnum;
 import com.jaeksoft.searchlib.index.term.TermFreqVector;
 import com.jaeksoft.searchlib.query.MoreLikeThis;
+import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.request.AbstractRequest;
 import com.jaeksoft.searchlib.request.SearchRequest;
@@ -50,9 +53,14 @@ import com.jaeksoft.searchlib.schema.AnalyzerSelector;
 import com.jaeksoft.searchlib.schema.FieldValue;
 import com.jaeksoft.searchlib.schema.Schema;
 import com.jaeksoft.searchlib.schema.SchemaField;
+import com.jaeksoft.searchlib.util.ReadWriteLock;
 import com.jaeksoft.searchlib.util.Timer;
 
 public class ReaderNativeOSSE extends ReaderAbstract {
+
+	final private ReadWriteLock rwl = new ReadWriteLock();
+
+	private SearchCache searchCache;
 
 	private OsseIndex index;
 
@@ -62,6 +70,7 @@ public class ReaderNativeOSSE extends ReaderAbstract {
 			throws SearchLibException {
 		super(indexConfig);
 		this.index = index;
+		this.searchCache = new SearchCache(indexConfig);
 	}
 
 	@Override
@@ -135,9 +144,14 @@ public class ReaderNativeOSSE extends ReaderAbstract {
 	}
 
 	@Override
-	public AbstractResult<?> request(AbstractRequest request) {
-		// TODO Auto-generated method stub
-		return null;
+	public AbstractResult<?> request(AbstractRequest request)
+			throws SearchLibException {
+		rwl.r.lock();
+		try {
+			return request.execute(this);
+		} finally {
+			rwl.r.unlock();
+		}
 	}
 
 	@Override
@@ -156,8 +170,9 @@ public class ReaderNativeOSSE extends ReaderAbstract {
 	@Override
 	public void search(Query query, BitSet filter, AbstractCollector collector)
 			throws SearchLibException {
-		// TODO Auto-generated method stub
-
+		OsseQuery osseQuery = new OsseQuery(index, query);
+		osseQuery.free();
+		// TODO
 	}
 
 	@Override
@@ -180,8 +195,8 @@ public class ReaderNativeOSSE extends ReaderAbstract {
 
 	@Override
 	public FilterHits getFilterHits(SchemaField defaultField,
-			Analyzer analyzer, FilterAbstract<?> filter, Timer timer)
-			throws SearchLibException {
+			AnalyzerSelector analyzerSelector, FilterAbstract<?> filter,
+			Timer timer) throws SearchLibException {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -189,9 +204,14 @@ public class ReaderNativeOSSE extends ReaderAbstract {
 	@Override
 	public DocSetHits newDocSetHits(SearchRequest searchRequest, Schema schema,
 			SchemaField defaultField, AnalyzerSelector analyzerSelector,
-			Timer timer) throws SearchLibException {
-		// TODO Auto-generated method stub
-		return null;
+			Timer timer) throws SearchLibException, ParseException, IOException {
+
+		BitSet bitSet = searchRequest.getFilterList().getBitSet(this,
+				defaultField, analyzerSelector, timer);
+
+		DocSetHits dsh = new DocSetHits(this, searchRequest.getQuery(), bitSet,
+				searchRequest.getSortFieldList(), timer);
+		return dsh;
 	}
 
 	@Override
@@ -203,9 +223,30 @@ public class ReaderNativeOSSE extends ReaderAbstract {
 
 	@Override
 	public DocSetHits searchDocSet(SearchRequest searchRequest, Timer timer)
-			throws SearchLibException {
-		// TODO Auto-generated method stub
-		return null;
+			throws SearchLibException, IOException, SyntaxError,
+			InstantiationException, IllegalAccessException,
+			ClassNotFoundException {
+		rwl.r.lock();
+		try {
+
+			Schema schema = searchRequest.getConfig().getSchema();
+			SchemaField defaultField = schema.getFieldList().getDefaultField();
+
+			return searchCache.get(this, searchRequest, schema, defaultField,
+					timer);
+
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	protected SearchCache getSearchCache() {
+		rwl.r.lock();
+		try {
+			return searchCache;
+		} finally {
+			rwl.r.unlock();
+		}
 	}
 
 	@Override

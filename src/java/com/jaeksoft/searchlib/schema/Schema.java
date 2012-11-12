@@ -64,6 +64,8 @@ public class Schema {
 		schema.fieldList = SchemaField.fromXmlConfig(xpp,
 				xpp.getNode(parentNode, "fields"));
 
+		schema.recompileAnalyzers();
+
 		return schema;
 	}
 

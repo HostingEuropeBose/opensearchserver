@@ -25,14 +25,16 @@
 package com.jaeksoft.searchlib.query.parser;
 
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
+import com.jaeksoft.searchlib.query.ParseException;
+import com.jaeksoft.searchlib.schema.AnalyzerSelector;
 
 public class RootExpression extends GroupExpression {
 
-	protected RootExpression(String defaultField,
-			QueryOperator defaultOperator, int phraseSlop, String query)
-			throws SyntaxError {
+	public RootExpression(String defaultField, QueryOperator defaultOperator,
+			int phraseSlop, String query, AnalyzerSelector analyzerSelector)
+			throws ParseException {
 		super(null, query.toCharArray(), 0, new ExpressionContext(
-				defaultOperator, defaultField, phraseSlop));
+				defaultOperator, defaultField, phraseSlop, analyzerSelector));
 	}
 
 	@Override
@@ -43,7 +45,7 @@ public class RootExpression extends GroupExpression {
 		String query = "title:(this is -a test)^10 OR title:(\"this is a test\")^10~5 NOT noindex";
 		try {
 			System.out.println(new RootExpression("content", QueryOperator.AND,
-					2, query));
+					2, query, null));
 		} catch (SyntaxError e) {
 			System.err.println(e.getMessage());
 		}

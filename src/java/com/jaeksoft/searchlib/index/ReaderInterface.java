@@ -25,21 +25,21 @@
 package com.jaeksoft.searchlib.index;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Map;
 import java.util.TreeSet;
 
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.analysis.Analyzer;
 import com.jaeksoft.searchlib.filter.FilterAbstract;
 import com.jaeksoft.searchlib.filter.FilterHits;
+import com.jaeksoft.searchlib.function.expression.SyntaxError;
 import com.jaeksoft.searchlib.index.term.Term;
 import com.jaeksoft.searchlib.index.term.TermDocs;
 import com.jaeksoft.searchlib.index.term.TermEnum;
 import com.jaeksoft.searchlib.index.term.TermFreqVector;
 import com.jaeksoft.searchlib.query.MoreLikeThis;
+import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.request.AbstractRequest;
 import com.jaeksoft.searchlib.request.SearchRequest;
@@ -99,19 +99,21 @@ public interface ReaderInterface {
 	public abstract int maxDoc() throws IOException, SearchLibException;
 
 	public abstract FilterHits getFilterHits(SchemaField defaultField,
-			Analyzer analyzer, FilterAbstract<?> filter, Timer timer)
-			throws SearchLibException;
-
-	public abstract DocSetHits newDocSetHits(SearchRequest searchRequest,
-			Schema schema, SchemaField defaultField,
-			AnalyzerSelector analyzerSelector, Timer timer)
-			throws SearchLibException;
+			AnalyzerSelector analyzerSelector, FilterAbstract<?> filter,
+			Timer timer) throws SearchLibException;
 
 	public abstract Map<String, FieldValue> getDocumentFields(int docId,
 			TreeSet<String> fieldSet, Timer timer) throws SearchLibException;
 
+	public abstract DocSetHits newDocSetHits(SearchRequest searchRequest,
+			Schema schema, SchemaField defaultField,
+			AnalyzerSelector analyzerSelector, Timer timer)
+			throws SearchLibException, ParseException, IOException;
+
 	public abstract DocSetHits searchDocSet(SearchRequest searchRequest,
-			Timer timer) throws SearchLibException;
+			Timer timer) throws SearchLibException, ParseException,
+			IOException, SyntaxError, InstantiationException,
+			IllegalAccessException, ClassNotFoundException;
 
 	public abstract SpellChecker getSpellChecker(String fieldName)
 			throws SearchLibException;

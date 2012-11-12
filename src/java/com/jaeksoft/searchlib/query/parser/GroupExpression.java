@@ -28,17 +28,20 @@ import java.util.ArrayList;
 
 import org.apache.commons.lang.StringUtils;
 
-import com.jaeksoft.searchlib.function.expression.SyntaxError;
+import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.function.token.DigitToken;
 import com.jaeksoft.searchlib.function.token.NoSpaceNoControlToken;
+import com.jaeksoft.searchlib.index.osse.OsseQuery;
+import com.jaeksoft.searchlib.query.ParseException;
+import com.sun.jna.Pointer;
 
 public class GroupExpression extends Expression {
 
 	protected ArrayList<Expression> expressions;
 
 	protected GroupExpression(Expression parent, char[] chars, int pos,
-			ExpressionContext context) throws SyntaxError {
-		super(parent);
+			ExpressionContext context) throws ParseException {
+		super(parent, context);
 		expressions = new ArrayList<Expression>();
 		Expression previous = null;
 		while (pos < chars.length) {
@@ -55,7 +58,7 @@ public class GroupExpression extends Expression {
 	}
 
 	private Expression nextExpression(Expression previous, char[] chars,
-			int pos, ExpressionContext context) throws SyntaxError {
+			int pos, ExpressionContext context) throws ParseException {
 		if (pos >= chars.length)
 			return null;
 		char ch = chars[pos];
@@ -88,7 +91,7 @@ public class GroupExpression extends Expression {
 		NoSpaceNoControlToken token = new NoSpaceNoControlToken(chars, pos,
 				null, TermExpression.forbiddenChars);
 		if (token.size == 0)
-			throw new SyntaxError("Term or operator missing", chars, pos);
+			throw new ParseException("Term or operator missing", chars, pos);
 		int newPos = pos + token.size;
 		if (newPos < chars.length) {
 			if (chars[newPos] == ':')
@@ -128,4 +131,12 @@ public class GroupExpression extends Expression {
 			expression.setPhraseSlop(value);
 	}
 
+	@Override
+	public Pointer execute(OsseQuery osseQuery) throws SearchLibException {
+		Pointer cursor = null;
+		for (Expression expression : expressions)
+			cursor = osseQuery.combineCursor(cursor,
+					expression.execute(osseQuery), expression.operator);
+		return cursor;
+	}
 }

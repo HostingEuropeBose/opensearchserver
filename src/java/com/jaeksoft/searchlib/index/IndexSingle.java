@@ -35,7 +35,6 @@ import java.util.TreeSet;
 import org.xml.sax.SAXException;
 
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.analysis.Analyzer;
 import com.jaeksoft.searchlib.cache.FieldCache;
 import com.jaeksoft.searchlib.cache.FilterCache;
 import com.jaeksoft.searchlib.cache.SearchCache;
@@ -47,6 +46,7 @@ import com.jaeksoft.searchlib.index.term.TermDocs;
 import com.jaeksoft.searchlib.index.term.TermEnum;
 import com.jaeksoft.searchlib.index.term.TermFreqVector;
 import com.jaeksoft.searchlib.query.MoreLikeThis;
+import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.request.AbstractRequest;
 import com.jaeksoft.searchlib.request.SearchRequest;
@@ -550,14 +550,14 @@ public class IndexSingle extends IndexAbstract {
 
 	@Override
 	public FilterHits getFilterHits(SchemaField defaultField,
-			Analyzer analyzer, FilterAbstract<?> filter, Timer timer)
-			throws SearchLibException {
+			AnalyzerSelector analyzerSelector, FilterAbstract<?> filter,
+			Timer timer) throws SearchLibException {
 		rwl.r.lock();
 		try {
 			checkOnline(true);
 			if (reader != null)
-				return reader.getFilterHits(defaultField, analyzer, filter,
-						timer);
+				return reader.getFilterHits(defaultField, analyzerSelector,
+						filter, timer);
 			return null;
 		} finally {
 			rwl.r.unlock();
@@ -567,7 +567,7 @@ public class IndexSingle extends IndexAbstract {
 	@Override
 	public DocSetHits newDocSetHits(SearchRequest searchRequest, Schema schema,
 			SchemaField defaultField, AnalyzerSelector analyzerSelector,
-			Timer timer) throws SearchLibException {
+			Timer timer) throws SearchLibException, ParseException, IOException {
 		rwl.r.lock();
 		try {
 			checkOnline(true);

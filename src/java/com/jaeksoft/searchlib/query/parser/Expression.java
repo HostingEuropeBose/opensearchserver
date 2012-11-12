@@ -24,6 +24,10 @@
 
 package com.jaeksoft.searchlib.query.parser;
 
+import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.index.osse.OsseQuery;
+import com.sun.jna.Pointer;
+
 public abstract class Expression {
 
 	public static enum TermOperator {
@@ -64,13 +68,16 @@ public abstract class Expression {
 		}
 	}
 
-	protected Expression parent;
+	protected final Expression parent;
+
+	protected final TermOperator operator;
 
 	protected int nextPos;
 
-	protected Expression(Expression parent) {
+	protected Expression(Expression parent, ExpressionContext context) {
 		this.parent = parent;
 		this.nextPos = 0;
+		this.operator = ResolveOp(context.termOp, context.queryOp);
 	}
 
 	protected abstract void toString(StringBuffer sb);
@@ -85,4 +92,7 @@ public abstract class Expression {
 	public abstract void setBoost(float value);
 
 	public abstract void setPhraseSlop(int value);
+
+	public abstract Pointer execute(OsseQuery osseQuery)
+			throws SearchLibException;
 }

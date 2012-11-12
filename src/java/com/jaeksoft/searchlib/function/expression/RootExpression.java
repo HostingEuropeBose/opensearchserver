@@ -26,7 +26,6 @@ package com.jaeksoft.searchlib.function.expression;
 
 import java.util.ArrayList;
 
-import com.jaeksoft.searchlib.query.BooleanQuery;
 import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.query.ValueSourceQuery;
 
@@ -88,7 +87,7 @@ public class RootExpression extends GroupExpression {
 	public static void main(String[] argv) {
 		String exp = " 10000 / ( 1 * rord(creationDate) + 10000 ) ";
 		try {
-			System.out.println(getQuery(new BooleanQuery(), exp));
+			System.out.println(getQuery(new Query(null), exp));
 		} catch (SyntaxError e) {
 			System.err.println(e.getMessage());
 		}

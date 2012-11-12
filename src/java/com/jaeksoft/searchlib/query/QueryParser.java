@@ -24,6 +24,8 @@
 
 package com.jaeksoft.searchlib.query;
 
+import com.jaeksoft.searchlib.query.parser.Expression.QueryOperator;
+import com.jaeksoft.searchlib.query.parser.RootExpression;
 import com.jaeksoft.searchlib.schema.AnalyzerSelector;
 
 /*
@@ -35,19 +37,19 @@ public class QueryParser {
 
 	private AnalyzerSelector analyzerSelector;
 
-	public enum Operator {
-		AND, OR
-	}
+	private QueryOperator defaultOperator;
+
+	private int phraseSlop;
 
 	public QueryParser(String defaultField, AnalyzerSelector analyzerSelector) {
 		this.defaultField = defaultField;
+		this.defaultOperator = QueryOperator.AND;
+		this.phraseSlop = 2;
 	}
 
-	public Query parse(String query) {
-
-		// get field name
-
-		return null;
+	public Query parse(String query) throws ParseException {
+		return new Query(new RootExpression(defaultField, defaultOperator,
+				phraseSlop, query, analyzerSelector));
 	}
 
 	public void setAllowLeadingWildcard(boolean allowLeadingWildcard) {
@@ -56,18 +58,16 @@ public class QueryParser {
 	}
 
 	public void setPhraseSlop(int phraseSlop) {
-		// TODO Auto-generated method stub
+		this.phraseSlop = phraseSlop;
 
 	}
 
-	public void setDefaultOperator(Operator defaultOperator) {
-		// TODO Auto-generated method stub
-
+	public void setDefaultOperator(QueryOperator defaultOperator) {
+		this.defaultOperator = defaultOperator;
 	}
 
 	public void setLowercaseExpandedTerms(boolean b) {
 		// TODO Auto-generated method stub
-
 	}
 
 }
