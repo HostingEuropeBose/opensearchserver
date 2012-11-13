@@ -34,6 +34,6 @@ public interface CollapseDocInterface extends DocIdInterface {
 
 	public int[] getCollapseCounts();
 
-	public int[] getCollapsedDocs(int pos);
+	public long[] getCollapsedDocs(int pos);
 
 }

@@ -179,7 +179,7 @@ public class MoreLikeThisRequest extends AbstractRequest implements
 						.request(searchRequest);
 				if (result.getNumFound() == 0)
 					return mlt.like(new StringReader(""));
-				int docId = result.getDocs().getIds()[0];
+				long docId = result.getDocs().getIds()[0];
 				mltQuery = mlt.like(docId);
 			} else if (likeText != null & likeText.length() > 0) {
 				mltQuery = mlt.like(new StringReader(likeText));

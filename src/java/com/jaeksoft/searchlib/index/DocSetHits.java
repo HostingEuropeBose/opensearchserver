@@ -230,7 +230,7 @@ public class DocSetHits {
 		}
 	}
 
-	public int[] getIds(Timer timer) throws IOException, SearchLibException {
+	public long[] getIds(Timer timer) throws IOException, SearchLibException {
 		return getDocIdInterface(timer).getIds();
 	}
 

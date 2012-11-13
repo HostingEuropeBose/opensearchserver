@@ -170,11 +170,12 @@ public class Facet implements Iterable<FacetItem>,
 	}
 
 	final private static int[] computeSinglevalued(StringIndex stringIndex,
-			int[] docsId) throws IOException {
+			long[] docsId) throws IOException {
 		int[] countArray = new int[stringIndex.lookup.length];
 		int[] order = stringIndex.order;
-		for (int id : docsId)
-			countArray[order[id]]++;
+		// TODO Long implementation
+		for (long id : docsId)
+			countArray[order[(int) id]]++;
 		return countArray;
 	}
 

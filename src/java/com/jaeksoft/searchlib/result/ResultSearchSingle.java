@@ -156,17 +156,17 @@ public class ResultSearchSingle extends AbstractResultSearch {
 		if (docs == null || pos < 0 || pos > docs.getSize())
 			return null;
 		try {
-			int docId = docs.getIds()[pos];
+			long docId = docs.getIds()[pos];
 			ResultDocument resultDocument = new ResultDocument(request,
 					fieldNameSet, docId, reader, timer);
 			if (!(docs instanceof CollapseDocInterface))
 				return resultDocument;
 			if (request.getCollapseMax() > 0)
 				return resultDocument;
-			int[] collapsedDocs = ((CollapseDocInterface) docs)
+			long[] collapsedDocs = ((CollapseDocInterface) docs)
 					.getCollapsedDocs(pos);
 			if (collapsedDocs != null)
-				for (int doc : collapsedDocs) {
+				for (long doc : collapsedDocs) {
 					ResultDocument rd = new ResultDocument(request,
 							fieldNameSet, doc, reader, timer);
 					resultDocument.appendIfStringDoesNotExist(rd);

@@ -110,7 +110,7 @@ public class ResultDocumentController extends AbstractQueryController implements
 			return result.getCollapseCount(pos);
 		}
 
-		public int getDocId() throws SearchLibException {
+		public long getDocId() throws SearchLibException {
 			ResultDocumentsInterface<?> result = getResultDocuments();
 			if (result == null)
 				return 0;
@@ -279,7 +279,7 @@ public class ResultDocumentController extends AbstractQueryController implements
 		Document document = (Document) comp.getAttribute("document");
 		if (document == null)
 			return;
-		int docId = document.getDocId();
+		long docId = document.getDocId();
 		String explanation = client.explain(result.getRequest(), docId, true);
 		Window win = (Window) Executions.createComponents(
 				"/WEB-INF/zul/query/result/explanation.zul", null, null);

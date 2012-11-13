@@ -46,11 +46,11 @@ public class CollapseAdjacent extends CollapseAbstract {
 
 		BitSet collapsedSet = new BitSet(fetchLength);
 
-		int[] ids = collector.getIds();
+		long[] ids = collector.getIds();
 		String lastTerm = null;
 		int adjacent = 0;
 		for (int i = 0; i < fetchLength; i++) {
-			String term = collapseStringIndex.lookup[collapseStringIndex.order[ids[i]]];
+			String term = collapseStringIndex.lookup[collapseStringIndex.order[(int) ids[i]]];
 			if (term != null && term.equals(lastTerm)) {
 				if (++adjacent >= getCollapseMax())
 					collapsedSet.set(i);

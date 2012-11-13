@@ -45,14 +45,14 @@ public class CollapseCluster extends CollapseAbstract {
 
 		Timer t = new Timer(timer, "Build collapse map");
 		Map<String, Integer> collapsedDocMap = new TreeMap<String, Integer>();
-		int[] ids = collector.getIds();
+		long[] ids = collector.getIds();
 
 		CollapseDocInterface collapseInterface = getNewCollapseInterfaceInstance(
 				collector, fetchLength, getCollapseMax());
 		Integer collapsePos;
 
 		for (int i = 0; i < fetchLength; i++) {
-			String term = collapseStringIndex.lookup[collapseStringIndex.order[ids[i]]];
+			String term = collapseStringIndex.lookup[collapseStringIndex.order[(int) ids[i]]];
 			if (term != null
 					&& ((collapsePos = collapsedDocMap.get(term)) != null)) {
 				collapseInterface.collectCollapsedDoc(i, collapsePos);

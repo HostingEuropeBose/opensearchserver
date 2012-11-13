@@ -28,13 +28,14 @@ import java.io.IOException;
 
 import com.jaeksoft.searchlib.index.IndexReader;
 import com.jaeksoft.searchlib.scoring.AbstractScorer;
+import com.jaeksoft.searchlib.scoring.NullScorer;
 
 public abstract class AbstractCollector {
 
 	protected IndexReader reader = null;
-	protected AbstractScorer scorer = null;
+	protected AbstractScorer scorer = NullScorer.INSTANCE;
 
-	final public void setNextReader(IndexReader reader, int docId)
+	final public void setNextReader(IndexReader reader, long docId)
 			throws IOException {
 		this.reader = reader;
 	}
@@ -43,6 +44,6 @@ public abstract class AbstractCollector {
 		this.scorer = scorer;
 	}
 
-	public abstract void collect(int docId) throws IOException;
+	public abstract void collect(long docId) throws IOException;
 
 }

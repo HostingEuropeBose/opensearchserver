@@ -51,7 +51,7 @@ public class ScoreDocCollector extends DocIdCollector implements
 	}
 
 	@Override
-	final public void collect(int docId) throws IOException {
+	final public void collect(long docId) throws IOException {
 		float sc = scorer.score();
 		if (sc > maxScore)
 			maxScore = sc;
@@ -66,7 +66,7 @@ public class ScoreDocCollector extends DocIdCollector implements
 
 	@Override
 	final public void swap(int i, int j) {
-		int id = ids[i];
+		long id = ids[i];
 		float score = scores[i];
 		ids[i] = ids[j];
 		scores[i] = scores[j];

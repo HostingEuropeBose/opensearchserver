@@ -52,10 +52,10 @@ public class ResultDocument {
 
 	final private Map<String, FieldValue> returnFields;
 	final private Map<String, SnippetFieldValue> snippetFields;
-	final private int docId;
+	final private long docId;
 
 	public ResultDocument(SearchRequest searchRequest,
-			TreeSet<String> fieldSet, int docId, ReaderInterface reader,
+			TreeSet<String> fieldSet, long docId, ReaderInterface reader,
 			Timer timer) throws IOException, ParseException, SyntaxError,
 			SearchLibException {
 
@@ -87,7 +87,7 @@ public class ResultDocument {
 	}
 
 	public ResultDocument(RequestInterfaces.ReturnedFieldInterface rfiRequest,
-			TreeSet<String> fieldSet, int docId, ReaderInterface reader,
+			TreeSet<String> fieldSet, long docId, ReaderInterface reader,
 			Timer timer) throws IOException, ParseException, SyntaxError,
 			SearchLibException {
 		this.docId = docId;
@@ -223,7 +223,7 @@ public class ResultDocument {
 		return ((CollapseDocInterface) docs).getCollapseCounts()[pos];
 	}
 
-	public int getDocId() {
+	public long getDocId() {
 		return docId;
 	}
 

@@ -111,7 +111,7 @@ public interface OsseLibrary extends Library {
 			Pointer hCursor, // Cursor handle
 			long[] lpui64DocId, long ui64NumberOfDocsToRetrieve,
 			long ui64DocPosition, boolean bPosMeasuredFromEnd,
-			Pointer lpbSuccess, Pointer hExtErrInfo);
+			IntByReference lpbSuccess, Pointer hExtErrInfo);
 
 	long OSSCLib_QCursor_GetNumberOfDocuments(Pointer hCursor,
 			Pointer lpbSuccess, Pointer hExtErrInfo);

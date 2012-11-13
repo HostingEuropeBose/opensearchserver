@@ -303,7 +303,7 @@ public class Client extends Config {
 		}
 	}
 
-	public String explain(AbstractRequest request, int docId, boolean bHtml)
+	public String explain(AbstractRequest request, long docId, boolean bHtml)
 			throws SearchLibException {
 		return getIndexAbstract().explain(request, docId, bHtml);
 	}

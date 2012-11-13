@@ -31,7 +31,7 @@ public class NumFoundCollector extends AbstractCollector {
 	private int numFound = 0;
 
 	@Override
-	final public void collect(int docId) throws IOException {
+	final public void collect(long docId) throws IOException {
 		this.numFound++;
 	}
 

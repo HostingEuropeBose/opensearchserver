@@ -32,6 +32,7 @@ import com.jaeksoft.searchlib.index.IndexReader;
 import com.jaeksoft.searchlib.index.osse.OsseQuery;
 import com.jaeksoft.searchlib.index.term.Term;
 import com.jaeksoft.searchlib.query.parser.RootExpression;
+import com.sun.jna.Pointer;
 
 public class Query {
 
@@ -54,8 +55,13 @@ public class Query {
 		// TODO Auto-generated method stub
 	}
 
-	public void execute(OsseQuery osseQuery) throws SearchLibException {
-		rootExpression.execute(osseQuery);
+	public Pointer execute(OsseQuery osseQuery) throws SearchLibException {
+		return rootExpression.execute(osseQuery);
+	}
+
+	@Override
+	public String toString() {
+		return rootExpression.toString();
 	}
 
 }

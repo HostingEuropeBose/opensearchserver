@@ -30,9 +30,12 @@ public abstract class AbstractTermExpression extends Expression {
 
 	protected float boost = 1.0F;
 
+	protected final TermOperator operator;
+
 	public AbstractTermExpression(Expression parent, ExpressionContext context) {
-		super(parent, context);
+		super(parent);
 		this.field = context.field;
+		this.operator = ResolveOp(context.termOp, context.queryOp);
 	}
 
 	@Override
@@ -40,4 +43,8 @@ public abstract class AbstractTermExpression extends Expression {
 		this.boost = boost;
 	}
 
+	@Override
+	final public TermOperator getOperator() {
+		return operator;
+	}
 }

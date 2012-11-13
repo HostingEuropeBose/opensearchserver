@@ -33,7 +33,7 @@ public interface DocIdInterface extends Swapper {
 	@Override
 	public void swap(int pos1, int pos2);
 
-	public int[] getIds();
+	public long[] getIds();
 
 	public int getSize();
 

@@ -38,15 +38,15 @@ public class JoinDocCollector implements JoinDocInterface {
 	public final static JoinDocCollector EMPTY = new JoinDocCollector();
 
 	protected final int maxDoc;
-	protected final int[] ids;
-	protected final int[][] foreignDocIdsArray;
+	protected final long[] ids;
+	protected final long[][] foreignDocIdsArray;
 	protected BitSet bitSet;
 	protected final int joinResultSize;
 
 	protected JoinDocCollector() {
 		maxDoc = 0;
-		ids = new int[0];
-		foreignDocIdsArray = new int[0][0];
+		ids = new long[0];
+		foreignDocIdsArray = new long[0][0];
 		bitSet = null;
 		joinResultSize = 0;
 	}
@@ -55,7 +55,7 @@ public class JoinDocCollector implements JoinDocInterface {
 		this.bitSet = null;
 		this.maxDoc = docs.getMaxDoc();
 		this.ids = ArrayUtils.clone(docs.getIds());
-		this.foreignDocIdsArray = new int[ids.length][];
+		this.foreignDocIdsArray = new long[ids.length][];
 		this.joinResultSize = joinResultSize;
 	}
 
@@ -69,14 +69,14 @@ public class JoinDocCollector implements JoinDocInterface {
 		this.bitSet = null;
 		this.maxDoc = src.maxDoc;
 		int i1 = 0;
-		for (int id : src.ids)
+		for (long id : src.ids)
 			if (id != -1)
 				i1++;
-		ids = new int[i1];
-		foreignDocIdsArray = new int[ids.length][];
+		ids = new long[i1];
+		foreignDocIdsArray = new long[ids.length][];
 		i1 = 0;
 		int i2 = 0;
-		for (int id : src.ids) {
+		for (long id : src.ids) {
 			if (id != -1) {
 				ids[i1] = id;
 				foreignDocIdsArray[i1++] = ArrayUtils
@@ -86,17 +86,18 @@ public class JoinDocCollector implements JoinDocInterface {
 		}
 	}
 
-	final public static int[][] copyForeignDocIdsArray(
-			int[][] foreignDocIdsArray) {
-		int[][] neworeignDocIdsArray = new int[foreignDocIdsArray.length][];
+	final public static long[][] copyForeignDocIdsArray(
+			long[][] foreignDocIdsArray) {
+		long[][] neworeignDocIdsArray = new long[foreignDocIdsArray.length][];
 		int i = 0;
-		for (int[] foreignIds : foreignDocIdsArray)
+		for (long[] foreignIds : foreignDocIdsArray)
 			neworeignDocIdsArray[i++] = ArrayUtils.clone(foreignIds);
 		return neworeignDocIdsArray;
 	}
 
-	final public static void swap(int[][] foreignDocIdsArray, int pos1, int pos2) {
-		int[] foreignDocIds = foreignDocIdsArray[pos1];
+	final public static void swap(long[][] foreignDocIdsArray, int pos1,
+			int pos2) {
+		long[] foreignDocIds = foreignDocIdsArray[pos1];
 		foreignDocIdsArray[pos1] = foreignDocIdsArray[pos2];
 		foreignDocIdsArray[pos2] = foreignDocIds;
 	}
@@ -108,14 +109,14 @@ public class JoinDocCollector implements JoinDocInterface {
 
 	@Override
 	public void swap(int pos1, int pos2) {
-		int id = ids[pos1];
+		long id = ids[pos1];
 		ids[pos1] = ids[pos2];
 		ids[pos2] = id;
 		swap(foreignDocIdsArray, pos1, pos2);
 	}
 
 	@Override
-	public int[] getIds() {
+	public long[] getIds() {
 		return ids;
 	}
 
@@ -129,8 +130,9 @@ public class JoinDocCollector implements JoinDocInterface {
 		if (bitSet != null)
 			return bitSet;
 		bitSet = new BitSet(maxDoc);
-		for (int id : ids)
-			bitSet.set(id);
+		// TODO long bitset implementation
+		for (long id : ids)
+			bitSet.set((int) id);
 		return bitSet;
 	}
 
@@ -140,17 +142,17 @@ public class JoinDocCollector implements JoinDocInterface {
 	}
 
 	@Override
-	public void setForeignDocId(int pos, int joinResultPos, int foreignDocId) {
-		int[] foreignDocIds = foreignDocIdsArray[pos];
+	public void setForeignDocId(int pos, int joinResultPos, long foreignDocId) {
+		long[] foreignDocIds = foreignDocIdsArray[pos];
 		if (foreignDocIds == null)
-			foreignDocIds = new int[joinResultSize];
+			foreignDocIds = new long[joinResultSize];
 		foreignDocIds[joinResultPos] = foreignDocId;
 		foreignDocIdsArray[pos] = foreignDocIds;
 	}
 
-	final public static int getForeignDocIds(int[][] foreignDocIdsArray,
+	final public static long getForeignDocIds(long[][] foreignDocIdsArray,
 			int pos, int joinPosition) {
-		int[] foreignDocIds = foreignDocIdsArray[pos];
+		long[] foreignDocIds = foreignDocIdsArray[pos];
 		if (foreignDocIds == null)
 			return -1;
 		if (joinPosition >= foreignDocIds.length)
@@ -159,7 +161,7 @@ public class JoinDocCollector implements JoinDocInterface {
 	}
 
 	@Override
-	public int getForeignDocIds(int pos, int joinPosition) {
+	public long getForeignDocIds(int pos, int joinPosition) {
 		return getForeignDocIds(foreignDocIdsArray, pos, joinPosition);
 	}
 
@@ -186,13 +188,14 @@ public class JoinDocCollector implements JoinDocInterface {
 		t = new Timer(timer, "join operation");
 		int i1 = 0;
 		int i2 = 0;
-		int[] ids1 = docs1.getIds();
-		int[] ids2 = docs2.getIds();
+		long[] ids1 = docs1.getIds();
+		long[] ids2 = docs2.getIds();
 		while (i1 != ids1.length) {
-			int id1 = ids1[i1];
-			int id2 = ids2[i2];
-			String t1 = doc1StringIndex.lookup[doc1StringIndex.order[id1]];
-			String t2 = doc2StringIndex.lookup[doc2StringIndex.order[id2]];
+			long id1 = ids1[i1];
+			long id2 = ids2[i2];
+			// TODO Long implementation
+			String t1 = doc1StringIndex.lookup[doc1StringIndex.order[(int) id1]];
+			String t2 = doc2StringIndex.lookup[doc2StringIndex.order[(int) id2]];
 			int c = StringUtils.compareNullString(t1, t2);
 			if (c < 0) {
 				ids1[i1] = -1;
@@ -214,7 +217,7 @@ public class JoinDocCollector implements JoinDocInterface {
 	}
 
 	@Override
-	public int[][] getForeignDocIdsArray() {
+	public long[][] getForeignDocIdsArray() {
 		return foreignDocIdsArray;
 	}
 }

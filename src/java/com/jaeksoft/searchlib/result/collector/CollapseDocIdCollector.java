@@ -31,12 +31,12 @@ import org.apache.commons.lang3.ArrayUtils;
 public class CollapseDocIdCollector implements CollapseDocInterface,
 		JoinDocInterface {
 
-	protected final int[][] foreignDocIdsArray;
-	protected final int[] sourceIds;
+	protected final long[][] foreignDocIdsArray;
+	protected final long[] sourceIds;
 	protected final int collapseMax;
 	protected int totalCollapseCount = 0;
-	protected final int[] ids;
-	protected final int[][] collapseDocsArray;
+	protected final long[] ids;
+	protected final long[][] collapseDocsArray;
 	protected final int[] collapseCounts;
 	protected int currentPos;
 	protected int maxDoc;
@@ -52,9 +52,9 @@ public class CollapseDocIdCollector implements CollapseDocInterface,
 		this.sourceIds = sourceCollector.getIds();
 		this.totalCollapseCount = 0;
 		this.collapseMax = collapseMax;
-		this.collapseDocsArray = new int[size][];
+		this.collapseDocsArray = new long[size][];
 		this.collapseCounts = new int[size];
-		this.ids = new int[size];
+		this.ids = new long[size];
 		this.currentPos = 0;
 		this.maxDoc = sourceCollector.getMaxDoc();
 		this.bitSet = null;
@@ -69,9 +69,9 @@ public class CollapseDocIdCollector implements CollapseDocInterface,
 		this.sourceIds = src.sourceIds;
 		this.totalCollapseCount = src.totalCollapseCount;
 		this.collapseMax = src.collapseMax;
-		this.collapseDocsArray = new int[src.collapseDocsArray.length][];
+		this.collapseDocsArray = new long[src.collapseDocsArray.length][];
 		int i = 0;
-		for (int[] collDocArray : src.collapseDocsArray)
+		for (long[] collDocArray : src.collapseDocsArray)
 			this.collapseDocsArray[i++] = ArrayUtils.clone(collDocArray);
 		this.collapseCounts = ArrayUtils.clone(src.collapseCounts);
 		this.ids = ArrayUtils.clone(src.ids);
@@ -101,7 +101,7 @@ public class CollapseDocIdCollector implements CollapseDocInterface,
 		if (collapseMax != 0 || collapseMax < collCount)
 			return;
 		if (collapseDocsArray[collapsePos] == null)
-			collapseDocsArray[collapsePos] = new int[] { sourceIds[sourcePos] };
+			collapseDocsArray[collapsePos] = new long[] { sourceIds[sourcePos] };
 		else
 			collapseDocsArray[collapsePos] = ArrayUtils.add(
 					collapseDocsArray[collapsePos], sourceIds[sourcePos]);
@@ -114,8 +114,8 @@ public class CollapseDocIdCollector implements CollapseDocInterface,
 
 	@Override
 	public void swap(int pos1, int pos2) {
-		int id = ids[pos1];
-		int[] colArray = collapseDocsArray[pos1];
+		long id = ids[pos1];
+		long[] colArray = collapseDocsArray[pos1];
 		int colCount = collapseCounts[pos1];
 		ids[pos1] = ids[pos2];
 		collapseDocsArray[pos1] = collapseDocsArray[pos2];
@@ -128,7 +128,7 @@ public class CollapseDocIdCollector implements CollapseDocInterface,
 	}
 
 	@Override
-	public int[] getIds() {
+	public long[] getIds() {
 		return ids;
 	}
 
@@ -142,8 +142,9 @@ public class CollapseDocIdCollector implements CollapseDocInterface,
 		if (bitSet != null)
 			return bitSet;
 		bitSet = new BitSet(maxDoc);
-		for (int id : ids)
-			bitSet.set(id);
+		// TODO Long implementation
+		for (long id : ids)
+			bitSet.set((int) id);
 		return bitSet;
 	}
 
@@ -158,24 +159,24 @@ public class CollapseDocIdCollector implements CollapseDocInterface,
 	}
 
 	@Override
-	public int[] getCollapsedDocs(int pos) {
+	public long[] getCollapsedDocs(int pos) {
 		return collapseDocsArray[pos];
 	}
 
 	@Override
-	public void setForeignDocId(int pos, int joinResultPos, int foreignDocId) {
+	public void setForeignDocId(int pos, int joinResultPos, long foreignDocId) {
 		throw new RuntimeException(
 				"New join is not allowed on already collapsed documents");
 	}
 
 	@Override
-	public int getForeignDocIds(int pos, int joinPosition) {
+	public long getForeignDocIds(int pos, int joinPosition) {
 		return JoinDocCollector.getForeignDocIds(foreignDocIdsArray, pos,
 				joinPosition);
 	}
 
 	@Override
-	public int[][] getForeignDocIdsArray() {
+	public long[][] getForeignDocIdsArray() {
 		return foreignDocIdsArray;
 	}
 

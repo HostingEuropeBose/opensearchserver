@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.TreeSet;
 
 import com.jaeksoft.searchlib.SearchLibException;
-import com.jaeksoft.searchlib.cache.SearchCache;
 import com.jaeksoft.searchlib.filter.FilterAbstract;
 import com.jaeksoft.searchlib.filter.FilterHits;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
@@ -60,8 +59,6 @@ public class ReaderNativeOSSE extends ReaderAbstract {
 
 	final private ReadWriteLock rwl = new ReadWriteLock();
 
-	private SearchCache searchCache;
-
 	private OsseIndex index;
 
 	private OsseErrorHandler err;
@@ -70,7 +67,6 @@ public class ReaderNativeOSSE extends ReaderAbstract {
 			throws SearchLibException {
 		super(indexConfig);
 		this.index = index;
-		this.searchCache = new SearchCache(indexConfig);
 	}
 
 	@Override
@@ -90,7 +86,7 @@ public class ReaderNativeOSSE extends ReaderAbstract {
 	}
 
 	@Override
-	public TermFreqVector getTermFreqVector(int docId, String field) {
+	public TermFreqVector getTermFreqVector(long docId, String field) {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -155,7 +151,7 @@ public class ReaderNativeOSSE extends ReaderAbstract {
 	}
 
 	@Override
-	public String explain(AbstractRequest request, int docId, boolean bHtml)
+	public String explain(AbstractRequest request, long docId, boolean bHtml)
 			throws SearchLibException {
 		// TODO Auto-generated method stub
 		return null;
@@ -169,10 +165,11 @@ public class ReaderNativeOSSE extends ReaderAbstract {
 
 	@Override
 	public void search(Query query, BitSet filter, AbstractCollector collector)
-			throws SearchLibException {
+			throws SearchLibException, IOException {
 		OsseQuery osseQuery = new OsseQuery(index, query);
+		osseQuery.collect(collector);
 		osseQuery.free();
-		// TODO
+		// TODO filter
 	}
 
 	@Override
@@ -215,7 +212,7 @@ public class ReaderNativeOSSE extends ReaderAbstract {
 	}
 
 	@Override
-	public Map<String, FieldValue> getDocumentFields(int docId,
+	public Map<String, FieldValue> getDocumentFields(long docId,
 			TreeSet<String> fieldSet, Timer timer) throws SearchLibException {
 		// TODO Auto-generated method stub
 		return null;
@@ -232,18 +229,9 @@ public class ReaderNativeOSSE extends ReaderAbstract {
 			Schema schema = searchRequest.getConfig().getSchema();
 			SchemaField defaultField = schema.getFieldList().getDefaultField();
 
-			return searchCache.get(this, searchRequest, schema, defaultField,
-					timer);
+			return newDocSetHits(searchRequest, schema, defaultField,
+					schema.getAnalyzerSelector(), timer);
 
-		} finally {
-			rwl.r.unlock();
-		}
-	}
-
-	protected SearchCache getSearchCache() {
-		rwl.r.lock();
-		try {
-			return searchCache;
 		} finally {
 			rwl.r.unlock();
 		}

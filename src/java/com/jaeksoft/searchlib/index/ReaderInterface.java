@@ -66,7 +66,7 @@ public interface ReaderInterface {
 	public TermEnum getTermEnum(String field, String term)
 			throws SearchLibException;
 
-	public TermFreqVector getTermFreqVector(int docId, String field)
+	public TermFreqVector getTermFreqVector(long docId, String field)
 			throws IOException, SearchLibException;
 
 	public abstract Query rewrite(Query query) throws SearchLibException;
@@ -76,7 +76,7 @@ public interface ReaderInterface {
 	public AbstractResult<?> request(AbstractRequest request)
 			throws SearchLibException;
 
-	public String explain(AbstractRequest request, int docId, boolean bHtml)
+	public String explain(AbstractRequest request, long docId, boolean bHtml)
 			throws SearchLibException;
 
 	public IndexStatistics getStatistics() throws IOException,
@@ -89,7 +89,7 @@ public interface ReaderInterface {
 	public abstract int numDocs() throws IOException, SearchLibException;
 
 	public abstract void search(Query query, BitSet filter,
-			AbstractCollector collector) throws SearchLibException;
+			AbstractCollector collector) throws SearchLibException, IOException;
 
 	public abstract StringIndex getStringIndex(String name)
 			throws SearchLibException;
@@ -102,7 +102,7 @@ public interface ReaderInterface {
 			AnalyzerSelector analyzerSelector, FilterAbstract<?> filter,
 			Timer timer) throws SearchLibException;
 
-	public abstract Map<String, FieldValue> getDocumentFields(int docId,
+	public abstract Map<String, FieldValue> getDocumentFields(long docId,
 			TreeSet<String> fieldSet, Timer timer) throws SearchLibException;
 
 	public abstract DocSetHits newDocSetHits(SearchRequest searchRequest,

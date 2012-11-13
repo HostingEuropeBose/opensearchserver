@@ -64,7 +64,7 @@ public class TermExpression extends AbstractTermExpression {
 
 	@Override
 	public Pointer execute(OsseQuery osseQuery) throws SearchLibException {
-		return osseQuery.createTermCursor(field, term);
+		return osseQuery.createTermCursor(field, term, operator);
 	}
 
 }

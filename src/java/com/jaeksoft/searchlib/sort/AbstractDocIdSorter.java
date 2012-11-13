@@ -28,7 +28,7 @@ import com.jaeksoft.searchlib.result.collector.DocIdInterface;
 
 public abstract class AbstractDocIdSorter extends SorterAbstract {
 
-	protected int[] ids;
+	protected long[] ids;
 
 	protected AbstractDocIdSorter(DocIdInterface collector) {
 		super(collector);

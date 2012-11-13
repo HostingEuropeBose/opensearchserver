@@ -24,14 +24,17 @@
 
 package com.jaeksoft.searchlib.index.osse;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.query.parser.Expression.TermOperator;
+import com.jaeksoft.searchlib.result.collector.AbstractCollector;
 import com.sun.jna.Pointer;
 import com.sun.jna.WString;
+import com.sun.jna.ptr.IntByReference;
 
 public class OsseQuery {
 
@@ -39,24 +42,15 @@ public class OsseQuery {
 
 	private final OsseErrorHandler error;
 
-	private final Pointer cursorAll;
-
 	private OsseIndex index;
+
+	private final Pointer finalCursor;
 
 	public OsseQuery(OsseIndex index, Query query) throws SearchLibException {
 		this.index = index;
 		cursors = new ArrayList<Pointer>(0);
 		error = new OsseErrorHandler();
-		cursorAll = OsseLibrary.INSTANCE.OSSCLib_QCursor_Create(
-				index.getPointer(), null, null, 0,
-				OsseLibrary.OSSCLIB_QCURSOR_UI32BOP_OR, error.getPointer());
-		cursors.add(cursorAll);
-		query.execute(this);
-		for (Pointer cursor : cursors)
-			System.out.println("CURSOR:"
-					+ OsseLibrary.INSTANCE
-							.OSSCLib_QCursor_GetNumberOfDocuments(cursor, null,
-									error.getPointer()));
+		finalCursor = query.execute(this);
 	}
 
 	public void free() {
@@ -68,14 +62,10 @@ public class OsseQuery {
 
 	public Pointer combineCursor(Pointer cursor1, Pointer cursor2,
 			TermOperator operator) throws SearchLibException {
-		if (cursor1 == null)
-			cursor1 = cursorAll;
 		Pointer[] combinedCursors = new Pointer[] { cursor1, cursor2 };
+
 		int bop;
 		switch (operator) {
-		case FORBIDDEN:
-			bop = OsseLibrary.OSSCLIB_QCURSOR_UI32BOP_INVERTED_AND;
-			break;
 		case ORUNDEFINED:
 			bop = OsseLibrary.OSSCLIB_QCURSOR_UI32BOP_OR;
 			break;
@@ -84,24 +74,74 @@ public class OsseQuery {
 			bop = OsseLibrary.OSSCLIB_QCURSOR_UI32BOP_AND;
 			break;
 		}
+
 		Pointer cursor = OsseLibrary.INSTANCE
 				.OSSCLib_QCursor_CreateCombinedCursor(combinedCursors,
 						combinedCursors.length, bop, error.getPointer());
 		if (cursor == null)
 			throw new SearchLibException(error.getError());
 		cursors.add(cursor);
+		System.out.println("COMBINED CURSOR = " + cursorLength(cursor));
 		return cursor;
 	}
 
-	public Pointer createTermCursor(String field, String term)
-			throws SearchLibException {
+	public Pointer createTermCursor(String field, String term,
+			TermOperator operator) throws SearchLibException {
+
+		int bop;
+		switch (operator) {
+		case FORBIDDEN:
+			bop = OsseLibrary.OSSCLIB_QCURSOR_UI32BOP_INVERTED_AND;
+			break;
+		default:
+		case REQUIRED:
+			bop = OsseLibrary.OSSCLIB_QCURSOR_UI32BOP_AND;
+			break;
+		}
+
 		WString[] terms = new WString[] { new WString(term) };
 		Pointer cursor = OsseLibrary.INSTANCE.OSSCLib_QCursor_Create(
 				index.getPointer(), new WString(field), terms, terms.length,
-				OsseLibrary.OSSCLIB_QCURSOR_UI32BOP_AND, error.getPointer());
+				bop, error.getPointer());
 		if (cursor == null)
 			throw new SearchLibException(error.getError());
 		cursors.add(cursor);
+
+		System.out.println("TERM CURSOR - " + field + ":" + term + " ("
+				+ cursorLength(cursor) + ")");
 		return cursor;
+	}
+
+	public Pointer matchAll() {
+		Pointer cursor = OsseLibrary.INSTANCE.OSSCLib_QCursor_Create(
+				index.getPointer(), null, null, 0,
+				OsseLibrary.OSSCLIB_QCURSOR_UI32BOP_OR, error.getPointer());
+		cursors.add(cursor);
+		return cursor;
+	}
+
+	public long cursorLength(Pointer cursor) {
+		return OsseLibrary.INSTANCE.OSSCLib_QCursor_GetNumberOfDocuments(
+				cursor, null, error.getPointer());
+	}
+
+	public void collect(AbstractCollector collector) throws SearchLibException,
+			IOException {
+		long[] docIdBuffer = new long[10000];
+		long docPosition = 0;
+		IntByReference bSuccess = new IntByReference();
+		for (;;) {
+			System.out.println("COLLECT " + docPosition);
+			long length = OsseLibrary.INSTANCE.OSSCLib_QCursor_GetDocumentIds(
+					finalCursor, docIdBuffer, docIdBuffer.length, docPosition,
+					false, bSuccess, error.getPointer());
+			if (bSuccess.getValue() == 0)
+				throw new SearchLibException(error.getError());
+			if (length == 0)
+				break;
+			for (int i = 0; i < length; i++)
+				collector.collect(docIdBuffer[i]);
+			docPosition = length;
+		}
 	}
 }

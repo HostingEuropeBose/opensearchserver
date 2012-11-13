@@ -183,9 +183,9 @@ public class SnippetField extends AbstractField<SnippetField> {
 		target.put(field);
 	}
 
-	private Iterator<TermVectorOffsetInfo> extractTermVectorIterator(int docId,
-			ReaderInterface reader) throws IOException, ParseException,
-			SyntaxError, SearchLibException {
+	private Iterator<TermVectorOffsetInfo> extractTermVectorIterator(
+			long docId, ReaderInterface reader) throws IOException,
+			ParseException, SyntaxError, SearchLibException {
 		if (searchTerms == null)
 			return null;
 		if (searchTerms.length == 0)
@@ -296,7 +296,7 @@ public class SnippetField extends AbstractField<SnippetField> {
 		return currentVector;
 	}
 
-	public boolean getSnippets(int docId, ReaderInterface reader,
+	public boolean getSnippets(long docId, ReaderInterface reader,
 			FieldValueItem[] values, List<FieldValueItem> snippets)
 			throws IOException, ParseException, SyntaxError, SearchLibException {
 

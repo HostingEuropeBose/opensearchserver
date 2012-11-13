@@ -32,7 +32,7 @@ import org.apache.commons.lang3.ArrayUtils;
 public class DocIdCollector extends AbstractCollector implements DocIdInterface {
 
 	final protected int maxDoc;
-	final protected int[] ids;
+	final protected long[] ids;
 	private BitSet bitSet;
 	protected int currentPos;
 
@@ -42,7 +42,7 @@ public class DocIdCollector extends AbstractCollector implements DocIdInterface 
 		this.maxDoc = maxDoc;
 		currentPos = 0;
 		bitSet = null;
-		ids = new int[numFound];
+		ids = new long[numFound];
 	}
 
 	protected DocIdCollector(DocIdCollector src) {
@@ -63,7 +63,7 @@ public class DocIdCollector extends AbstractCollector implements DocIdInterface 
 	}
 
 	@Override
-	public void collect(int docId) throws IOException {
+	public void collect(long docId) throws IOException {
 		ids[currentPos++] = docId;
 	}
 
@@ -76,20 +76,21 @@ public class DocIdCollector extends AbstractCollector implements DocIdInterface 
 		if (bitSet != null)
 			return bitSet;
 		bitSet = new BitSet(maxDoc);
-		for (int id : ids)
-			bitSet.set(id);
+		// TODO integer vs long
+		for (long id : ids)
+			bitSet.set((int) id);
 		return bitSet;
 	}
 
 	@Override
 	public void swap(int pos1, int pos2) {
-		int id = ids[pos1];
+		long id = ids[pos1];
 		ids[pos1] = ids[pos2];
 		ids[pos2] = id;
 	}
 
 	@Override
-	public int[] getIds() {
+	public long[] getIds() {
 		return ids;
 	}
 

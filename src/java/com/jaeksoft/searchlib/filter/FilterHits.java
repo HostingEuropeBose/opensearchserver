@@ -68,8 +68,9 @@ public class FilterHits {
 		}
 
 		@Override
-		public void collect(int docId) {
-			docSet.set(docId);
+		public void collect(long docId) {
+			// TODO long implementation
+			docSet.set((int) docId);
 			count++;
 		}
 

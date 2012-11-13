@@ -34,7 +34,13 @@ public class AscDocIdSorter extends AbstractDocIdSorter {
 
 	@Override
 	final public int compare(int pos1, int pos2) {
-		return ids[pos1] - ids[pos2];
+		long l = ids[pos1] - ids[pos2];
+		if (l < 0)
+			return -1;
+		else if (l > 0)
+			return 1;
+		else
+			return 0;
 	}
 
 }

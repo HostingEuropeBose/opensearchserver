@@ -25,6 +25,7 @@
 package com.jaeksoft.searchlib.query.parser;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -41,7 +42,7 @@ public class GroupExpression extends Expression {
 
 	protected GroupExpression(Expression parent, char[] chars, int pos,
 			ExpressionContext context) throws ParseException {
-		super(parent, context);
+		super(parent);
 		expressions = new ArrayList<Expression>();
 		Expression previous = null;
 		while (pos < chars.length) {
@@ -132,11 +133,22 @@ public class GroupExpression extends Expression {
 	}
 
 	@Override
+	final public TermOperator getOperator() {
+		return TermOperator.ORUNDEFINED;
+	}
+
+	@Override
 	public Pointer execute(OsseQuery osseQuery) throws SearchLibException {
-		Pointer cursor = null;
-		for (Expression expression : expressions)
-			cursor = osseQuery.combineCursor(cursor,
-					expression.execute(osseQuery), expression.operator);
+		Iterator<Expression> it = expressions.iterator();
+		if (!it.hasNext())
+			return null;
+		Expression exp = it.next();
+		Pointer cursor = exp.execute(osseQuery);
+		while (it.hasNext()) {
+			exp = it.next();
+			cursor = osseQuery.combineCursor(cursor, exp.execute(osseQuery),
+					exp.getOperator());
+		}
 		return cursor;
 	}
 }

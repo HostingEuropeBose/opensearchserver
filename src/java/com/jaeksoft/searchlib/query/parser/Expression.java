@@ -70,14 +70,11 @@ public abstract class Expression {
 
 	protected final Expression parent;
 
-	protected final TermOperator operator;
-
 	protected int nextPos;
 
-	protected Expression(Expression parent, ExpressionContext context) {
+	protected Expression(Expression parent) {
 		this.parent = parent;
 		this.nextPos = 0;
-		this.operator = ResolveOp(context.termOp, context.queryOp);
 	}
 
 	protected abstract void toString(StringBuffer sb);
@@ -95,4 +92,6 @@ public abstract class Expression {
 
 	public abstract Pointer execute(OsseQuery osseQuery)
 			throws SearchLibException;
+
+	public abstract TermOperator getOperator();
 }

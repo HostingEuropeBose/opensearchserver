@@ -86,7 +86,7 @@ public class MoreLikeThis {
 
 	}
 
-	public Query like(int docId) {
+	public Query like(long docId) {
 		// TODO Auto-generated method stub
 		return null;
 	}

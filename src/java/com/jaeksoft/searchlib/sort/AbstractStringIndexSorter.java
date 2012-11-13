@@ -40,7 +40,8 @@ public abstract class AbstractStringIndexSorter extends AbstractDocIdSorter {
 	@Override
 	public String toString(int pos) {
 		StringBuffer sb = new StringBuffer("StringIndex: ");
-		sb.append(stringIndex.lookup[stringIndex.order[ids[pos]]]);
+		// TODO Long implementation
+		sb.append(stringIndex.lookup[stringIndex.order[(int) ids[pos]]]);
 		return sb.toString();
 	}
 }

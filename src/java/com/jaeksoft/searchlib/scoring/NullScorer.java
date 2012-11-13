@@ -1,7 +1,7 @@
 /**   
  * License Agreement for OpenSearchServer
  *
- * Copyright (C) 2012 Keller / Jaeksoft
+ * Copyright (C) 2012 Emmanuel Keller / Jaeksoft
  * 
  * http://www.open-search-server.com
  * 
@@ -22,23 +22,14 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-package com.jaeksoft.searchlib.sort;
+package com.jaeksoft.searchlib.scoring;
 
-import com.jaeksoft.searchlib.index.StringIndex;
-import com.jaeksoft.searchlib.result.collector.DocIdInterface;
+public class NullScorer extends AbstractScorer {
 
-public class DescStringIndexSorter extends AbstractStringIndexSorter {
-
-	public DescStringIndexSorter(DocIdInterface collector,
-			StringIndex stringIndex) {
-		super(collector, stringIndex);
-	}
+	public final static NullScorer INSTANCE = new NullScorer();
 
 	@Override
-	final public int compare(int pos1, int pos2) {
-		// TODO Long implementation
-		return stringIndex.order[(int) ids[pos2]]
-				- stringIndex.order[(int) ids[pos1]];
-
+	final public float score() {
+		return 1.0F;
 	}
 }

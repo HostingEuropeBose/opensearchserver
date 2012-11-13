@@ -278,7 +278,7 @@ public class IndexSingle extends IndexAbstract {
 	}
 
 	@Override
-	public String explain(AbstractRequest request, int docId, boolean bHtml)
+	public String explain(AbstractRequest request, long docId, boolean bHtml)
 			throws SearchLibException {
 		rwl.r.lock();
 		try {
@@ -365,7 +365,7 @@ public class IndexSingle extends IndexAbstract {
 	}
 
 	@Override
-	public TermFreqVector getTermFreqVector(int docId, String field)
+	public TermFreqVector getTermFreqVector(long docId, String field)
 			throws IOException, SearchLibException {
 		rwl.r.lock();
 		try {
@@ -511,7 +511,7 @@ public class IndexSingle extends IndexAbstract {
 
 	@Override
 	public void search(Query query, BitSet filter, AbstractCollector collector)
-			throws SearchLibException {
+			throws SearchLibException, IOException {
 		rwl.r.lock();
 		try {
 			checkOnline(true);
@@ -581,7 +581,7 @@ public class IndexSingle extends IndexAbstract {
 	}
 
 	@Override
-	public Map<String, FieldValue> getDocumentFields(int docId,
+	public Map<String, FieldValue> getDocumentFields(long docId,
 			TreeSet<String> fieldSet, Timer timer) throws SearchLibException {
 		rwl.r.lock();
 		try {
