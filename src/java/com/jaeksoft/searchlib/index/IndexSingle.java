@@ -551,7 +551,7 @@ public class IndexSingle extends IndexAbstract {
 	@Override
 	public FilterHits getFilterHits(SchemaField defaultField,
 			AnalyzerSelector analyzerSelector, FilterAbstract<?> filter,
-			Timer timer) throws SearchLibException {
+			Timer timer) throws SearchLibException, ParseException, IOException {
 		rwl.r.lock();
 		try {
 			checkOnline(true);

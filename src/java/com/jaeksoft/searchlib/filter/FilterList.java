@@ -24,6 +24,7 @@
 
 package com.jaeksoft.searchlib.filter;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Iterator;
@@ -34,6 +35,7 @@ import org.xml.sax.SAXException;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.config.Config;
 import com.jaeksoft.searchlib.index.ReaderInterface;
+import com.jaeksoft.searchlib.query.ParseException;
 import com.jaeksoft.searchlib.schema.AnalyzerSelector;
 import com.jaeksoft.searchlib.schema.SchemaField;
 import com.jaeksoft.searchlib.util.Timer;
@@ -90,7 +92,7 @@ public class FilterList implements Iterable<FilterAbstract<?>> {
 
 	public BitSet getBitSet(ReaderInterface reader, SchemaField defaultField,
 			AnalyzerSelector analyzerSelector, Timer timer)
-			throws SearchLibException {
+			throws SearchLibException, ParseException, IOException {
 
 		if (size() == 0)
 			return null;

@@ -85,7 +85,7 @@ public class OsseQuery {
 		return cursor;
 	}
 
-	public Pointer createTermCursor(String field, String term,
+	private Pointer createTermsCursor(String field, WString[] terms,
 			TermOperator operator) throws SearchLibException {
 
 		int bop;
@@ -99,7 +99,6 @@ public class OsseQuery {
 			break;
 		}
 
-		WString[] terms = new WString[] { new WString(term) };
 		Pointer cursor = OsseLibrary.INSTANCE.OSSCLib_QCursor_Create(
 				index.getPointer(), new WString(field), terms, terms.length,
 				bop, error.getPointer());
@@ -107,12 +106,27 @@ public class OsseQuery {
 			throw new SearchLibException(error.getError());
 		cursors.add(cursor);
 
-		System.out.println("TERM CURSOR - " + field + ":" + term + " ("
+		System.out.println("TERM CURSOR - " + field + ":" + terms + " ("
 				+ cursorLength(cursor) + ")");
 		return cursor;
 	}
 
-	public Pointer matchAll() {
+	public Pointer createTermCursor(String field, String term,
+			TermOperator operator) throws SearchLibException {
+		WString[] terms = new WString[] { new WString(term) };
+		return createTermsCursor(field, terms, operator);
+	}
+
+	public Pointer createPhraseCursor(String field, List<String> terms,
+			TermOperator operator) throws SearchLibException {
+		WString[] wTerms = new WString[terms.size()];
+		int i = 0;
+		for (String term : terms)
+			wTerms[i++] = new WString(term);
+		return createTermsCursor(field, wTerms, operator);
+	}
+
+	public Pointer matchAllCursor() {
 		Pointer cursor = OsseLibrary.INSTANCE.OSSCLib_QCursor_Create(
 				index.getPointer(), null, null, 0,
 				OsseLibrary.OSSCLIB_QCURSOR_UI32BOP_OR, error.getPointer());

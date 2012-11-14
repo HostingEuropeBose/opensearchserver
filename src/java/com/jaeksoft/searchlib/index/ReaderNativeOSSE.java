@@ -27,14 +27,19 @@ package com.jaeksoft.searchlib.index;
 import java.io.IOException;
 import java.util.BitSet;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.filter.FilterAbstract;
 import com.jaeksoft.searchlib.filter.FilterHits;
 import com.jaeksoft.searchlib.function.expression.SyntaxError;
+import com.jaeksoft.searchlib.index.osse.OsseDocCursor;
 import com.jaeksoft.searchlib.index.osse.OsseErrorHandler;
+import com.jaeksoft.searchlib.index.osse.OsseFieldList;
+import com.jaeksoft.searchlib.index.osse.OsseFieldList.FieldInfo;
 import com.jaeksoft.searchlib.index.osse.OsseIndex;
 import com.jaeksoft.searchlib.index.osse.OsseQuery;
 import com.jaeksoft.searchlib.index.term.Term;
@@ -50,6 +55,7 @@ import com.jaeksoft.searchlib.result.AbstractResult;
 import com.jaeksoft.searchlib.result.collector.AbstractCollector;
 import com.jaeksoft.searchlib.schema.AnalyzerSelector;
 import com.jaeksoft.searchlib.schema.FieldValue;
+import com.jaeksoft.searchlib.schema.FieldValueItem;
 import com.jaeksoft.searchlib.schema.Schema;
 import com.jaeksoft.searchlib.schema.SchemaField;
 import com.jaeksoft.searchlib.util.ReadWriteLock;
@@ -193,9 +199,9 @@ public class ReaderNativeOSSE extends ReaderAbstract {
 	@Override
 	public FilterHits getFilterHits(SchemaField defaultField,
 			AnalyzerSelector analyzerSelector, FilterAbstract<?> filter,
-			Timer timer) throws SearchLibException {
-		// TODO Auto-generated method stub
-		return null;
+			Timer timer) throws SearchLibException, ParseException, IOException {
+		return filter
+				.getFilterHits(this, defaultField, analyzerSelector, timer);
 	}
 
 	@Override
@@ -214,8 +220,33 @@ public class ReaderNativeOSSE extends ReaderAbstract {
 	@Override
 	public Map<String, FieldValue> getDocumentFields(long docId,
 			TreeSet<String> fieldSet, Timer timer) throws SearchLibException {
-		// TODO Auto-generated method stub
-		return null;
+		OsseErrorHandler error = null;
+		OsseDocCursor docCursor = null;
+		Map<String, FieldValue> fieldValueMap = new TreeMap<String, FieldValue>();
+		rwl.r.lock();
+		try {
+			error = new OsseErrorHandler();
+			OsseFieldList fieldList = new OsseFieldList(index, error);
+			for (String fieldName : fieldSet) {
+				FieldInfo fieldInfo = fieldList.getFieldInfo(fieldName);
+				if (fieldInfo != null) {
+					docCursor = new OsseDocCursor(index, error);
+					List<FieldValueItem> valueList = docCursor.getTerms(
+							fieldInfo.pointer, docId);
+					docCursor.release();
+					if (valueList != null)
+						fieldValueMap.put(fieldName, new FieldValue(fieldName,
+								valueList));
+				}
+			}
+			return fieldValueMap;
+		} finally {
+			rwl.r.unlock();
+			if (docCursor != null)
+				docCursor.release();
+			if (error != null)
+				error.release();
+		}
 	}
 
 	@Override

@@ -42,7 +42,7 @@ public class NoSpaceNoControlToken extends Token {
 			return false;
 		if (Character.isISOControl(ch))
 			return false;
-		return Character.isUnicodeIdentifierPart(ch);
+		return Character.isDefined(ch);
 	}
 
 	@Override

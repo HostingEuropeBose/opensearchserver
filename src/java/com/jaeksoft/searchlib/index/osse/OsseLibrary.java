@@ -115,4 +115,14 @@ public interface OsseLibrary extends Library {
 
 	long OSSCLib_QCursor_GetNumberOfDocuments(Pointer hCursor,
 			Pointer lpbSuccess, Pointer hExtErrInfo);
+
+	Pointer OSSCLib_DocTCursor_Create(Pointer hIndex, Pointer hExtErrInfo);
+
+	void OSSCLib_DocTCursor_Delete(Pointer hDocTCursor);
+
+	WString OSSCLib_DocTCursor_FindFirstTerm(Pointer hDocTCursor,
+			Pointer hIndexField, long ui64DocId, Pointer hExtErrInfo);
+
+	WString OSSCLib_DocTCursor_FindNextTerm(Pointer hDocTCursor,
+			IntByReference lpbError, Pointer hExtErrInfo);
 }

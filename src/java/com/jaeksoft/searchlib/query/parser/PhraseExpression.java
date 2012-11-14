@@ -29,6 +29,7 @@ import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 
+import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.function.token.NoSpaceNoControlToken;
 import com.jaeksoft.searchlib.index.osse.OsseQuery;
 import com.sun.jna.Pointer;
@@ -76,8 +77,7 @@ public class PhraseExpression extends AbstractTermExpression {
 	}
 
 	@Override
-	public Pointer execute(OsseQuery osseQuery) {
-		// TODO Auto-generated method stub
-		return null;
+	public Pointer execute(OsseQuery osseQuery) throws SearchLibException {
+		return osseQuery.createPhraseCursor(field, terms, operator);
 	}
 }

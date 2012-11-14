@@ -100,7 +100,7 @@ public interface ReaderInterface {
 
 	public abstract FilterHits getFilterHits(SchemaField defaultField,
 			AnalyzerSelector analyzerSelector, FilterAbstract<?> filter,
-			Timer timer) throws SearchLibException;
+			Timer timer) throws SearchLibException, ParseException, IOException;
 
 	public abstract Map<String, FieldValue> getDocumentFields(long docId,
 			TreeSet<String> fieldSet, Timer timer) throws SearchLibException;

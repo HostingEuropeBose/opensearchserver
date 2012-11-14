@@ -110,7 +110,21 @@ public class OsseTransaction {
 	}
 
 	public void throwError() throws SearchLibException {
-		throw new SearchLibException(err.getError());
+		l.lock();
+		try {
+			throw new SearchLibException(err.getError());
+		} finally {
+			l.unlock();
+		}
+	}
+
+	public OsseErrorHandler getError() {
+		l.lock();
+		try {
+			return err;
+		} finally {
+			l.unlock();
+		}
 	}
 
 }
