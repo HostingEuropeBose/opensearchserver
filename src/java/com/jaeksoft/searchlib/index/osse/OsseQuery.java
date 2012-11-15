@@ -32,6 +32,8 @@ import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.query.Query;
 import com.jaeksoft.searchlib.query.parser.Expression.TermOperator;
 import com.jaeksoft.searchlib.result.collector.AbstractCollector;
+import com.jaeksoft.searchlib.util.FunctionTimer;
+import com.jaeksoft.searchlib.util.FunctionTimer.ExecutionToken;
 import com.sun.jna.Pointer;
 import com.sun.jna.WString;
 import com.sun.jna.ptr.IntByReference;
@@ -75,9 +77,12 @@ public class OsseQuery {
 			break;
 		}
 
+		ExecutionToken et = FunctionTimer.INSTANCE
+				.newExecutionToken("OSSCLib_QCursor_CreateCombinedCursor");
 		Pointer cursor = OsseLibrary.INSTANCE
 				.OSSCLib_QCursor_CreateCombinedCursor(combinedCursors,
 						combinedCursors.length, bop, error.getPointer());
+		et.end();
 		if (cursor == null)
 			throw new SearchLibException(error.getError());
 		cursors.add(cursor);
@@ -99,9 +104,12 @@ public class OsseQuery {
 			break;
 		}
 
+		ExecutionToken et = FunctionTimer.INSTANCE
+				.newExecutionToken("OSSCLib_QCursor_Create");
 		Pointer cursor = OsseLibrary.INSTANCE.OSSCLib_QCursor_Create(
 				index.getPointer(), new WString(field), terms, terms.length,
 				bop, error.getPointer());
+		et.end();
 		if (cursor == null)
 			throw new SearchLibException(error.getError());
 		cursors.add(cursor);
@@ -126,36 +134,50 @@ public class OsseQuery {
 		return createTermsCursor(field, wTerms, operator);
 	}
 
-	public Pointer matchAllCursor() {
+	public Pointer matchAllCursor() throws SearchLibException {
+		ExecutionToken et = FunctionTimer.INSTANCE
+				.newExecutionToken("OSSCLib_QCursor_Create (MatchAll)");
 		Pointer cursor = OsseLibrary.INSTANCE.OSSCLib_QCursor_Create(
 				index.getPointer(), null, null, 0,
 				OsseLibrary.OSSCLIB_QCURSOR_UI32BOP_OR, error.getPointer());
+		et.end();
+		if (cursor == null)
+			throw new SearchLibException(error.getError());
 		cursors.add(cursor);
 		return cursor;
 	}
 
 	public long cursorLength(Pointer cursor) {
-		return OsseLibrary.INSTANCE.OSSCLib_QCursor_GetNumberOfDocuments(
+		ExecutionToken et = FunctionTimer.INSTANCE
+				.newExecutionToken("OSSCLib_QCursor_GetNumberOfDocuments");
+		long l = OsseLibrary.INSTANCE.OSSCLib_QCursor_GetNumberOfDocuments(
 				cursor, null, error.getPointer());
+		et.end();
+		return l;
 	}
 
 	public void collect(AbstractCollector collector) throws SearchLibException,
 			IOException {
-		long[] docIdBuffer = new long[10000];
+		long bufferSize = cursorLength(finalCursor);
+		if (bufferSize > 1000000)
+			bufferSize = 1000000;
+		long[] docIdBuffer = new long[(int) bufferSize];
 		long docPosition = 0;
 		IntByReference bSuccess = new IntByReference();
 		for (;;) {
-			System.out.println("COLLECT " + docPosition);
+			ExecutionToken et = FunctionTimer.INSTANCE
+					.newExecutionToken("OSSCLib_QCursor_GetDocumentIds");
 			long length = OsseLibrary.INSTANCE.OSSCLib_QCursor_GetDocumentIds(
 					finalCursor, docIdBuffer, docIdBuffer.length, docPosition,
 					false, bSuccess, error.getPointer());
+			et.end();
 			if (bSuccess.getValue() == 0)
 				throw new SearchLibException(error.getError());
 			if (length == 0)
 				break;
 			for (int i = 0; i < length; i++)
 				collector.collect(docIdBuffer[i]);
-			docPosition = length;
+			docPosition += length;
 		}
 	}
 }

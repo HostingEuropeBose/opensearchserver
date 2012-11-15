@@ -52,6 +52,15 @@
 						<label
 							value="Enter the default language used by Tesseract" />
 					</row>
+					<row>
+						<label value="FunctionTimer" />
+						<cell>
+							<button id="dumpFunctionTimer" label="Dump" />
+							<space />
+							<button id="resetFunctionTimer"
+								label="Reset" />
+						</cell>
+					</row>
 				</rows>
 			</grid>
 		</panelchildren>

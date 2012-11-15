@@ -38,6 +38,7 @@ import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.index.osse.OsseLibrary;
 import com.jaeksoft.searchlib.logreport.ErrorParserLogger;
 import com.jaeksoft.searchlib.scheduler.TaskManager;
+import com.jaeksoft.searchlib.util.FunctionTimer;
 import com.jaeksoft.searchlib.util.ReadWriteLock;
 
 public class StartStopListener implements ServletContextListener {
@@ -98,6 +99,7 @@ public class StartStopListener implements ServletContextListener {
 		}
 		ClientCatalog.closeAll();
 		ErrorParserLogger.close();
+		System.out.println(FunctionTimer.INSTANCE);
 	}
 
 	protected ClientFactory getClientFactory() throws SearchLibException {

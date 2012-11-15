@@ -28,6 +28,8 @@ import java.io.File;
 
 import com.jaeksoft.searchlib.Logging;
 import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.util.FunctionTimer;
+import com.jaeksoft.searchlib.util.FunctionTimer.ExecutionToken;
 import com.sun.jna.Pointer;
 import com.sun.jna.WString;
 
@@ -42,11 +44,17 @@ public class OsseIndex {
 			WString path = new WString(indexDirectory.getPath());
 			if (!indexDirectory.exists()) {
 				indexDirectory.mkdir();
+				ExecutionToken et = FunctionTimer.INSTANCE
+						.newExecutionToken("OSSCLib_Index_Create");
 				indexPtr = OsseLibrary.INSTANCE.OSSCLib_Index_Create(path,
 						null, err.getPointer());
+				et.end();
 			} else {
+				ExecutionToken et = FunctionTimer.INSTANCE
+						.newExecutionToken("OSSCLib_Index_Open");
 				indexPtr = OsseLibrary.INSTANCE.OSSCLib_Index_Open(path, null,
 						err.getPointer());
+				et.end();
 			}
 			if (indexPtr == null)
 				throw new SearchLibException(err.getError());
@@ -64,9 +72,12 @@ public class OsseIndex {
 			return;
 		err = new OsseErrorHandler(err);
 		try {
+			ExecutionToken et = FunctionTimer.INSTANCE
+					.newExecutionToken("OSSCLib_Index_Close");
 			if (!OsseLibrary.INSTANCE.OSSCLib_Index_Close(indexPtr,
 					err.getPointer()))
 				Logging.warn(err.getError());
+			et.end();
 		} finally {
 			err.release();
 		}

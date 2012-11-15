@@ -30,6 +30,8 @@ import java.util.List;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.schema.FieldValueItem;
 import com.jaeksoft.searchlib.schema.FieldValueOriginEnum;
+import com.jaeksoft.searchlib.util.FunctionTimer;
+import com.jaeksoft.searchlib.util.FunctionTimer.ExecutionToken;
 import com.sun.jna.Pointer;
 import com.sun.jna.WString;
 import com.sun.jna.ptr.IntByReference;
@@ -42,8 +44,11 @@ public class OsseDocCursor {
 	public OsseDocCursor(OsseIndex index, OsseErrorHandler error)
 			throws SearchLibException {
 		this.error = error;
+		ExecutionToken et = FunctionTimer.INSTANCE
+				.newExecutionToken("OSSCLib_DocTCursor_Create");
 		docCursorPtr = OsseLibrary.INSTANCE.OSSCLib_DocTCursor_Create(
 				index.getPointer(), error.getPointer());
+		et.end();
 		if (docCursorPtr == null)
 			throw new SearchLibException(error.getError());
 	}
@@ -54,16 +59,22 @@ public class OsseDocCursor {
 	}
 
 	public List<FieldValueItem> getTerms(Pointer indexFieldPtr, long docId) {
+		ExecutionToken et = FunctionTimer.INSTANCE
+				.newExecutionToken("OSSCLib_DocTCursor_FindFirstTerm");
 		WString term = OsseLibrary.INSTANCE.OSSCLib_DocTCursor_FindFirstTerm(
 				docCursorPtr, indexFieldPtr, docId, error.getPointer());
+		et.end();
 		if (term == null)
 			return null;
 		List<FieldValueItem> list = new ArrayList<FieldValueItem>(0);
 		addTerm(list, term);
 		IntByReference bError = new IntByReference();
 		for (;;) {
+			et = FunctionTimer.INSTANCE
+					.newExecutionToken("OSSCLib_DocTCursor_FindNextTerm");
 			term = OsseLibrary.INSTANCE.OSSCLib_DocTCursor_FindNextTerm(
 					docCursorPtr, bError, error.getPointer());
+			et.end();
 			if (term == null)
 				break;
 			if (bError.getValue() != 0)
@@ -80,7 +91,10 @@ public class OsseDocCursor {
 	final public void release() {
 		if (docCursorPtr == null)
 			return;
+		ExecutionToken et = FunctionTimer.INSTANCE
+				.newExecutionToken("OSSCLib_DocTCursor_Delete");
 		OsseLibrary.INSTANCE.OSSCLib_DocTCursor_Delete(docCursorPtr);
+		et.end();
 		docCursorPtr = null;
 	}
 

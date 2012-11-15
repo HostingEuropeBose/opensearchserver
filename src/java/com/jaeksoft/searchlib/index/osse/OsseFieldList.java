@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import com.jaeksoft.searchlib.SearchLibException;
+import com.jaeksoft.searchlib.util.FunctionTimer;
+import com.jaeksoft.searchlib.util.FunctionTimer.ExecutionToken;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 
@@ -47,10 +49,13 @@ public class OsseFieldList {
 			IntByReference fieldId = new IntByReference();
 			IntByReference fieldType = new IntByReference();
 			IntByReference fieldFlags = new IntByReference();
+			ExecutionToken et = FunctionTimer.INSTANCE
+					.newExecutionToken("OSSCLib_Index_GetFieldNameAndProperties");
 			Pointer hFieldName = OsseLibrary.INSTANCE
 					.OSSCLib_Index_GetFieldNameAndProperties(
 							index.getPointer(), fieldPtr, fieldId, fieldType,
 							fieldFlags, index.getPointer());
+			et.end();
 			if (hFieldName == null)
 				throw new SearchLibException(error.getError());
 			name = hFieldName.getString(0, true);
@@ -58,8 +63,11 @@ public class OsseFieldList {
 			type = fieldType.getValue();
 			flags = fieldType.getValue();
 			pointer = fieldPtr;
+			et = FunctionTimer.INSTANCE
+					.newExecutionToken("OSSCLib_Index_GetFieldNameAndProperties_Free");
 			OsseLibrary.INSTANCE
 					.OSSCLib_Index_GetFieldNameAndProperties_Free(hFieldName);
+			et.end();
 		}
 	}
 
@@ -68,13 +76,19 @@ public class OsseFieldList {
 	public OsseFieldList(OsseIndex index, OsseErrorHandler error)
 			throws SearchLibException {
 		fieldPointerMap = new TreeMap<String, FieldInfo>();
+		ExecutionToken et = FunctionTimer.INSTANCE
+				.newExecutionToken("OSSCLib_Index_GetListOfFields");
 		int nField = OsseLibrary.INSTANCE.OSSCLib_Index_GetListOfFields(
 				index.getPointer(), null, 0, error.getPointer());
+		et.end();
 		if (nField == 0)
 			return;
 		Pointer[] hFieldArray = new Pointer[nField];
+		et = FunctionTimer.INSTANCE
+				.newExecutionToken("OSSCLib_Index_GetListOfFields");
 		OsseLibrary.INSTANCE.OSSCLib_Index_GetListOfFields(index.getPointer(),
 				hFieldArray, nField, error.getPointer());
+		et.end();
 		for (Pointer fieldPtr : hFieldArray) {
 			FieldInfo info = new FieldInfo(index, error, fieldPtr);
 			fieldPointerMap.put(info.name, info);
