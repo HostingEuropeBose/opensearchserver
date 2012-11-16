@@ -26,7 +26,8 @@ package com.jaeksoft.searchlib.result.collector;
 
 public interface JoinDocInterface extends DocIdInterface {
 
-	void setForeignDocId(int pos, int joinResultPos, long foreignDocId);
+	void setForeignDocId(int pos, int joinResultPos, long foreignDocId,
+			float foreignScore);
 
 	long getForeignDocIds(int pos, int joinPosition);
 

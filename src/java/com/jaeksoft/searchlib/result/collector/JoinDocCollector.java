@@ -59,22 +59,22 @@ public class JoinDocCollector implements JoinDocInterface {
 		this.joinResultSize = joinResultSize;
 	}
 
+	protected JoinDocCollector(int joinResultSize, int idsLength, int maxDoc) {
+		this.bitSet = null;
+		this.joinResultSize = joinResultSize;
+		this.ids = new long[idsLength];
+		this.foreignDocIdsArray = new long[idsLength][];
+		this.maxDoc = maxDoc;
+	}
+
 	/**
 	 * Copy only the valid item (other than -1)
 	 * 
 	 * @param src
 	 */
 	protected JoinDocCollector(JoinDocCollector src) {
-		this.joinResultSize = src.joinResultSize;
-		this.bitSet = null;
-		this.maxDoc = src.maxDoc;
+		this(src.joinResultSize, validSize(src.ids), src.maxDoc);
 		int i1 = 0;
-		for (long id : src.ids)
-			if (id != -1)
-				i1++;
-		ids = new long[i1];
-		foreignDocIdsArray = new long[ids.length][];
-		i1 = 0;
 		int i2 = 0;
 		for (long id : src.ids) {
 			if (id != -1) {
@@ -84,6 +84,14 @@ public class JoinDocCollector implements JoinDocInterface {
 			}
 			i2++;
 		}
+	}
+
+	protected static final int validSize(long[] ids) {
+		int i = 0;
+		for (long id : ids)
+			if (id != -1)
+				i++;
+		return i;
 	}
 
 	final public static long[][] copyForeignDocIdsArray(
@@ -142,7 +150,8 @@ public class JoinDocCollector implements JoinDocInterface {
 	}
 
 	@Override
-	public void setForeignDocId(int pos, int joinResultPos, long foreignDocId) {
+	public void setForeignDocId(int pos, int joinResultPos, long foreignDocId,
+			float foreignScore) {
 		long[] foreignDocIds = foreignDocIdsArray[pos];
 		if (foreignDocIds == null)
 			foreignDocIds = new long[joinResultSize];
@@ -168,7 +177,7 @@ public class JoinDocCollector implements JoinDocInterface {
 	final public static DocIdInterface join(DocIdInterface docs,
 			StringIndex doc1StringIndex, DocIdInterface docs2,
 			StringIndex doc2StringIndex, int joinResultSize, int joinResultPos,
-			Timer timer) {
+			Timer timer, boolean factorScore) {
 		if (docs.getSize() == 0 || docs2.getSize() == 0)
 			return docs instanceof ScoreDocInterface ? JoinScoreDocCollector.EMPTY
 					: JoinDocCollector.EMPTY;
@@ -182,10 +191,17 @@ public class JoinDocCollector implements JoinDocInterface {
 
 		t = new Timer(timer, "copy & sort foreign documents");
 		docs2 = docs2.duplicate();
+		float scores2[] = null;
+		if (docs2 instanceof ScoreDocInterface && factorScore) {
+			if (factorScore)
+				scores2 = ((ScoreDocInterface) docs2).getScores();
+
+		}
 		new AscStringIndexSorter(docs2, doc2StringIndex).quickSort(t);
 		t.duration();
 
 		t = new Timer(timer, "join operation");
+		float score2 = 1.0F;
 		int i1 = 0;
 		int i2 = 0;
 		long[] ids1 = docs1.getIds();
@@ -207,7 +223,9 @@ public class JoinDocCollector implements JoinDocInterface {
 						ids1[i1++] = -1;
 				}
 			} else {
-				docs1.setForeignDocId(i1, joinResultPos, id2);
+				if (scores2 != null)
+					score2 = scores2[i2];
+				docs1.setForeignDocId(i1, joinResultPos, id2, score2);
 				i1++;
 			}
 		}

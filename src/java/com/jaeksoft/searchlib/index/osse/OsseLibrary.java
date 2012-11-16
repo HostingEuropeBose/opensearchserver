@@ -88,6 +88,10 @@ public interface OsseLibrary extends Library {
 			WString[] lplpwszFieldName, int ui32NumberOfFields,
 			Pointer hExtErrInfo);
 
+	int OSSCLib_Transact_ReserveExtraSpaceForDocHandles(Pointer hTransact,
+			int ui32NumberOfNewDocs, int ui32NumberOfExistingDocs,
+			Pointer hExtErrInfo);
+
 	int OSSCLib_Index_GetListOfFields(Pointer hIndex, Pointer[] hFieldArray,
 			int fieldArraySize, Pointer hExtErrInfo);
 

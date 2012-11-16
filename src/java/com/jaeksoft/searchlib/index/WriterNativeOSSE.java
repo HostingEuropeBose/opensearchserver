@@ -226,7 +226,7 @@ public class WriterNativeOSSE extends WriterAbstract {
 		try {
 			AnalyzerSelector analyzerSelector = schema.getAnalyzerSelector();
 			transaction = new OsseTransaction(index);
-
+			transaction.reserveExtraSpace(documents.size(), 0);
 			int i = 0;
 			for (IndexDocument document : documents) {
 				updateDoc(analyzerSelector, transaction, schema, document);

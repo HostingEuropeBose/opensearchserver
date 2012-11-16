@@ -164,7 +164,8 @@ public class CollapseDocIdCollector implements CollapseDocInterface,
 	}
 
 	@Override
-	public void setForeignDocId(int pos, int joinResultPos, long foreignDocId) {
+	public void setForeignDocId(int pos, int joinResultPos, long foreignDocId,
+			float foreignScore) {
 		throw new RuntimeException(
 				"New join is not allowed on already collapsed documents");
 	}

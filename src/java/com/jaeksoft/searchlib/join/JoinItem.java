@@ -61,6 +61,8 @@ public class JoinItem implements CacheKeyInterface<JoinItem> {
 
 	private boolean returnFields;
 
+	private boolean returnScores;
+
 	public JoinItem() {
 		indexName = null;
 		queryTemplate = null;
@@ -69,6 +71,7 @@ public class JoinItem implements CacheKeyInterface<JoinItem> {
 		foreignField = null;
 		paramPosition = null;
 		returnFields = false;
+		returnScores = false;
 	}
 
 	public JoinItem(JoinItem source) {
@@ -83,6 +86,7 @@ public class JoinItem implements CacheKeyInterface<JoinItem> {
 		target.foreignField = foreignField;
 		target.paramPosition = paramPosition;
 		target.returnFields = returnFields;
+		target.returnScores = returnScores;
 	}
 
 	public JoinItem(XPathParser xpp, Node node) throws XPathExpressionException {
@@ -93,8 +97,10 @@ public class JoinItem implements CacheKeyInterface<JoinItem> {
 		localField = XPathParser.getAttributeString(node, ATTR_NAME_LOCALFIELD);
 		foreignField = XPathParser.getAttributeString(node,
 				ATTR_NAME_FOREIGNFIELD);
-		returnFields = "true".equals(XPathParser.getAttributeString(node,
-				ATTR_NAME_RETURNFIELDS));
+		returnFields = Boolean.parseBoolean(XPathParser.getAttributeString(
+				node, ATTR_NAME_RETURNFIELDS));
+		returnScores = Boolean.parseBoolean(XPathParser.getAttributeString(
+				node, ATTR_NAME_RETURNSCORES));
 	}
 
 	public final String NODE_NAME_JOIN = "join";
@@ -103,12 +109,14 @@ public class JoinItem implements CacheKeyInterface<JoinItem> {
 	public final String ATTR_NAME_LOCALFIELD = "localField";
 	public final String ATTR_NAME_FOREIGNFIELD = "foreignField";
 	public final String ATTR_NAME_RETURNFIELDS = "returnFields";
+	public final String ATTR_NAME_RETURNSCORES = "returnScores";
 
 	public void writeXmlConfig(XmlWriter xmlWriter) throws SAXException {
 		xmlWriter.startElement(NODE_NAME_JOIN, ATTR_NAME_INDEXNAME, indexName,
 				ATTR_NAME_QUERYTEMPLATE, queryTemplate, ATTR_NAME_LOCALFIELD,
 				localField, ATTR_NAME_FOREIGNFIELD, foreignField,
-				ATTR_NAME_RETURNFIELDS, Boolean.toString(returnFields));
+				ATTR_NAME_RETURNFIELDS, Boolean.toString(returnFields),
+				ATTR_NAME_RETURNSCORES, Boolean.toString(returnScores));
 		xmlWriter.textNode(queryString);
 		xmlWriter.endElement();
 	}
@@ -229,6 +237,21 @@ public class JoinItem implements CacheKeyInterface<JoinItem> {
 		this.returnFields = returnFields;
 	}
 
+	/**
+	 * @return the returnScores
+	 */
+	public boolean isReturnScores() {
+		return returnScores;
+	}
+
+	/**
+	 * @param returnScores
+	 *            the returnScores to set
+	 */
+	public void setReturnScores(boolean returnScores) {
+		this.returnScores = returnScores;
+	}
+
 	public DocIdInterface apply(ReaderInterface reader, DocIdInterface docs,
 			int joinResultSize, JoinResult joinResult, Timer timer)
 			throws SearchLibException {
@@ -270,7 +293,7 @@ public class JoinItem implements CacheKeyInterface<JoinItem> {
 			DocIdInterface joinDocs = JoinDocCollector.join(docs,
 					localStringIndex, resultSearch.getDocs(),
 					foreignFieldIndex, joinResultSize, joinResult.joinPosition,
-					t);
+					t, returnScores);
 			t.duration();
 			return joinDocs;
 		} catch (NamingException e) {

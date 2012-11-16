@@ -60,6 +60,25 @@ public class OsseTransaction {
 		}
 	}
 
+	final public void reserveExtraSpace(int newDocs, int existingDocs)
+			throws SearchLibException {
+		l.lock();
+		try {
+			err = new OsseErrorHandler();
+			ExecutionToken et = FunctionTimer.INSTANCE
+					.newExecutionToken("OSSCLib_Transact_ReserveExtraSpaceForDocHandles");
+			int res = OsseLibrary.INSTANCE
+					.OSSCLib_Transact_ReserveExtraSpaceForDocHandles(
+							transactPtr, newDocs, existingDocs,
+							err.getPointer());
+			et.end();
+			if (res == 0)
+				throwError();
+		} finally {
+			l.unlock();
+		}
+	}
+
 	final public Pointer getFieldPointer(String fieldName) {
 		l.lock();
 		try {
