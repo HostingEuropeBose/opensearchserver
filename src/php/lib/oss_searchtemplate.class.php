@@ -1,8 +1,8 @@
 <?php
 /*
-*  This file is part of OpenSearchServer.
+ *  This file is part of OpenSearchServer.
 *
-*  Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+*  Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
 *
 *  http://www.open-search-server.com
 *
@@ -26,24 +26,31 @@
  * Class to access OpenSearchServer API
  */
 
-if (!class_exists('OssApi')) {
-  trigger_error("OssSearch won't work whitout OssApi", E_USER_ERROR); die();
-}
+require_once(dirname(__FILE__).'/oss_abstract.class.php');
 
-class OssSearchTemplate {
+class OssSearchTemplate extends OssAbstract {
 
-  protected $enginePath;
-  protected $index;
+  const API_SEARCH_TEMPLATE='searchtemplate';
+  const API_SEARCH_TEMPLATE_CREATE='create';
+  const API_SEARCH_TEMPLATE_SETRETURNFIELD='setreturnfield';
+  const API_SEARCH_TEMPLATE_SETSNIPPETFIELD='setsnippetfield';
+
   protected $query;
   protected $template;
 
   public function __construct($enginePath, $index = NULL, $login = NULL, $apiKey = NULL) {
-    $ossAPI = new OssApi($enginePath, $index);
-    $this->enginePath  = $ossAPI->getEnginePath();
-    $this->index    = $ossAPI->getIndex();
-    $this->credential($login, $apiKey);
+    $this->init($enginePath, $index, $login, $apiKey);
   }
 
+  /**
+   * Create a query template
+   * @param string $qtname Name of the template
+   * @param string $qtquery Query
+   * @param string $qtoperator Default operator
+   * @param int $qtrows Number of rows
+   * @param int $qtslop Phrase slop
+   * @param string $qtlang Default language
+   */
   public function createSearchTemplate($qtname, $qtquery = NULL, $qtoperator = NULL, $qtrows = NULL, $qtslop = NULL, $qtlang = NULL) {
     $params = array("qt.name" => $qtname);
     if ($qtquery) {
@@ -59,16 +66,58 @@ class OssSearchTemplate {
       $params['qt.slop'] = $qtslop;
     }
     if ($qtlang) {
+      if (strlen($qtlang) == 2) {
+        $qtlang = mb_strtoupper(OssAPI::getLanguage($qtlang));
+      }
       $params['qt.lang'] = $qtlang;
     }
-    $return = OssApi::queryServerXML($this->getQueryURL(OssApi::API_SEARCH_TEMPLATE, $this->index  , OssApi::API_SEARCH_TEMPLATE_CREATE, $params));
+    $params['cmd'] = OssSearchTemplate::API_SEARCH_TEMPLATE_CREATE;
+    $return = $this->queryServerXML(OssSearchTemplate::API_SEARCH_TEMPLATE, $params);
+    return $return === FALSE ? FALSE : TRUE;
+  }
+
+  /**
+   * Function to create spell check Query Template
+   * @param string $qtname
+   * @param string $qtquery
+   * @param int $qtsuggestions
+   * @param stringarray $qtfield
+   * @param float $qtscore
+   * @param string $qtlang
+   * @param string $qtalgorithm LevensteinDistance, NGramDistance or JaroWinklerDistance
+   */
+  public function createSpellCheckTemplate($qtname, $qtquery = NULL, $qtsuggestions = NULL, $qtfield = NULL, $qtscore = NULL, $qtlang = NULL, $qtalgorithm = NULL) {
+    $params = array("qt.name" => $qtname);
+    $params['qt.type'] = 'SpellCheckRequest';
+    if ($qtquery) {
+      $params['qt.query'] = $qtquery;
+    }
+    if ($qtsuggestions) {
+      $params['qt.suggestions'] = $qtsuggestions;
+    }
+    if ($qtfield) {
+      $params['qt.field'] = $qtfield;
+    }
+    if ($qtscore) {
+      $params['qt.score'] = $qtscore;
+    }
+
+    if ($qtlang) {
+      $params['qt.lang'] = $qtlang;
+    }
+    if ($qtalgorithm) {
+      $params['qt.algorithm'] = $qtalgorithm;
+    }
+    $params['cmd'] = OssSearchTemplate::API_SEARCH_TEMPLATE_CREATE;
+    $return = $this->queryServerXML(OssSearchTemplate::API_SEARCH_TEMPLATE, $params);
     return $return === FALSE ? FALSE : TRUE;
   }
 
   public function setReturnField($qtname, $returnField) {
     $params = array("qt.name" => $qtname);
     $params['returnfield']=$returnField;
-    $return = OssApi::queryServerXML($this->getQueryURL(OssApi::API_SEARCH_TEMPLATE, $this->index  , OssApi::API_SEARCH_TEMPLATE_SETRETURNFIELD, $params));
+    $params['cmd'] = OssSearchTemplate::API_SEARCH_TEMPLATE_SETRETURNFIELD;
+    $return = $this->queryServerXML(OssSearchTemplate::API_SEARCH_TEMPLATE, $params);
     return $return === FALSE ? FALSE : TRUE;
   }
 
@@ -87,57 +136,64 @@ class OssSearchTemplate {
       $params['qt.fragmenter'] = $fragmenter;
     }
     $params['snippetfield'] = $snippetField;
-    $return = OssApi::queryServerXML($this->getQueryURL(OssApi::API_SEARCH_TEMPLATE, $this->index  , OssApi::API_SEARCH_TEMPLATE_SETSNIPPETFIELD, $params));
+    $params['cmd'] = OssSearchTemplate::API_SEARCH_TEMPLATE_SETSNIPPETFIELD;
+    $return = $this->queryServerXML(OssSearchTemplate::API_SEARCH_TEMPLATE, $params);
     return $return === FALSE ? FALSE : TRUE;
   }
 
-  public function credential($login, $apiKey) {
-    // Remove credentials
-    if (empty($login)) {
-      $this->login  = NULL;
-      $this->apiKey  = NULL;
-      return;
-    }
+  public function createMoreLikeThisTemplate(
+    $qtname, $qtquery = NULL, $qtLike = NULL, $qtAnalyzer = NULL, $qtLang = NULL, $qtMinwordlen = NULL,
+    $qtMaxwordlen = NULL, $qtMindocfreq = NULL, $qtMintermfreq = NULL, $qtMaxqueryTerms = NULL,
+    $qtMaxnumtokensparsed = NULL, $qtStopwords = NULL, $qtRows = NULL, $qtStart = NULL, $qtFields = NULL) {
 
-    // Else parse and affect new credentials
-    if (empty($login) || empty($apiKey)) {
-      if (class_exists('OssException')) {
-        throw new UnexpectedValueException('You must provide a login and an api key to use credential.');
-      }
-      trigger_error(__CLASS__ . '::' . __METHOD__ . ': You must provide a login and an api key to use credential.', E_USER_ERROR);
-      return FALSE;
+    $params = array("qt.name" => $qtname);
+    $params['qt.type'] = 'MoreLikeThisRequest';
+    if ($qtquery) {
+      $params['qt.query'] = $qtquery;
     }
-
-    $this->login  = $login;
-    $this->apiKey  = $apiKey;
+    if ($qtLike) {
+      $params['qt.like'] = $qtLike;
+    }
+    if ($qtAnalyzer) {
+      $params['qt.analyzer'] = $qtAnalyzer;
+    }
+    if ($qtLang) {
+      $params['qt.lang'] = $qtLang;
+    }
+    if ($qtMinwordlen) {
+      $params['qt.minwordlen'] = $qtMinwordlen;
+    }
+    if ($qtMaxwordlen) {
+      $params['qt.maxwordlen'] = $qtMaxwordlen;
+    }
+    if ($qtMindocfreq) {
+      $params['qt.mindocfreq'] = $qtMindocfreq;
+    }
+    if ($qtMintermfreq) {
+      $params['qt.mintermfreq'] = $qtMintermfreq;
+    }
+    if ($qtMaxqueryTerms) {
+      $params['qt.maxqueryTerms'] = $qtMaxqueryTerms;
+    }
+    if ($qtMaxnumtokensparsed) {
+      $params['qt.maxnumtokensparsed'] = $qtMaxnumtokensparsed;
+    }
+    if ($qtStopwords) {
+      $params['qt.stopwords'] = $qtStopwords;
+    }
+    if ($qtRows) {
+      $params['qt.rows'] = $qtRows;
+    }
+    if ($qtStart) {
+      $params['qt.start'] = $qtStart;
+    }
+    if ($qtFields) {
+      $params['qt.fields'] = $qtFields;
+    }
+    $params['cmd'] = OssSearchTemplate::API_SEARCH_TEMPLATE_CREATE;
+    $return = $this->queryServerXML(OssSearchTemplate::API_SEARCH_TEMPLATE, $params);
+    return $return === FALSE ? FALSE : TRUE;
   }
 
-  protected function getQueryURL($apiCall, $index = NULL, $cmd = NULL, $options = NULL) {
-
-    $path = $this->enginePath . '/' . $apiCall;
-    $chunks = array();
-    if (!empty($index)) {
-      $chunks[] = 'use=' . urlencode($index);
-    }
-    if (!empty($cmd)) {
-      $chunks[] = 'cmd=' . urlencode($cmd);
-    }
-    // If credential provided, include them in the query url
-    if (!empty($this->login)) {
-      $chunks[] = "login=" . urlencode($this->login);
-      $chunks[] = "key="  . urlencode($this->apiKey);
-    }
-
-    // Prepare additionnal parameters
-    if (is_array($options)) {
-      foreach ($options as $argName => $argValue) {
-        $chunks[] = $argName . "=" . urlencode($argValue);
-      }
-    }
-
-    $path .= (strpos($path, '?') !== FALSE ? '&' : '?') . implode("&", $chunks);
-
-    return $path;
-  }
 }
 ?>

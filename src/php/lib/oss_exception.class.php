@@ -1,6 +1,6 @@
 <?php
 /*
-*  This file is part of OpenSearchServer.
+ *  This file is part of OpenSearchServer.
 *
 *  Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
 *
@@ -63,13 +63,13 @@ class OssException extends RuntimeException {
       error_reporting($previous_error_level);
 
       if (!$xmlDoc) {
-        throw new RuntimeException("The provided parameter is not a valid XML data. Please use OSSAPI::isOSSError before throwing this exception.");
+        throw new RuntimeException('The provided parameter is not a valid XML data. Please use OSSAPI::isOSSError before throwing this exception.');
       }
     }
 
     $data = array();
     foreach ($xmlDoc->entry as $entry)
-    $data[(string)$entry['key']] = (string)$entry;
+      $data[(string)$entry['key']] = (string)$entry;
 
     $this->status  = $data['Status'];
 

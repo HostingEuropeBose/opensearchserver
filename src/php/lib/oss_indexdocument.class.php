@@ -1,8 +1,8 @@
 <?php
 /*
-*  This file is part of OpenSearchServer.
+ *  This file is part of OpenSearchServer.
 *
-*  Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
+*  Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
 *
 *  http://www.open-search-server.com
 *
@@ -25,9 +25,6 @@
  * Class to access OpenSearchServer API
  */
 
-if (!class_exists('OssApi')) {
-  trigger_error("OssSearch won't work whitout OssApi", E_USER_ERROR); die();
-}
 if (!class_exists('ArrayObject')) {
   trigger_error("OssIndexDocument won't work whitout SPL ArrayObject", E_USER_ERROR); die();
 }

@@ -1,24 +1,24 @@
 <?php
 /*
  *  This file is part of OpenSearchServer.
- *
- *  Copyright (C) 2008-2011 Emmanuel Keller / Jaeksoft
- *
- *  http://www.open-search-server.com
- *
- *  OpenSearchServer is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  OpenSearchServer is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with OpenSearchServer.  If not, see <http://www.gnu.org/licenses/>.
- */
+*
+*  Copyright (C) 2008-2012 Emmanuel Keller / Jaeksoft
+*
+*  http://www.open-search-server.com
+*
+*  OpenSearchServer is free software: you can redistribute it and/or modify
+*  it under the terms of the GNU General Public License as published by
+*  the Free Software Foundation, either version 3 of the License, or
+*  (at your option) any later version.
+*
+*  OpenSearchServer is distributed in the hope that it will be useful,
+*  but WITHOUT ANY WARRANTY; without even the implied warranty of
+*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*  GNU General Public License for more details.
+*
+*  You should have received a copy of the GNU General Public License
+*  along with OpenSearchServer.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 
 /**
@@ -26,40 +26,29 @@
  * Class to access OpenSearchServer API
  */
 
-if (!class_exists('OssApi')) {
-  trigger_error("OssSearch won't work whitout OssApi", E_USER_ERROR); die();
-}
+require_once(dirname(__FILE__).'/oss_abstract.class.php');
+require_once(dirname(__FILE__).'/oss_search_abstract.class.php');
+
 
 /**
- * @author pmercier <pmercier@open-search-server.com>
  * @package OpenSearchServer
- * FIXME Complete this documentations
- * FIXME Clean this class and use facilities provided by OssApi
- */
-class OssSearch {
+*/
+class OssSearch extends OssSearchAbstract {
 
-  protected $enginePath;
-  protected $index;
   protected $query;
-  protected $template;
   protected $start;
   protected $rows;
   protected $lang;
   protected $filter;
-  protected $delete;
+  protected $negativeFilter;
   protected $field;
   protected $sort;
+  protected $operator;
   protected $collapse;
   protected $facet;
-  protected $sortBy;
-  protected $moreLikeThis;
-  protected $log;
-  protected $customLogs;
-
-  protected $login;
-  protected $apiKey;
-
-  protected $lastQueryString;
+  protected $join;
+  protected $joinFilter;
+  protected $joinNegativeFilter;
 
   /**
    * @param $enginePath The URL to access the OSS Engine
@@ -67,36 +56,23 @@ class OssSearch {
    * @return OssSearch
    */
   public function __construct($enginePath, $index = NULL, $rows = NULL, $start = NULL, $login = NULL, $apiKey = NULL) {
-
-    $ossAPI = new OssApi($enginePath, $index);
-
-    $this->enginePath  = $ossAPI->getEnginePath();
-    $this->index    = $ossAPI->getIndex();
-
-    $this->credential($login, $apiKey);
+    parent::__construct($enginePath, $index, $login, $apiKey);
 
     $this->rows($rows);
     $this->start($start);
 
     $this->field  = array();
     $this->filter  = array();
+    $this->negativeFilter  = array();
     $this->sort    = array();
-    $this->facets  = array();
-    $this->collapse  = array('field' => NULL, 'max' => NULL, 'mode' => NULL);
-    $this->moreLikeThis = array('active' => NULL, 'docquery' => NULL, 'minwordlen' => NULL,
-      'maxwordlen' => NULL, 'mindocfreq' => NULL, 'mintermfreq' => NULL, 'stopwords' => NULL);
-    $this->log = FALSE;
-    $this->customLogs = array();
-  }
-
-  /**
-   * Specify the index name to query
-   * @param $index string
-   * @return OssSearch
-   */
-  public function index($index = NULL) {
-    $this->index = $index;
-    return $this;
+    $this->facet  = array();
+    $this->join = array();
+    $this->joinFilter  = array();
+    $this->joinNegativeFilter  = array();
+    $this->query = NULL;
+    $this->lang = NULL;
+    $this->operator = NULL;
+    $this->collapse  = array('field' => NULL, 'max' => NULL, 'mode' => NULL, 'type' => NULL);
   }
 
   /**
@@ -106,14 +82,6 @@ class OssSearch {
    */
   public function query($query = NULL) {
     $this->query = $query;
-    return $this;
-  }
-
-  /**
-   * @return OssSearch
-   */
-  public function template($template = NULL) {
-    $this->template = $template;
     return $this;
   }
 
@@ -134,6 +102,16 @@ class OssSearch {
   }
 
   /**
+   * Set the default operation OR or AND
+   * @param unknown_type $start
+   * @return OssSearch
+   */
+  public function operator($operator = NULL) {
+    $this->operator = $operator;
+    return $this;
+  }
+
+  /**
    * @return OssSearch
    */
   public function filter($filter = NULL) {
@@ -142,29 +120,11 @@ class OssSearch {
   }
 
   /**
-   * @param $login string
-   * @param $apiKey string
-   * If $login is empty, credential is removed
+   * @return OssSearch
    */
-  public function credential($login, $apiKey) {
-    // Remove credentials
-    if (empty($login)) {
-      $this->login  = NULL;
-      $this->apiKey  = NULL;
-      return;
-    }
-
-    // Else parse and affect new credentials
-    if (empty($login) || empty($apiKey)) {
-      if (class_exists('OssException')) {
-        throw new UnexpectedValueException('You must provide a login and an api key to use credential.');
-      }
-      trigger_error(__CLASS__ . '::' . __METHOD__ . ': You must provide a login and an api key to use credential.', E_USER_ERROR);
-      return FALSE;
-    }
-
-    $this->login  = $login;
-    $this->apiKey  = $apiKey;
+  public function negativeFilter($negativeFilter = NULL) {
+    $this->negativeFilter[] = $negativeFilter;
+    return $this;
   }
 
   /**
@@ -172,14 +132,6 @@ class OssSearch {
    */
   public function lang($lang = NULL) {
     $this->lang = $lang;
-    return $this;
-  }
-
-  /**
-   * @return OssSearch
-   */
-  public function delete($delete = TRUE) {
-    $this->delete = (bool)$delete;
     return $this;
   }
 
@@ -196,7 +148,7 @@ class OssSearch {
    */
   public function sort($fields) {
     foreach ((array)$fields as $field)
-    $this->sort[] = $field;
+      $this->sort[] = $field;
     return $this;
   }
 
@@ -219,6 +171,15 @@ class OssSearch {
   /**
    * @return OssSearch
    */
+  public function collapseType($type) {
+    $this->collapse['type'] = $type;
+    return $this;
+  }
+
+
+  /**
+   * @return OssSearch
+   */
   public function collapseMax($max) {
     $this->collapse['max'] = $max;
     return $this;
@@ -227,88 +188,50 @@ class OssSearch {
   /**
    * @return OssSearch
    */
-  public function facet($field, $min = NULL, $multi = FALSE) {
-    $this->facet[$field] = array('min' => $min, 'multi' => $multi);
+  public function facet($field, $min = NULL, $multi = FALSE, $multi_collapse = FALSE) {
+    $this->facet[$field] = array('min' => $min, 'multi' => $multi, 'multi_collapse' => $multi_collapse);
     return $this;
   }
 
-  public function moreLikeThisActive($active) {
-    $this->moreLikeThis['active'] = $active;
-  }
-
-  public function moreLikeThisDocQuery($docQuery) {
-    $this->moreLikeThis['docquery'] = $active;
-  }
-
-  public function moreLikeThisMinWordLen($minwordlen) {
-    $this->moreLikeThis['minwordlen'] = $minwordlen;
-  }
-
-  public function moreLikeThisMaxWordLen($maxwordlen) {
-    $this->moreLikeThis['maxwordlen'] = $maxwordlen;
-  }
-
-  public function moreLikeThisMinDocFreq($mindocfreq) {
-    $this->moreLikeThis['mindocfreq'] = $mindocfreq;
-  }
-
-  public function moreLikeThisMinTermFreq($mintermfreq) {
-    $this->moreLikeThis['mintermfreq'] = $mintermfreq;
-  }
-
-  public function moreLikeThisMinStopWords($stopwords) {
-    $this->moreLikeThis['stopwords'] = $stopwords;
-  }
-
-  public function setLog($log = FALSE) {
-    $this->log = $log;
-  }
-
-  public function setCustomLog($pos, $log) {
-    $this->customLogs[(int)$pos] = $log;
-  }
-
-
   /**
-   * @return SimpleXMLElement False if the query produced an error
-   * FIXME Must think about OssApi inteegration inside OssSearch
+   * @return OssSearch
    */
-  public function execute($connectTimeOut = NULL, $timeOut = NULL) {
-    // Do the query
-    $this->lastQueryString = $this->prepareQueryString();
-    $result = OssApi::queryServerXML($this->lastQueryString, NULL, $connectTimeOut, $timeOut);
-    if ($result === FALSE) {
-      return FALSE;
-    }
-    return $result;
+  public function join($position, $value) {
+    $intpos = (int) $position;
+    $this->join[$intpos] = $value;
+    return $this;
   }
 
   /**
-   * Return the last query string
-   * @return string
+   * @return OssSearch
    */
-  public function getLastQueryString() {
-    return $this->lastQueryString;
+  public function joinFilter($position, $filter = NULL) {
+    $intpos = (int) $position;
+    if (!array_key_exists($intpos, $this->joinFilter)) {
+      $this->joinFilter[$intpos] = array();
+    }
+    $this->joinFilter[$intpos][] = $filter;
+    return $this;
   }
 
-  protected function prepareQueryString() {
-
-    $queryChunks = array();
-
-    // If credential provided, include them in the query url
-    if (!empty($this->login)) {
-      $queryChunks[] = "login=" . $this->login;
-      $queryChunks[] = "key="   . $this->apiKey;
+  /**
+   * @return OssSearch
+   */
+  public function joinNegativeFilter($position, $negativeFilter = NULL) {
+    $intpos = (int) $position;
+    if (!array_key_exists($intpos, $this->joinNegativeFilter)) {
+      $this->joinFilter[$intpos] = array();
     }
+    $this->joinNegativeFilter[$intpos][] = $negativeFilter;
+    return $this;
+  }
 
+  protected function addParams($queryChunks = NULL) {
+
+    $queryChunks = parent::addParams($queryChunks);
+     
     $queryChunks[] = 'q=' . urlencode((empty($this->query) ? "*:*" : $this->query));
 
-    if (!empty($this->index)) {
-      $queryChunks[] = 'use='  . $this->index;
-    }
-    if (!empty($this->template)) {
-      $queryChunks[] = 'qt='   . $this->template;
-    }
     if (!empty($this->lang)) {
       $queryChunks[] = 'lang=' . $this->lang;
     }
@@ -316,12 +239,13 @@ class OssSearch {
     if ($this->rows   !== NULL) {
       $queryChunks[] = 'rows='  . (int) $this->rows;
     }
+
     if ($this->start !== NULL) {
       $queryChunks[] = 'start=' . (int) $this->start;
     }
 
-    if ($this->delete) {
-      $queryChunks[] = 'delete';
+    if ($this->operator !== NULL) {
+      $queryChunks[] = 'operator=' . $this->operator;
     }
 
     // Sorting
@@ -329,7 +253,7 @@ class OssSearch {
       if (empty($sort)) {
         continue;
       }
-      $queryChunks[] = 'sort=' . $sort;
+      $queryChunks[] = 'sort=' . urlencode($sort);
     }
 
     // Filters
@@ -340,6 +264,14 @@ class OssSearch {
       $queryChunks[] = 'fq=' . urlencode($filter);
     }
 
+    // Negative Filters
+    foreach ((array) $this->negativeFilter as $negativeFilter) {
+      if (empty($negativeFilter)) {
+        continue;
+      }
+      $queryChunks[] = 'fqn=' . urlencode($negativeFilter);
+    }
+
     // Fields
     foreach ((array)$this->field as $field) {
       if (empty($field)) continue;
@@ -348,7 +280,13 @@ class OssSearch {
 
     // Facets
     foreach ((array)$this->facet as $field => $options) {
-      $facet  = $options['multi'] ? 'facet.multi=' : 'facet=';
+      if ($options['multi']) {
+        $facet = 'facet.multi=';
+      } else if ($options['multi_collapse']) {
+        $facet = 'facet.multi.collapse=';
+      } else {
+        $facet = 'facet=';
+      }
       $facet .= $field;
       if ($options['min'] !== NULL) {
         $facet .= '(' . $options['min'] . ')';
@@ -356,9 +294,37 @@ class OssSearch {
       $queryChunks[] = $facet;
     }
 
+    // Join query parameter
+    foreach ((array)$this->join as $position => $value) {
+      $queryChunks[] = 'jq'.$position.'='.urlencode($value);
+    }
+
+    // Join filters
+    foreach ((array) $this->joinFilter as $position => $filters) {
+      foreach ((array) $filters as $filter) {
+        if (empty($filter)) {
+          continue;
+        }
+        $queryChunks[] = 'jq'.$position.'.fq=' . urlencode($filter);
+      }
+    }
+
+    // Join negative Filters
+    foreach ((array) $this->joinNegativeFilter as $position => $negativeFilters) {
+      foreach ((array) $negativeFilters as $negativeFilter) {
+        if (empty($negativeFilter)) {
+          continue;
+        }
+        $queryChunks[] = 'jq'.$position.'.fqn=' . urlencode($negativeFilter);
+      }
+    }
+
     // Collapsing
     if ($this->collapse['field']) {
       $queryChunks[] = 'collapse.field=' . $this->collapse['field'];
+    }
+    if ($this->collapse['type']) {
+      $queryChunks[] = 'collapse.type=' . $this->collapse['type'];
     }
     if ($this->collapse['mode'] !== NULL) {
       $queryChunks[] = 'collapse.mode=' . $this->collapse['mode'];
@@ -367,38 +333,7 @@ class OssSearch {
       $queryChunks[] = 'collapse.max=' . (int)$this->collapse['max'];
     }
 
-    // MoreLikeThis
-    if ($this->moreLikeThis['active']) {
-      $queryChunks[] = 'mlt=yes';
-    }
-    if ($this->moreLikeThis['docquery']) {
-      $queryChunks[] = 'mlt.docquery=' . urlencode($this->moreLikeThis['docquery']);
-    }
-    if ($this->moreLikeThis['minwordlen']) {
-      $queryChunks[] = 'mlt.minwordlen=' . (int)$this->moreLikeThis['minwordlen'];
-    }
-    if ($this->moreLikeThis['maxwordlen']) {
-      $queryChunks[] = 'mlt.maxwordlen=' . (int)$this->moreLikeThis['maxwordlen'];
-    }
-    if ($this->moreLikeThis['mindocfreq']) {
-      $queryChunks[] = 'mlt.mindocfreq=' . (int)$this->moreLikeThis['mindocfreq'];
-    }
-    if ($this->moreLikeThis['mintermfreq']) {
-      $queryChunks[] = 'mlt.mintermfreq=' . (int)$this->moreLikeThis['mintermfreq'];
-    }
-    if ($this->moreLikeThis['stopwords']) {
-      $queryChunks[] = 'mlt.stopwords=' . urlencode($this->moreLikeThis['stopwords']);
-    }
-
-    // Logs and customLogs
-    if ($this->log) {
-      $queryChunks[] = 'log=' . $this->log;
-    }
-    foreach ($this->customLogs as $pos => $customLog) {
-      $queryChunks[] = 'log' . $pos . '=' . urlencode($customLog);
-    }
-    return $this->enginePath . '/' . OssApi::API_SELECT . '?' . implode('&', $queryChunks);
-
+    return $queryChunks;
   }
 }
 ?>
