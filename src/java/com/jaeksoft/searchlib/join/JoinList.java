@@ -103,22 +103,22 @@ public class JoinList implements Iterable<JoinItem> {
 			throws SearchLibException {
 		int joinItemSize = joinList.size();
 		int joinItemPos = 0;
+		List<JoinFacet> facetList = new ArrayList<JoinFacet>(0);
 		for (JoinItem joinItem : joinList) {
 			JoinResult joinResult = new JoinResult(joinItemPos++,
 					joinItem.getParamPosition(), joinItem.isReturnFields());
 			joinResults[joinResult.joinPosition] = joinResult;
 			collector = joinItem.apply(reader, collector, joinItemSize,
-					joinResult, timer);
+					joinResult, facetList, timer);
 		}
+		for (JoinFacet joinFacet : facetList)
+			joinFacet.apply(collector, timer);
 		return collector;
 	}
 
 	public void setFromServlet(ServletTransaction transaction) {
-		for (JoinItem item : joinList) {
-			String q = transaction.getParameterString(item.getParamPosition());
-			if (q != null)
-				item.setQueryString(q);
-		}
+		for (JoinItem item : joinList)
+			item.setFromServlet(transaction);
 	}
 
 }

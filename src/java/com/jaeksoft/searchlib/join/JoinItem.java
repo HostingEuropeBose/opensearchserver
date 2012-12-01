@@ -24,6 +24,8 @@
 
 package com.jaeksoft.searchlib.join;
 
+import java.util.List;
+
 import javax.naming.NamingException;
 import javax.xml.xpath.XPathExpressionException;
 
@@ -34,6 +36,8 @@ import com.jaeksoft.searchlib.Client;
 import com.jaeksoft.searchlib.ClientCatalog;
 import com.jaeksoft.searchlib.SearchLibException;
 import com.jaeksoft.searchlib.cache.CacheKeyInterface;
+import com.jaeksoft.searchlib.filter.FilterAbstract;
+import com.jaeksoft.searchlib.filter.FilterList;
 import com.jaeksoft.searchlib.index.ReaderInterface;
 import com.jaeksoft.searchlib.index.StringIndex;
 import com.jaeksoft.searchlib.request.AbstractRequest;
@@ -44,12 +48,15 @@ import com.jaeksoft.searchlib.result.collector.JoinDocCollector;
 import com.jaeksoft.searchlib.util.Timer;
 import com.jaeksoft.searchlib.util.XPathParser;
 import com.jaeksoft.searchlib.util.XmlWriter;
+import com.jaeksoft.searchlib.web.ServletTransaction;
 
 public class JoinItem implements CacheKeyInterface<JoinItem> {
 
 	private String indexName;
 
 	private String queryTemplate;
+
+	private FilterList filterList;
 
 	private String queryString;
 
@@ -63,6 +70,8 @@ public class JoinItem implements CacheKeyInterface<JoinItem> {
 
 	private boolean returnScores;
 
+	private boolean returnFacets;
+
 	public JoinItem() {
 		indexName = null;
 		queryTemplate = null;
@@ -72,6 +81,8 @@ public class JoinItem implements CacheKeyInterface<JoinItem> {
 		paramPosition = null;
 		returnFields = false;
 		returnScores = false;
+		returnFacets = false;
+		filterList = new FilterList();
 	}
 
 	public JoinItem(JoinItem source) {
@@ -87,6 +98,8 @@ public class JoinItem implements CacheKeyInterface<JoinItem> {
 		target.paramPosition = paramPosition;
 		target.returnFields = returnFields;
 		target.returnScores = returnScores;
+		target.returnFacets = returnFacets;
+		target.filterList = new FilterList(filterList);
 	}
 
 	public JoinItem(XPathParser xpp, Node node) throws XPathExpressionException {
@@ -101,6 +114,9 @@ public class JoinItem implements CacheKeyInterface<JoinItem> {
 				node, ATTR_NAME_RETURNFIELDS));
 		returnScores = Boolean.parseBoolean(XPathParser.getAttributeString(
 				node, ATTR_NAME_RETURNSCORES));
+		returnFacets = Boolean.parseBoolean(XPathParser.getAttributeString(
+				node, ATTR_NAME_RETURNFACETS));
+		filterList = new FilterList();
 	}
 
 	public final String NODE_NAME_JOIN = "join";
@@ -110,13 +126,15 @@ public class JoinItem implements CacheKeyInterface<JoinItem> {
 	public final String ATTR_NAME_FOREIGNFIELD = "foreignField";
 	public final String ATTR_NAME_RETURNFIELDS = "returnFields";
 	public final String ATTR_NAME_RETURNSCORES = "returnScores";
+	public final String ATTR_NAME_RETURNFACETS = "returnFacets";
 
 	public void writeXmlConfig(XmlWriter xmlWriter) throws SAXException {
 		xmlWriter.startElement(NODE_NAME_JOIN, ATTR_NAME_INDEXNAME, indexName,
 				ATTR_NAME_QUERYTEMPLATE, queryTemplate, ATTR_NAME_LOCALFIELD,
 				localField, ATTR_NAME_FOREIGNFIELD, foreignField,
 				ATTR_NAME_RETURNFIELDS, Boolean.toString(returnFields),
-				ATTR_NAME_RETURNSCORES, Boolean.toString(returnScores));
+				ATTR_NAME_RETURNSCORES, Boolean.toString(returnScores),
+				ATTR_NAME_RETURNFACETS, Boolean.toString(returnFacets));
 		xmlWriter.textNode(queryString);
 		xmlWriter.endElement();
 	}
@@ -252,9 +270,24 @@ public class JoinItem implements CacheKeyInterface<JoinItem> {
 		this.returnScores = returnScores;
 	}
 
+	/**
+	 * @return the returnFacets
+	 */
+	public boolean isReturnFacets() {
+		return returnFacets;
+	}
+
+	/**
+	 * @param returnFacets
+	 *            the returnFacets to set
+	 */
+	public void setReturnFacets(boolean returnFacets) {
+		this.returnFacets = returnFacets;
+	}
+
 	public DocIdInterface apply(ReaderInterface reader, DocIdInterface docs,
-			int joinResultSize, JoinResult joinResult, Timer timer)
-			throws SearchLibException {
+			int joinResultSize, JoinResult joinResult,
+			List<JoinFacet> joinFacets, Timer timer) throws SearchLibException {
 		try {
 			Client client = ClientCatalog.getClient(indexName);
 			if (client == null)
@@ -277,12 +310,21 @@ public class JoinItem implements CacheKeyInterface<JoinItem> {
 			if (searchRequest.getRows() == 0)
 				searchRequest.setRows(1);
 			searchRequest.setQueryString(queryString);
+			for (FilterAbstract<?> filter : filterList)
+				searchRequest.getFilterList().add(filter);
 			String joinResultName = "join " + joinResult.getParamPosition();
 			Timer t = new Timer(timer, joinResultName + " foreign search");
 			ResultSearchSingle resultSearch = (ResultSearchSingle) client
 					.request(searchRequest);
 			t.duration();
 			joinResult.setForeignResult(resultSearch);
+			if (searchRequest.isFacet()) {
+				if (returnFacets)
+					joinFacets.add(new JoinFacet(joinResult, searchRequest
+							.getFacetFieldList(), resultSearch));
+				searchRequest.getFacetFieldList().clear();
+			}
+
 			StringIndex foreignFieldIndex = resultSearch.getReader()
 					.getStringIndex(foreignField);
 			if (foreignFieldIndex == null)
@@ -299,5 +341,12 @@ public class JoinItem implements CacheKeyInterface<JoinItem> {
 		} catch (NamingException e) {
 			throw new SearchLibException(e);
 		}
+	}
+
+	public void setFromServlet(ServletTransaction transaction) {
+		String q = transaction.getParameterString(paramPosition);
+		if (q != null)
+			setQueryString(q);
+		filterList.addFromServlet(transaction, paramPosition + ".");
 	}
 }

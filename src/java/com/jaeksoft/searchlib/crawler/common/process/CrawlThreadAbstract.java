@@ -101,4 +101,10 @@ public abstract class CrawlThreadAbstract extends ThreadAbstract {
 		}
 	}
 
+	@Override
+	protected void sleepMs(long ms) {
+		setStatus(CrawlStatus.WAITING);
+		super.sleepMs(ms);
+	}
+
 }

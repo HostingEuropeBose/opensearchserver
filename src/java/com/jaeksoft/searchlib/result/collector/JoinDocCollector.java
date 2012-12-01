@@ -24,6 +24,7 @@
 
 package com.jaeksoft.searchlib.result.collector;
 
+import java.io.IOException;
 import java.util.BitSet;
 
 import org.apache.commons.lang3.ArrayUtils;
@@ -172,6 +173,16 @@ public class JoinDocCollector implements JoinDocInterface {
 	@Override
 	public long getForeignDocIds(int pos, int joinPosition) {
 		return getForeignDocIds(foreignDocIdsArray, pos, joinPosition);
+	}
+
+	final public static DocIdInterface getDocIdInterface(int maxDoc,
+			int joinPosition, JoinDocCollector joinDocColletor)
+			throws IOException {
+		DocIdCollector docIdCollector = new DocIdCollector(maxDoc,
+				joinDocColletor.getIds().length);
+		for (long[] foreinDocs : joinDocColletor.getForeignDocIdsArray())
+			docIdCollector.collect(foreinDocs[joinPosition]);
+		return docIdCollector;
 	}
 
 	final public static DocIdInterface join(DocIdInterface docs,
